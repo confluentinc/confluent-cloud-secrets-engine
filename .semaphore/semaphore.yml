@@ -51,26 +51,21 @@ global_job_config:
         - make epilogue-ci
 
 blocks:
-  - name: "Build, Test, Release"
-    run:
-      # don't run the build or unit tests on non-functional changes...
-      when: "change_in('/', {exclude: ['/.deployed-versions/', '.github/']})"
-    task:
-       # You can customize your CI job here
-#      env_vars:
-#        # custom env_vars
-#      prologue:
-#        commands:
-#          # custom vault secrets
-#          # custom prologue commands
       jobs:
-        - name: "Build, Test, Release"
+        - name: "Build and Test"
           commands:
-            - make build
-            - make test
-            - make release-ci
+            #go test ./... runs all tests in all the directories and sub-directories
+            - go test ./...
       epilogue:
         always:
           commands:
-            - make epilogue-ci
-            - make testbreak-after
+          #print location to be able to see where the test results are, lineage are in instrumentation/**/build/test-results/**/*.xml
+            - ls
+            - pwd
+            #- test-results publish (location)
+after_pipeline:
+  task:
+    jobs:
+      - name: Publish Results
+        commands:
+          - test-results gen-pipeline-report
