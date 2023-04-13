@@ -6,6 +6,10 @@
 4. Confluent Cloud API key - This can be created under Cloud Api keys which is found within the top right hamburger within Confluent Cloud. If you don't already have one associated with your account go ahead and create one.
 
 # Detailed Installation
+After cloning this repo to install all the necessary dependencies inside pkg/plugin run  
+```
+go build
+```
 
 GOOS=linux GOARCH=amd64 make build
 
@@ -105,3 +109,7 @@ Code: 500. Errors:
 ```
 
 Make sure the api token was created under Cloud Api keys found in the top right hamburger.
+
+# Tests
+To run the tests you have to be in pkg/plugin. Then run the command 
+```go test```
