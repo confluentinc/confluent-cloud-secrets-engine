@@ -122,7 +122,7 @@ func pathRole(b *ccloudBackend) []*framework.Path {
 }
 
 // pathRolesList makes a request to Vault storage to retrieve a list of roles for the backend
-func (b *ccloudBackend) pathRolesList(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
+func (confluentCloudBackend *ccloudBackend) pathRolesList(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
 	entries, err := req.Storage.List(ctx, "role/")
 	if err != nil {
 		return nil, err
@@ -132,8 +132,8 @@ func (b *ccloudBackend) pathRolesList(ctx context.Context, req *logical.Request,
 }
 
 // pathRolesRead makes a request to Vault storage to read a role and return response data
-func (b *ccloudBackend) pathRolesRead(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
-	entry, err := b.getRole(ctx, req.Storage, d.Get("name").(string))
+func (confluentCloudBackend *ccloudBackend) pathRolesRead(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
+	entry, err := confluentCloudBackend.getRole(ctx, req.Storage, d.Get("name").(string))
 	if err != nil {
 		return nil, err
 	}
@@ -148,13 +148,13 @@ func (b *ccloudBackend) pathRolesRead(ctx context.Context, req *logical.Request,
 }
 
 // pathRolesWrite makes a request to Vault storage to update a role based on the attributes passed to the role configuration
-func (b *ccloudBackend) pathRolesWrite(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
+func (confluentCloudBackend *ccloudBackend) pathRolesWrite(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
 	name, ok := d.GetOk("name")
 	if !ok {
 		return logical.ErrorResponse("missing role name"), nil
 	}
 
-	roleEntry, err := b.getRole(ctx, req.Storage, name.(string))
+	roleEntry, err := confluentCloudBackend.getRole(ctx, req.Storage, name.(string))
 	if err != nil {
 		return nil, err
 	}
@@ -225,7 +225,7 @@ func (b *ccloudBackend) pathRolesWrite(ctx context.Context, req *logical.Request
 }
 
 // pathRolesDelete makes a request to Vault storage to delete a role
-func (b *ccloudBackend) pathRolesDelete(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
+func (confluentCloudBackend *ccloudBackend) pathRolesDelete(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
 	err := req.Storage.Delete(ctx, "role/"+d.Get("name").(string))
 	if err != nil {
 		return nil, fmt.Errorf("error deleting apikey role: %w", err)
@@ -253,7 +253,7 @@ func setRole(ctx context.Context, s logical.Storage, name string, roleEntry *api
 }
 
 // getRole gets the role from the Vault storage API
-func (b *ccloudBackend) getRole(ctx context.Context, s logical.Storage, name string) (*apikeyRoleEntry, error) {
+func (confluentCloudBackend *ccloudBackend) getRole(ctx context.Context, s logical.Storage, name string) (*apikeyRoleEntry, error) {
 	if name == "" {
 		return nil, fmt.Errorf("missing role name")
 	}
