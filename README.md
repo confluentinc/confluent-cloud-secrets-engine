@@ -7,19 +7,23 @@
 
 # Detailed Installation
 After cloning this repo to install all the necessary dependencies inside pkg/plugin run  
-```
+```shell
 go build
 ```
 
-GOOS=linux GOARCH=amd64 make build
-
 ## 1. Generates the binary file hashicorp-vault-ccloud-secrets-engine under bin/hashicorp-vault-ccloud-secrets-engine
 
-``` GOOS=linux GOARCH=amd64  make build ```
+```shell
+ GOOS=linux GOARCH=amd64  make build 
+ ```
 
-## 2. ``` docker-compose up -d ```
+## 2. Spin up docker container
+```shell
+docker-compose up -d 
+   ```
 
-## 3. Mac command:
+## 3.Get the SHA256 digest of the binary file:
+Mac command:
 ```
 export SHA256=$(shasum -a 256 bin/hashicorp-vault-ccloud-secrets-engine | cut -d' ' -f1)
 ```
@@ -29,34 +33,36 @@ Linux command:
 export SHA256=$(sha256sum bin/vault-ccloud-secrets-engine | cut -d' ' -f1)
 ```
 
-## 4. Now run these commands
+## 4. In another shell set the vault address, vault token and register the plugin with the type being a "secret" and passing in the SHA of the binary.
+
 ```
 export VAULT_ADDR='http://0.0.0.0:8200
 export VAULT_TOKEN=12345
 vault plugin register -sha256="${SHA256}"  -command="hashicorp-vault-ccloud-secrets-engine" secret ccloud-secrets-engine
 ```
 
-To confirm commands have ran successfully you should see an output simialr to ```Success! Registered plugin: ccloud-secrets-engine```
+To confirm commands have run successfully you should see an output simialr to ```Success! Registered plugin: ccloud-secrets-engine```
 
-## 5. To enable the new secrets engine run this command 
+## 5. Enable the new Secrets Engine
 ```
 vault secrets enable -path="ccloud" -plugin-name="ccloud-secrets-engine" plugin
 ```
 When successfully enabled you should see ```Success! Enabled the ccloud-secrets-engine secrets engine at: ccloud/```
 
-## 6. Run this command in your terminal 
+## 6. Write to Confluent Cloud
+
+These steps provide the backend with an API key and secret used to make authenticated calls to the Confluent Cloud
 ```
 vault write ccloud/config ccloud_api_key_id="xxx" ccloud_api_key_secret="xxx" url="https://api.confluent.cloud"
 ```
 
 On success you should see ```Success! Data written to: ccloud/config```
 
-## 7. Next run this command in your terminal 
+## 7. Configuring a Role
+The following steps setup a new role.
 
-owner can be found in Accounts and Access then in the table it is the ID.
-owner_env can be found in the confluent environment list command under CLI and Tools which is found at the bottom left of the Clusters Overview page.
-resource can be found in the command to list clusters command under CLI and Tools which is found at the bottom left of the Clusters Overview page.
-resource_env is the same as owner_env
+Set up a role and pass in a name, environment_id (where cluster lives), owner_id (create keys under this user/service acct), and resource_id ( the kafka cluster to register keys with).
+owner can be found in Accounts and Access then in the table it is the ID, resource_env is the same as owner_env
 
 ```
 vault write ccloud/role/test name="test" owner="xxxx" owner_env="env-xxx" resource="lkc-xxx" resource_env="env-xxx"
