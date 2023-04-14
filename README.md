@@ -5,6 +5,54 @@
 3. Docker installed and running.
 4. Confluent Cloud API key - This can be created under Cloud Api keys which is found within the top right hamburger within Confluent Cloud. If you don't already have one associated with your account go ahead and create one.
 
+# Quick Start
+After cloning this repo have docker running locally before continuing .
+
+1. Build from source
+ ```shell
+ make build
+ ```
+## 2. Spin up docker container
+```shell
+docker-compose up -d 
+   ```
+
+## 3.This command gets the SHA256 digest of the binary file, exports the address and token for vault and enables the new secrets engine.
+
+```shell
+make enable
+```
+On success you should see 
+```Success! Registered plugin: ccloud-secrets-engine```
+
+## 4. Export the necessary environment variables and run make setup to enable plugin and configure a test role in Vault:
+Environment_id (where cluster lives), owner_id (create keys under this user/service acct), and resource_id ( the kafka cluster to register keys with).
+Owner can be found in Accounts and Access then in the table it is the ID, resource_env is the same as owner_env
+
+```shell
+export CONFLUENT_KEY="xxx"
+export CONFLUENT_SECRET="xxx"
+export CONFLUENT_ENVIRONMENT_ID="xxx"
+export CONFLUENT_OWNER_ID="xxx"
+export CONFLUENT_RESOURCE_ID="xxx"
+make setup
+```
+
+## 5. Finally, request a new dynamic API-key
+```shell
+vault read ccloud/creds/test
+```
+On success should return
+```
+Key                Value
+---                -----
+lease_id           ccloud/creds/test/xxxxxx
+lease_duration     1h
+lease_renewable    true
+key_id             xxxx
+secret             xxxxxxxxxx
+```
+
 # Detailed Installation
 After cloning this repo to install all the necessary dependencies inside pkg/plugin run  
 ```shell
@@ -14,7 +62,7 @@ go build
 ## 1. Generates the binary file hashicorp-vault-ccloud-secrets-engine under bin/hashicorp-vault-ccloud-secrets-engine
 
 ```shell
- GOOS=linux GOARCH=amd64  make build 
+ make build 
  ```
 
 ## 2. Spin up docker container
@@ -24,19 +72,19 @@ docker-compose up -d
 
 ## 3.Get the SHA256 digest of the binary file:
 Mac command:
-```
+```shell
 export SHA256=$(shasum -a 256 bin/hashicorp-vault-ccloud-secrets-engine | cut -d' ' -f1)
 ```
 
 Linux command:
-```
+```shell
 export SHA256=$(sha256sum bin/vault-ccloud-secrets-engine | cut -d' ' -f1)
 ```
 
 ## 4. In another shell set the vault address, vault token and register the plugin with the type being a "secret" and passing in the SHA of the binary.
 
-```
-export VAULT_ADDR='http://0.0.0.0:8200
+```shell
+export VAULT_ADDR='http://0.0.0.0:8200'
 export VAULT_TOKEN=12345
 vault plugin register -sha256="${SHA256}"  -command="hashicorp-vault-ccloud-secrets-engine" secret ccloud-secrets-engine
 ```
@@ -44,7 +92,7 @@ vault plugin register -sha256="${SHA256}"  -command="hashicorp-vault-ccloud-secr
 To confirm commands have run successfully you should see an output simialr to ```Success! Registered plugin: ccloud-secrets-engine```
 
 ## 5. Enable the new Secrets Engine
-```
+```shell
 vault secrets enable -path="ccloud" -plugin-name="ccloud-secrets-engine" plugin
 ```
 When successfully enabled you should see ```Success! Enabled the ccloud-secrets-engine secrets engine at: ccloud/```
@@ -52,7 +100,7 @@ When successfully enabled you should see ```Success! Enabled the ccloud-secrets-
 ## 6. Write to Confluent Cloud
 
 These steps provide the backend with an API key and secret used to make authenticated calls to the Confluent Cloud
-```
+```shell
 vault write ccloud/config ccloud_api_key_id="xxx" ccloud_api_key_secret="xxx" url="https://api.confluent.cloud"
 ```
 
@@ -64,14 +112,14 @@ The following steps setup a new role.
 Set up a role and pass in a name, environment_id (where cluster lives), owner_id (create keys under this user/service acct), and resource_id ( the kafka cluster to register keys with).
 owner can be found in Accounts and Access then in the table it is the ID, resource_env is the same as owner_env
 
-```
+```shell
 vault write ccloud/role/test name="test" owner="xxxx" owner_env="env-xxx" resource="lkc-xxx" resource_env="env-xxx"
 ```
 
-On success you should see '''Success! Data written to: ccloud/role/test'''
+On success, you should see '''Success! Data written to: ccloud/role/test'''
 
-## 8. To request a new dynamic API-key run this command in your terminal 
-```
+## 8. Finally, request a new dynamic API-key
+```shell
 vault read ccloud/creds/test
 ```
 
