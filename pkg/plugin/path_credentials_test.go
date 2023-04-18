@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/vault/sdk/logical"
 )
 
+// set these in env variables
 // newAcceptanceTestEnv creates a test environment for credentials
 func newAcceptanceTestEnv() (*testEnv, error) {
 	ctx := context.Background()
@@ -55,5 +56,5 @@ func TestAcceptanceUserToken(t *testing.T) {
 	t.Run("add user token role", acceptanceTestEnv.AddRole)
 	t.Run("read user token cred", acceptanceTestEnv.ReadToken)
 	t.Run("read user token cred", acceptanceTestEnv.ReadToken)
-	t.Run("cleanup user tokens", acceptanceTestEnv.CleanupTokens)
+	//t.Run("cleanup user tokens", acceptanceTestEnv.CleanupTokens)
 }

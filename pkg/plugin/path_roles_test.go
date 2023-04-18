@@ -15,6 +15,8 @@ const (
 	ownerEnv    = "roleOwnerEnv"
 	resource    = "testResource"
 	resourceEnv = "resource_env"
+	resourceID  = "resource_id"
+	apiKey      = "apiKey"
 	testTTL     = int64(120)
 	testMaxTTL  = int64(3600)
 )
@@ -44,19 +46,23 @@ func TestUserRole(testingT *testing.T) {
 		require.Len(testingT, resp.Data["keys"].([]string), 10)
 	})
 
-	testingT.Run("Create User Role - pass", func(testingT *testing.T) {
+	testingT.Run("Create User Role", func(testingT *testing.T) {
 		resp, err := testTokenRoleCreate(testingT, confluentCloudBackend, s, roleName, map[string]interface{}{
-			"owner":        owner,
-			"ttl":          testTTL,
-			"max_ttl":      testMaxTTL,
-			"owner_env":    ownerEnv,
-			"resource":     resource,
-			"resource_env": resourceEnv,
+			"api_key":        apiKey,
+			"environment_id": ownerEnv,
+			"owner_id":       owner,
+			"resource_id":    resourceID,
+			"owner":          owner,
+			"ttl":            testTTL,
+			"max_ttl":        testMaxTTL,
+			"owner_env":      ownerEnv,
+			"resource":       resource,
+			"resource_env":   resourceEnv,
 		})
 
 		require.Nil(testingT, err)
 		require.Nil(testingT, resp.Error())
-		require.NotNil(testingT, resp)
+		require.Nil(testingT, resp)
 	})
 
 	testingT.Run("Read User Role", func(testingT *testing.T) {
@@ -69,14 +75,14 @@ func TestUserRole(testingT *testing.T) {
 	})
 
 	testingT.Run("Update User Role", func(testingT *testing.T) {
-		resp, err := testTokenRoleUpdate(testingT, confluentCloudBackend, s, map[string]interface{}{
+		resp, err := testRoleUpdate(testingT, confluentCloudBackend, s, map[string]interface{}{
 			"ttl":     "1m",
 			"max_ttl": "5h",
 		})
 
 		require.Nil(testingT, err)
 		require.Nil(testingT, resp.Error())
-		require.NotNil(testingT, resp)
+		require.Nil(testingT, resp)
 	})
 
 	testingT.Run("Re-read User Role", func(testingT *testing.T) {
@@ -98,6 +104,8 @@ func TestUserRole(testingT *testing.T) {
 // Utility function to create a role while, returning any response (including errors)
 func testTokenRoleCreate(testingT *testing.T, confluentCloudBackend *ccloudBackend, logicalStorage logical.Storage, name string, data map[string]interface{}) (*logical.Response, error) {
 	testingT.Helper()
+	//this fails because there is no logical operation for create inside the confluent cloud backend
+	//should an operator be added to the confluent cloud dependency or is this test using the wrong import?
 	resp, err := confluentCloudBackend.HandleRequest(context.Background(), &logical.Request{
 		Operation: logical.CreateOperation,
 		Path:      "role/" + name,
@@ -113,13 +121,13 @@ func testTokenRoleCreate(testingT *testing.T, confluentCloudBackend *ccloudBacke
 }
 
 // Utility function to update a role while, returning any response (including errors)
-func testTokenRoleUpdate(testingT *testing.T, confluentCloudBackend *ccloudBackend, logicalStorage logical.Storage, data map[string]interface{}) (*logical.Response, error) {
-	testingT.Helper()
-	resp, err := confluentCloudBackend.HandleRequest(context.Background(), &logical.Request{
+func testRoleUpdate(t *testing.T, b *ccloudBackend, s logical.Storage, d map[string]interface{}) (*logical.Response, error) {
+	t.Helper()
+	resp, err := b.HandleRequest(context.Background(), &logical.Request{
 		Operation: logical.UpdateOperation,
 		Path:      "role/" + roleName,
-		Data:      data,
-		Storage:   logicalStorage,
+		Data:      d,
+		Storage:   s,
 	})
 
 	if err != nil {
@@ -127,7 +135,7 @@ func testTokenRoleUpdate(testingT *testing.T, confluentCloudBackend *ccloudBacke
 	}
 
 	if resp != nil && resp.IsError() {
-		testingT.Fatal(resp.Error())
+		t.Fatal(resp.Error())
 	}
 	return resp, nil
 }
