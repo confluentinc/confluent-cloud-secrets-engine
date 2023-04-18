@@ -54,12 +54,13 @@ secret             xxxxxxxxxx
 ```
 
 # Detailed Installation
-After cloning this repo to install all the necessary dependencies inside pkg/plugin run  
+After cloning this repo, to install all the necessary dependencies run  
 ```shell
+cd pkg/plugin
 go build
 ```
 
-## 1. Generates the binary file hashicorp-vault-ccloud-secrets-engine under bin/hashicorp-vault-ccloud-secrets-engine
+## 1. Now that the project has been built cd into the top level of the project because we want to generate the binary file hashicorp-vault-ccloud-secrets-engine under bin/hashicorp-vault-ccloud-secrets-engine
 
 ```shell
  make build 
@@ -73,12 +74,12 @@ docker-compose up -d
 ## 3.Get the SHA256 digest of the binary file:
 Mac command:
 ```shell
-export SHA256=$(shasum -a 256 bin/hashicorp-vault-ccloud-secrets-engine | cut -d' ' -f1)
+export SHA256=$(shasum -a 256 bin/vault-ccloud-secrets-engine | cut -d' ' -f1)
 ```
 
 Linux command:
 ```shell
-export SHA256=$(sha256sum bin/hashicorp-vault-ccloud-secrets-engine | cut -d' ' -f1)
+export SHA256=$(sha256sum bin/vault-ccloud-secrets-engine | cut -d' ' -f1)
 ```
 
 ## 4. In another shell set the vault address, vault token and register the plugin with the type being a "secret" and passing in the SHA of the binary.
@@ -86,7 +87,7 @@ export SHA256=$(sha256sum bin/hashicorp-vault-ccloud-secrets-engine | cut -d' ' 
 ```shell
 export VAULT_ADDR='http://0.0.0.0:8200'
 export VAULT_TOKEN=12345
-vault plugin register -sha256="${SHA256}" -command="hashicorp-vault-ccloud-secrets-engine" secret ccloud-secrets-engine
+vault plugin register -sha256="${SHA256}" -command="vault-ccloud-secrets-engine" secret ccloud-secrets-engine
 ```
 
 To confirm commands have run successfully you should see an output simialr to ```Success! Registered plugin: ccloud-secrets-engine```

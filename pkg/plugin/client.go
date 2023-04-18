@@ -25,6 +25,10 @@ func newClient(config *ccloudConfig, logger hclog.Logger) (*ccloudAPIKeyClient, 
 		return nil, errors.New("CCloud API Key ID not defined")
 	}
 
+	if config.URL == "" {
+		return nil, errors.New("CCloud URL not defined")
+	}
+
 	if config.ApiKeySecret == "" {
 		return nil, errors.New("CCloud API Key Secret not defined")
 	}
