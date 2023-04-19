@@ -46,7 +46,7 @@ func TestRevokeTokenReturnsErrorGettingClient(t *testing.T) {
 	assert.EqualErrorf(t, err, expectedErrorMsg, "Error should be: %v, got: %v", expectedErrorMsg, err)
 }
 
-// this doesnt work as client is nil
+// this doesn't work as client is nil
 func TestRevokeTokenReturnsErrorGettingKeyId(t *testing.T) {
 	b := newBackend()
 

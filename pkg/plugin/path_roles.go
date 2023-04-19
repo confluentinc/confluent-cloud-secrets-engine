@@ -42,7 +42,7 @@ func (r *apikeyRoleEntry) toResponseData() map[string]interface{} {
 
 // pathRole extends the Vault API with a `/role`
 // endpoint for the backend. You can choose whether
-// or not certain attributes should be displayed,
+// certain attributes should be displayed,
 // required, and named. You can also define different
 // path patterns to list all roles.
 func pathRole(b *ccloudBackend) []*framework.Path {
@@ -202,7 +202,7 @@ func (confluentCloudBackend *ccloudBackend) pathRolesWrite(ctx context.Context, 
 	}
 
 	if roleEntry.MaxTTL != 0 && roleEntry.TTL > roleEntry.MaxTTL {
-		return logical.ErrorResponse("ttl cannot be greater than max_ttl"), nil
+		return nil, fmt.Errorf("ttl cannot be greater than max_ttl")
 	}
 
 	//if display_name_template, ok := d.GetOk("display_name_template"); ok {
