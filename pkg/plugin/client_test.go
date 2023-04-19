@@ -57,7 +57,3 @@ func TestClientConfigReturnsResponseWhenConfigIsNotNil(t *testing.T) {
 	assert.NotNil(t, clientResponse)
 	assert.Nil(t, error)
 }
-
-func TestCreateApiKey(t *testing.T) {
-
-}
