@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+//these hit the confluent cloud running but i want to stub these with a different service
 const (
 	envVarRunAccTests  = "VAULT_ACC"
 	envVarCCloudKeyId  = "TEST_CCLOUD_KEY_ID"
