@@ -5,11 +5,19 @@
 3. Docker installed and running.
 4. Confluent Cloud Account
 5. Confluent Cloud API key - This can be created under Cloud Api keys which is found within the top right hamburger within Confluent Cloud. If you don't already have one associated with your account go ahead and create one.
+   After cloning this repo, to install all the necessary dependencies run
 
 # Quick Start
-After cloning this repo have docker running locally before continuing .
+After cloning this repo have docker running locally before continuing.
+
+1. Download dependencies 
+```shell
+cd pkg/plugin
+go build
+```
 
 1. Build from source
+Run this command in the top level of the project. If you have just downloaded the project dependencies please cd into the top level. 
  ```shell
  make create
  ```
@@ -61,10 +69,10 @@ cd pkg/plugin
 go build
 ```
 
-## 1. Now that the project has been built cd into the top level of the project because we want to generate the binary file hashicorp-vault-ccloud-secrets-engine under bin/hashicorp-vault-ccloud-secrets-engine
-
+## 1. Generate the binary file hashicorp-vault-ccloud-secrets-engine
+Now that the project has been built cd into the top level of the project because we want to generate the binary file hashicorp-vault-ccloud-secrets-engine under bin/hashicorp-vault-ccloud-secrets-engine
 ```shell
- make build 
+ 	GOOS=linux GOARCH=amd64  make build
  ```
 
 ## 2. Spin up docker container
@@ -136,14 +144,14 @@ key_id             xxxx
 secret             xxxxxxxxxx
 ```
 
-You should be able to see your new api key inside the list of api keys for the cluster under your account. It should look simialr to "INSERT PICTURE HERE"
+You should be able to see your new api key inside the list of api keys for the cluster under your account.
 
 
 # Possible Errors
 ```
 command not found: vault
 ```
-This error means that the hasicorp vault cli isnt installed on the local machine. Please read the Project Pre-Requisites for all necessary tools.
+This error means that the hashicorp vault cli isn't installed on the local machine. Please read the Project Pre-Requisites for all necessary tools.
 
 ```
 error creating CCloud Cluster API token - Error reading ccloud/creds/test: Error making API request.
@@ -169,3 +177,14 @@ Make sure the api token was created under Cloud Api keys found in the top right 
 # Tests
 To run the tests you have to be in pkg/plugin. Then run the command 
 ```go test```
+
+# Integration Testing
+Go to TestAcceptanceUserToken in pie-cc-hashicorp-vault-plugin/pkg/plugin
+In the run configurations you will need to set some environment config which can be found in confluent cloud. This is the same information needed in the quick start:
+Environment_id (where cluster lives), owner_id (create keys under this user/service acct), and resource_id ( the kafka cluster to register keys with).
+owner can be found in Accounts and Access then in the table it is the ID, resource_env is the same as owner_env
+
+In the environment field for the tests add:
+```
+CONFLUENT_ENVIRONMENT_ID=envID;CONFLUENT_RESOURCE_ID=resourceid;TEST_CCLOUD_KEY_ID=cloudKey;TEST_CCLOUD_OWNER=user ;TEST_CCLOUD_SECRET=cloudSecret;TEST_URL=https://api.confluent.cloud
+```
