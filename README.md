@@ -10,32 +10,35 @@
 # Quick Start
 After cloning this repo have docker running locally before continuing.
 
-1. Download dependencies 
+## 1. Download dependencies 
 ```shell
 cd pkg/plugin
 go build
 ```
 
-1. Build from source
+## 2. Build
 Run this command in the top level of the project. If you have just downloaded the project dependencies please cd into the top level. 
  ```shell
  make create
  ```
-## 2. Spin up docker container
+## 3. Start Docker Container
 ```shell
 docker-compose up -d 
    ```
 
-## 3.This command exports the address and token for vault, gets the SHA256 digest of the binary file and enables the new secret's engine.
-
+## 4. Export Config
+This command exports the address and token for vault, gets the SHA256 digest of the binary file and enables the new secret's engine.
 ```shell
 make enable
 ```
 On success, you should see 
 ```Success! Registered plugin: ccloud-secrets-engine```
 
-## 4. Export the necessary environment variables and run make setup to enable plugin and configure a test role in Vault:
-Log into confluent cloud to find these environment variables. Environment_id (where cluster lives), owner_id (create keys under this user/service acct), and resource_id ( the kafka cluster to register keys with).
+## 5. Export Environment Variables
+Export the necessary environment variables and run make setup to enable plugin and configure a test role in Vault:
+Log into confluent cloud to find these environment variables. 
+If you have an existing confluent cloud api key and secret you can use that. If not go to Cloud API Keys and create a new key.
+CONFLUENT_KEY (confluent cloud api key), CONFLUENT_SECRET (confluent cloud api key secret), CONFLUENT_ENVIRONMENT_ID (where cluster lives), CONFLUENT_OWNER_ID (create keys under this user/service acct), and CONFLUENT_RESOURCE_ID ( the kafka cluster to register keys with).
 Owner can be found in Accounts and Access then in the table it is the ID, resource_env is the same as owner_env
 
 ```shell
@@ -47,7 +50,7 @@ export CONFLUENT_RESOURCE_ID="xxx"
 make setup
 ```
 
-## 5. Finally, request a new dynamic API-key
+## 6. Finally, Request a New Dynamic API-key
 ```shell
 vault read ccloud/creds/test
 ```
@@ -69,18 +72,19 @@ cd pkg/plugin
 go build
 ```
 
-## 1. Generate the binary file hashicorp-vault-ccloud-secrets-engine
+## 1. Generate Binary File
 Now that the project has been built cd into the top level of the project because we want to generate the binary file hashicorp-vault-ccloud-secrets-engine under bin/hashicorp-vault-ccloud-secrets-engine
 ```shell
  	GOOS=linux GOARCH=amd64  make build
  ```
 
-## 2. Spin up docker container
+## 2. Start Docker Container
 ```shell
 docker-compose up -d 
    ```
 
-## 3.Get the SHA256 digest of the binary file:
+## 3. Export SHA256
+Get the SHA256 digest of the binary file:
 Mac command:
 ```shell
 export SHA256=$(shasum -a 256 bin/vault-ccloud-secrets-engine | cut -d' ' -f1)
@@ -91,8 +95,8 @@ Linux command:
 export SHA256=$(sha256sum bin/vault-ccloud-secrets-engine | cut -d' ' -f1)
 ```
 
-## 4. In another shell set the vault address, vault token and register the plugin with the type being a "secret" and passing in the SHA of the binary.
-
+## 4. Export Config
+In another shell set the vault address, vault token and register the plugin with the type being a "secret" and passing in the SHA of the binary.
 ```shell
 export VAULT_ADDR='http://0.0.0.0:8200'
 export VAULT_TOKEN=12345
@@ -101,7 +105,7 @@ vault plugin register -sha256="${SHA256}" -command="vault-ccloud-secrets-engine"
 
 To confirm commands have run successfully you should see an output simialr to ```Success! Registered plugin: ccloud-secrets-engine```
 
-## 5. Enable the new Secrets Engine
+## 5. Enable The New Secrets Engine
 ```shell
 vault secrets enable -path="ccloud" -plugin-name="ccloud-secrets-engine" plugin
 ```
@@ -128,7 +132,7 @@ vault write ccloud/role/test name="test" owner="xxxx" owner_env="env-xxx" resour
 
 On success, you should see '''Success! Data written to: ccloud/role/test'''
 
-## 8. Finally, request a new dynamic API-key
+## 8. Finally, Request a New Dynamic API-key
 ```shell
 vault read ccloud/creds/test
 ```
@@ -179,12 +183,15 @@ To run the tests you have to be in pkg/plugin. Then run the command
 ```go test```
 
 # Integration Testing
-Go to TestAcceptanceUserToken in pie-cc-hashicorp-vault-plugin/pkg/plugin
+Go to ```TestAcceptanceUserToken``` in ```pie-cc-hashicorp-vault-plugin/pkg/plugin```.
+
 In the run configurations you will need to set some environment config which can be found in confluent cloud. This is the same information needed in the quick start:
-Environment_id (where cluster lives), owner_id (create keys under this user/service acct), and resource_id ( the kafka cluster to register keys with).
-owner can be found in Accounts and Access then in the table it is the ID, resource_env is the same as owner_env
+
+If you have an existing confluent cloud api key and secret you can use that. If not go to Cloud API Keys and create a new key.
+CONFLUENT_KEY (confluent cloud api key), CONFLUENT_SECRET (confluent cloud api key secret), CONFLUENT_ENVIRONMENT_ID (where cluster lives), CONFLUENT_OWNER_ID (create keys under this user/service acct), and CONFLUENT_RESOURCE_ID ( the kafka cluster to register keys with).
+Owner can be found in Accounts and Access then in the table it is the ID, resource_env is the same as owner_env
 
 In the environment field for the tests add:
 ```
-CONFLUENT_ENVIRONMENT_ID=envID;CONFLUENT_RESOURCE_ID=resourceid;TEST_CCLOUD_KEY_ID=cloudKey;TEST_CCLOUD_OWNER=user ;TEST_CCLOUD_SECRET=cloudSecret;TEST_URL=https://api.confluent.cloud
+CONFLUENT_ENVIRONMENT_ID=Environment_id;CONFLUENT_RESOURCE_ID=resource_id;TEST_CCLOUD_KEY_ID=cloudKey;TEST_CCLOUD_OWNER=Environment_id;TEST_CCLOUD_SECRET=cloudSecret;TEST_URL=https://api.confluent.cloud
 ```
