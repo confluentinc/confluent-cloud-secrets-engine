@@ -19,11 +19,11 @@ UNAME = $(shell uname -s)
 #Select the os based off the machine the user is using to run the command
 ifndef OS
 	ifeq ($(UNAME), Linux)
-		OS = linux
-		shavalue = sha256sum
+		export OS = linux
+		export SHA256 = $(shell sha256sum bin/vault-ccloud-secrets-engine | cut -d' ' -f1)
 	else ifeq ($(UNAME), Darwin)
-		OS = darwin
-		shavalue = shasum -a 256
+		export OS = darwin
+		export SHA256 = $(shell shasum -a 256 bin/vault-ccloud-secrets-engine | cut -d' ' -f1)
 	endif
 endif
 
@@ -33,8 +33,8 @@ endif
 
 all: fmt build test start
 
-build:
-	GOOS=$(OS) GOARCH="$(GOARCH)" go build -o bin/vault-ccloud-secrets-engine ./cmd/plugin/main.go
+create:
+	GOOS=linux GOARCH=amd64  make build
 
 test:
 	go test -v ./pkg/plugin
@@ -46,7 +46,6 @@ start:
 enable:
 	export VAULT_ADDR='http://0.0.0.0:8200'
 	export VAULT_TOKEN=12345
-	export SHA256=$(shasum -a 256 bin/vault-ccloud-secrets-engine | cut -d' ' -f1)
 	vault plugin register -sha256="${SHA256}" -command="vault-ccloud-secrets-engine" secret ccloud-secrets-engine
 	vault secrets enable -path="ccloud" -plugin-name="ccloud-secrets-engine" plugin
 

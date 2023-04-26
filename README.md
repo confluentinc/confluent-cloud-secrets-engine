@@ -10,7 +10,7 @@ After cloning this repo have docker running locally before continuing .
 
 1. Build from source
  ```shell
- make build
+ make create
  ```
 ## 2. Spin up docker container
 ```shell
@@ -22,7 +22,7 @@ docker-compose up -d
 ```shell
 make enable
 ```
-On success you should see 
+On success, you should see 
 ```Success! Registered plugin: ccloud-secrets-engine```
 
 ## 4. Export the necessary environment variables and run make setup to enable plugin and configure a test role in Vault:
