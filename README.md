@@ -26,7 +26,7 @@ On success, you should see
 ```Success! Registered plugin: ccloud-secrets-engine```
 
 ## 4. Export the necessary environment variables and run make setup to enable plugin and configure a test role in Vault:
-Environment_id (where cluster lives), owner_id (create keys under this user/service acct), and resource_id ( the kafka cluster to register keys with).
+Log into confluent cloud to find these environment variables. Environment_id (where cluster lives), owner_id (create keys under this user/service acct), and resource_id ( the kafka cluster to register keys with).
 Owner can be found in Accounts and Access then in the table it is the ID, resource_env is the same as owner_env
 
 ```shell
