@@ -3,7 +3,8 @@
 1. Install Go https://go.dev/doc/install
 2. Install vault CLI https://developer.hashicorp.com/vault/tutorials/getting-started/getting-started-install
 3. Docker installed and running.
-4. Confluent Cloud API key - This can be created under Cloud Api keys which is found within the top right hamburger within Confluent Cloud. If you don't already have one associated with your account go ahead and create one.
+4. Confluent Cloud Account
+5. Confluent Cloud API key - This can be created under Cloud Api keys which is found within the top right hamburger within Confluent Cloud. If you don't already have one associated with your account go ahead and create one.
 
 # Quick Start
 After cloning this repo have docker running locally before continuing .
