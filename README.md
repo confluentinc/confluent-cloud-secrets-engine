@@ -29,6 +29,8 @@ docker-compose up -d
 ## 4. Export Config
 This command exports the address and token for vault, gets the SHA256 digest of the binary file and enables the new secret's engine.
 ```shell
+export VAULT_ADDR='http://0.0.0.0:8200'
+export VAULT_TOKEN=12345
 make enable
 ```
 On success, you should see 
