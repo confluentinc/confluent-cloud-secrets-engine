@@ -44,8 +44,6 @@ start:
 
 # Export vault test address and vault test token then the command for the sha 256 sum if different for mac and linux, used a variable to interchange.
 enable:
-	export VAULT_ADDR='http://0.0.0.0:8200'
-	export VAULT_TOKEN=12345
 	vault plugin register -sha256="${SHA256}" -command="vault-ccloud-secrets-engine" secret ccloud-secrets-engine
 	vault secrets enable -path="ccloud" -plugin-name="ccloud-secrets-engine" plugin
 
