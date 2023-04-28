@@ -52,7 +52,7 @@ export CONFLUENT_RESOURCE_ID="xxx"
 make setup
 ```
 
-## 6. Finally, Request a New Dynamic API-key
+## 6. Finally, Request a New Dynamic API-Key
 ```shell
 vault read ccloud/creds/test
 ```
