@@ -51,11 +51,13 @@ global_job_config:
         - make epilogue-ci
 
 blocks:
+  - name: Test
+    task:
       jobs:
-        - name: "Build and Test"
+        - name: " Run Tests"
           commands:
-            #go test ./... runs all tests in all the directories and sub-directories
-            - go test ./...
+          #go test ./... runs all tests in all the directories and sub-directories
+          - go test ./...
       epilogue:
         always:
           commands:
