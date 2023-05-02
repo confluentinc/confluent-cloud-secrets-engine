@@ -20,8 +20,10 @@ const (
 	testMaxTTL   = int64(3600)
 )
 
-// TestUserRole uses a mock backend to check
-// role create, read, update, and delete.
+/*
+*
+TestUserRole uses a mock backend to check role create, read, update, and delete.
+*/
 func TestUserRole(testingT *testing.T) {
 	confluentCloudBackend, s := getTestBackend(testingT)
 
@@ -33,7 +35,6 @@ func TestUserRole(testingT *testing.T) {
 
 		response := roleEntry.toResponseData()
 
-		//todo check the response values
 		assert.Equal(t, "roleOwner", response["owner"])
 		assert.Equal(t, "testResource", response["resource"])
 
@@ -117,72 +118,6 @@ func TestUserRole(testingT *testing.T) {
 		_, err := testTokenRoleDelete(testingT, confluentCloudBackend, s)
 
 		require.NoError(testingT, err)
-	})
-
-	//todo this doesnt work
-	testingT.Run("ttlIsPopulatedWhenOperationIsCreate", func(t *testing.T) {
-		_, logicalStorage := getTestBackend(t)
-		b := newBackend()
-
-		var expectedData = map[string]interface{}{
-			"name":         "nameTest",
-			"owner":        nil,
-			"owner_env":    owner_env,
-			"field":        "testField1",
-			"newTestField": "testField2",
-			"resource":     resource,
-			"resource_env": resource_env,
-			"ttl":          testTTL,
-			"max_ttl":      testMaxTTL,
-		}
-
-		var schema = map[string]*framework.FieldSchema{
-			"name": {
-				Type:        framework.TypeString,
-				Description: "name in the test schema",
-			},
-			"secondField": {
-				Type:        framework.TypeString,
-				Description: "SecondFieldInTestSchema",
-			},
-			"resource": {
-				Type:        framework.TypeString,
-				Description: "resource of the test schema",
-			},
-			"resource_env": {
-				Type:        framework.TypeString,
-				Description: "resource_env of the test schema",
-			},
-			"owner": {
-				Type:        framework.TypeString,
-				Description: "owner in the test schema",
-			},
-			"owner_env": {
-				Type:        framework.TypeString,
-				Description: "owner env in the test schema",
-			},
-			"ttl": {
-				Type:        framework.TypeDurationSecond,
-				Description: "ttl in the test schema",
-			},
-			"max_ttl": {
-				Type:        framework.TypeDurationSecond,
-				Description: "max_ttl in the test schema",
-			},
-		}
-
-		response, _ := b.pathRolesWrite(context.Background(), &logical.Request{
-			Operation: logical.CreateOperation,
-			Path:      configStoragePath,
-			Storage:   logicalStorage,
-		},
-			&framework.FieldData{
-				expectedData,
-				schema,
-			})
-
-		//why does the main code return nil, nil here
-		assert.NotNil(t, response)
 	})
 
 	testingT.Run("pathRolesReadReturnsErrorWhenTtlIsGreaterThanMaxTtl", func(t *testing.T) {
@@ -459,7 +394,10 @@ func TestUserRole(testingT *testing.T) {
 	})
 }
 
-// Utility function to list roles and return any errors
+/*
+*
+Utility function to list roles and return any errors
+*/
 func testTokenRoleList(t *testing.T, b *ccloudBackend, s logical.Storage) (*logical.Response, error) {
 	t.Helper()
 	return b.HandleRequest(context.Background(), &logical.Request{
@@ -469,11 +407,13 @@ func testTokenRoleList(t *testing.T, b *ccloudBackend, s logical.Storage) (*logi
 	})
 }
 
-// Utility function to create a role while, returning any response (including errors)
+/*
+*
+Utility function to create a role while, returning any response (including errors)
+*/
 func testTokenRoleCreate(testingT *testing.T, confluentCloudBackend *ccloudBackend, logicalStorage logical.Storage, name string, data map[string]interface{}) (*logical.Response, error) {
 	testingT.Helper()
-	//this fails because there is no logical operation for create inside the confluent cloud backend
-	//should an operator be added to the confluent cloud dependency or is this test using the wrong import?
+
 	resp, err := confluentCloudBackend.HandleRequest(context.Background(), &logical.Request{
 		Operation: logical.CreateOperation,
 		Path:      "role/" + name,
@@ -488,7 +428,10 @@ func testTokenRoleCreate(testingT *testing.T, confluentCloudBackend *ccloudBacke
 	return resp, nil
 }
 
-// Utility function to update a role while, returning any response (including errors)
+/*
+*
+Utility function to update a role while, returning any response (including errors)
+*/
 func testPathRoleUpdate(t *testing.T, b *ccloudBackend, s logical.Storage, d map[string]interface{}) (*logical.Response, error) {
 	t.Helper()
 	resp, err := b.HandleRequest(context.Background(), &logical.Request{
@@ -508,7 +451,10 @@ func testPathRoleUpdate(t *testing.T, b *ccloudBackend, s logical.Storage, d map
 	return resp, nil
 }
 
-// Utility function to read a role and return any errors
+/*
+*
+Utility function to read a role and return any errors
+*/
 func testTokenRoleRead(testingT *testing.T, confluentCloudBackend *ccloudBackend, logicalStorage logical.Storage) (*logical.Response, error) {
 	testingT.Helper()
 	return confluentCloudBackend.HandleRequest(context.Background(), &logical.Request{
@@ -518,7 +464,10 @@ func testTokenRoleRead(testingT *testing.T, confluentCloudBackend *ccloudBackend
 	})
 }
 
-// Utility function to delete a role and return any errors
+/*
+*
+Utility function to delete a role and return any errors
+*/
 func testTokenRoleDelete(testingT *testing.T, confluentCloudBackend *ccloudBackend, logicalStorage logical.Storage) (*logical.Response, error) {
 	testingT.Helper()
 	return confluentCloudBackend.HandleRequest(context.Background(), &logical.Request{

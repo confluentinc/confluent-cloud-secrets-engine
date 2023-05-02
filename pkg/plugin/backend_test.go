@@ -10,7 +10,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-//these hit the confluent cloud running but i want to stub these with a different service
 const (
 	envVarRunAccTests  = "VAULT_ACC"
 	envVarCCloudKeyId  = "TEST_CCLOUD_KEY_ID"
@@ -19,8 +18,10 @@ const (
 	envVarCCloudOwner  = "TEST_CCLOUD_OWNER"
 )
 
-// getTestBackend will help you construct a test backend object.
-// Update this function with your target backend.
+/*
+*
+getTestBackend will help you construct a test backend object. Update this function with your target backend.
+*/
 func getTestBackend(testingBackground testing.TB) (*ccloudBackend, logical.Storage) {
 	testingBackground.Helper()
 
@@ -37,13 +38,16 @@ func getTestBackend(testingBackground testing.TB) (*ccloudBackend, logical.Stora
 	return factoryBackground.(*ccloudBackend), config.StorageView
 }
 
-// runAcceptanceTests will separate unit tests from
-// acceptance tests, which will make active requests
-// to your target API.
+/*
+*
+runAcceptanceTests will separate unit tests from acceptance tests, which will make active requests to your target API.
+*/
 var runAcceptanceTests = os.Getenv(envVarRunAccTests) == "1"
 
-// testEnv creates an object to store and track testing environment
-// resources
+/*
+*
+testEnv creates an object to store and track testing environment resources
+*/
 type testEnv struct {
 	KeyId  string
 	Secret string
@@ -61,9 +65,10 @@ type testEnv struct {
 	Keys []string
 }
 
-// AddConfig adds the configuration to the test backend.
-// Make sure data includes all the configuration
-// attributes you need and the `config` path!
+/*
+*
+AddConfig adds the configuration to the test backend. Make sure data includes all the configuration attributes you need and the `config` path!
+*/
 func (testEnv *testEnv) AddConfig(testing *testing.T) {
 	req := &logical.Request{
 		Operation: logical.CreateOperation,
@@ -80,7 +85,10 @@ func (testEnv *testEnv) AddConfig(testing *testing.T) {
 	require.Nil(testing, err)
 }
 
-// AddRole adds a role for CCloud Cluster API keys.
+/*
+*
+AddRole adds a role for CCloud Cluster API keys.
+*/
 func (testEnv *testEnv) AddRole(testing *testing.T) {
 	request := &logical.Request{
 		Operation: logical.UpdateOperation,
@@ -95,7 +103,10 @@ func (testEnv *testEnv) AddRole(testing *testing.T) {
 	require.Nil(testing, err)
 }
 
-// ReadKey retrieves the Cluster API key based on a Vault role.
+/*
+*
+ReadKey retrieves the Cluster API key based on a Vault role.
+*/
 func (testEnv *testEnv) ReadToken(testing *testing.T) {
 	request := &logical.Request{
 		Operation: logical.ReadOperation,
@@ -122,7 +133,7 @@ func (testEnv *testEnv) ReadToken(testing *testing.T) {
 	}
 }
 
-//todo - this doesnt work right now.
+//TODO - this doesnt work right now.
 // CleanupTokens removes the tokens
 // when the test completes.
 //func (testEnv *testEnv) CleanupTokens(testing *testing.T) {

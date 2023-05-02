@@ -16,22 +16,6 @@ func TestCloudClusterApiKeyReturnsAnIDandSecret(t *testing.T) {
 	assert.NotNil(t, configExists.Fields["secret"])
 }
 
-//func TestRevokeTokenReturnsNil(t *testing.T) {
-//	b := newBackend()
-//	_, logicalStorage := getTestBackend(t)
-//
-//	_, _ = b.tokenRevoke(context.Background(), &logical.Request{
-//		Operation: logical.RevokeOperation,
-//		Path:      configStoragePath,
-//		Storage:   logicalStorage,
-//	}),
-//	&framework.FieldData{
-//
-//	}
-//	)
-//
-//}
-
 func TestRevokeTokenReturnsErrorGettingClient(t *testing.T) {
 	b := newBackend()
 	_, logicalStorage := getTestBackend(t)

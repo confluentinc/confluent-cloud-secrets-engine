@@ -13,9 +13,11 @@ import (
 	"github.com/hashicorp/vault/sdk/logical"
 )
 
-// are these integration tests?
-// set these in env variables
-// newAcceptanceTestEnv creates a test environment for credentials
+/*
+*
+The env variables from line 36- 39 should be set as env variables.
+newAcceptanceTestEnv creates a test environment for credentials
+*/
 func newAcceptanceTestEnv() (*testEnv, error) {
 	ctx := context.Background()
 
@@ -43,8 +45,10 @@ func newAcceptanceTestEnv() (*testEnv, error) {
 	}, nil
 }
 
-// TestAcceptanceUserToken tests a series of steps to make
-// sure the role and token creation work correctly.
+/*
+*
+TestAcceptanceUserToken tests a series of steps to make sure the role and token creation work correctly.
+*/
 func TestAcceptanceUserToken(t *testing.T) {
 	if !runAcceptanceTests {
 		t.SkipNow()
@@ -59,10 +63,14 @@ func TestAcceptanceUserToken(t *testing.T) {
 	t.Run("add user token role", acceptanceTestEnv.AddRole)
 	t.Run("read user token cred", acceptanceTestEnv.ReadToken)
 	t.Run("read user token cred", acceptanceTestEnv.ReadToken)
+	//TODO this doesn't work right now
 	//t.Run("cleanup user tokens", acceptanceTestEnv.CleanupTokens)
 }
 
-// these are unit tests
+/*
+*
+Unit Tests
+*/
 func TestPathCredentialsReadReturnsErrorWhenNameIsMissing(t *testing.T) {
 	_, logicalStorage := getTestBackend(t)
 	b := newBackend()
