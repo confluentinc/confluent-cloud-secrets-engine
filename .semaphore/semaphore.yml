@@ -23,7 +23,7 @@ global_job_config:
   prologue:
     commands:
       - chmod 400 ~/.ssh/id_rsa
-      - sem-version go unknown
+      - sem-version go 1.14
       - export "GOPATH=$(go env GOPATH)"
       - export "SEMAPHORE_GIT_DIR=${GOPATH}/src/github.com/confluentinc/${SEMAPHORE_PROJECT_NAME}"
       - export "PATH=${GOPATH}/bin:${PATH}"
