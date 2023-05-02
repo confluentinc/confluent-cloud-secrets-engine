@@ -28,7 +28,6 @@ global_job_config:
       - export "SEMAPHORE_GIT_DIR=${GOPATH}/src/github.com/confluentinc/${SEMAPHORE_PROJECT_NAME}"
       - export "PATH=${GOPATH}/bin:${PATH}"
       - mkdir -vp "${SEMAPHORE_GIT_DIR}" "${GOPATH}/bin"
-      - git config --global url."git@github.com:".insteadOf "https://github.com/"
       - checkout
       - make install-vault
       - . mk-include/bin/vault-setup
