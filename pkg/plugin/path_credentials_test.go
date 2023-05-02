@@ -2,6 +2,8 @@ package plugin
 
 import (
 	"context"
+	"github.com/hashicorp/vault/sdk/framework"
+	"github.com/stretchr/testify/assert"
 	"os"
 	"testing"
 	"time"
@@ -11,6 +13,8 @@ import (
 	"github.com/hashicorp/vault/sdk/logical"
 )
 
+// are these integration tests?
+// set these in env variables
 // newAcceptanceTestEnv creates a test environment for credentials
 func newAcceptanceTestEnv() (*testEnv, error) {
 	ctx := context.Background()
@@ -56,4 +60,109 @@ func TestAcceptanceUserToken(t *testing.T) {
 	t.Run("read user token cred", acceptanceTestEnv.ReadToken)
 	t.Run("read user token cred", acceptanceTestEnv.ReadToken)
 	//t.Run("cleanup user tokens", acceptanceTestEnv.CleanupTokens)
+}
+
+// these are unit tests
+func TestPathCredentialsReadReturnsErrorWhenNameIsMissing(t *testing.T) {
+	_, logicalStorage := getTestBackend(t)
+	b := newBackend()
+
+	var expectedData = map[string]interface{}{
+		"name":         "",
+		"field":        "testField1",
+		"newTestField": "testField2",
+	}
+
+	var schema = map[string]*framework.FieldSchema{
+		"name": {
+			Type:        framework.TypeString,
+			Description: "name in the test schema",
+		},
+		"secondField": {
+			Type:        framework.TypeString,
+			Description: "SecondFieldInTestSchema",
+		},
+	}
+
+	_, err := b.pathCredentialsRead(context.Background(), &logical.Request{
+		Operation: logical.RevokeOperation,
+		Path:      configStoragePath,
+		Storage:   logicalStorage,
+	},
+		&framework.FieldData{
+			expectedData,
+			schema,
+		})
+
+	expectedErrorMsg := "error retrieving role: missing role name"
+	assert.EqualErrorf(t, err, expectedErrorMsg, "Error should be: %v, got: %v", expectedErrorMsg, err)
+}
+
+func TestPathCredentialsReadReturnsRoleIsNilError(t *testing.T) {
+	_, logicalStorage := getTestBackend(t)
+	b := newBackend()
+
+	var expectedData = map[string]interface{}{
+		"name":         "testName",
+		"field":        "testField1",
+		"newTestField": "testField2",
+	}
+
+	var schema = map[string]*framework.FieldSchema{
+		"name": {
+			Type:        framework.TypeString,
+			Description: "name in the test schema",
+		},
+		"secondField": {
+			Type:        framework.TypeString,
+			Description: "SecondFieldInTestSchema",
+		},
+	}
+
+	_, err := b.pathCredentialsRead(context.Background(), &logical.Request{
+		Operation: logical.RevokeOperation,
+		Path:      configStoragePath,
+		Storage:   logicalStorage,
+	},
+		&framework.FieldData{
+			expectedData,
+			schema,
+		})
+
+	expectedErrorMsg := "error retrieving role: role is nil"
+	assert.EqualErrorf(t, err, expectedErrorMsg, "Error should be: %v, got: %v", expectedErrorMsg, err)
+}
+
+func TestPathCredentialsReadReturnsRole(t *testing.T) {
+	_, logicalStorage := getTestBackend(t)
+	b := newBackend()
+
+	var expectedData = map[string]interface{}{
+		"name":         "testName",
+		"field":        "testField1",
+		"newTestField": "testField2",
+	}
+
+	var schema = map[string]*framework.FieldSchema{
+		"name": {
+			Type:        framework.TypeString,
+			Description: "name in the test schema",
+		},
+		"secondField": {
+			Type:        framework.TypeString,
+			Description: "SecondFieldInTestSchema",
+		},
+	}
+
+	res, _ := b.pathCredentialsRead(context.Background(), &logical.Request{
+		Operation: logical.RevokeOperation,
+		Path:      configStoragePath,
+		Storage:   logicalStorage,
+	},
+		&framework.FieldData{
+			expectedData,
+			schema,
+		})
+
+	assert.NotNil(t, res)
 }
