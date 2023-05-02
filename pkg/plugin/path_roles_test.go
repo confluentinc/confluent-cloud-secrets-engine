@@ -20,10 +20,7 @@ const (
 	testMaxTTL   = int64(3600)
 )
 
-/*
-*
-TestUserRole uses a mock backend to check role create, read, update, and delete.
-*/
+// TestUserRole uses a mock backend to check role create, read, update, and delete.
 func TestUserRole(testingT *testing.T) {
 	confluentCloudBackend, s := getTestBackend(testingT)
 
@@ -394,10 +391,7 @@ func TestUserRole(testingT *testing.T) {
 	})
 }
 
-/*
-*
-Utility function to list roles and return any errors
-*/
+// Utility function to list roles and return any errors
 func testTokenRoleList(t *testing.T, b *ccloudBackend, s logical.Storage) (*logical.Response, error) {
 	t.Helper()
 	return b.HandleRequest(context.Background(), &logical.Request{
@@ -407,10 +401,7 @@ func testTokenRoleList(t *testing.T, b *ccloudBackend, s logical.Storage) (*logi
 	})
 }
 
-/*
-*
-Utility function to create a role while, returning any response (including errors)
-*/
+// Utility function to create a role while, returning any response (including errors)
 func testTokenRoleCreate(testingT *testing.T, confluentCloudBackend *ccloudBackend, logicalStorage logical.Storage, name string, data map[string]interface{}) (*logical.Response, error) {
 	testingT.Helper()
 
@@ -428,10 +419,7 @@ func testTokenRoleCreate(testingT *testing.T, confluentCloudBackend *ccloudBacke
 	return resp, nil
 }
 
-/*
-*
-Utility function to update a role while, returning any response (including errors)
-*/
+// Utility function to update a role while, returning any response (including errors)
 func testPathRoleUpdate(t *testing.T, b *ccloudBackend, s logical.Storage, d map[string]interface{}) (*logical.Response, error) {
 	t.Helper()
 	resp, err := b.HandleRequest(context.Background(), &logical.Request{
@@ -451,10 +439,7 @@ func testPathRoleUpdate(t *testing.T, b *ccloudBackend, s logical.Storage, d map
 	return resp, nil
 }
 
-/*
-*
-Utility function to read a role and return any errors
-*/
+// Utility function to read a role and return any errors
 func testTokenRoleRead(testingT *testing.T, confluentCloudBackend *ccloudBackend, logicalStorage logical.Storage) (*logical.Response, error) {
 	testingT.Helper()
 	return confluentCloudBackend.HandleRequest(context.Background(), &logical.Request{
@@ -464,10 +449,7 @@ func testTokenRoleRead(testingT *testing.T, confluentCloudBackend *ccloudBackend
 	})
 }
 
-/*
-*
-Utility function to delete a role and return any errors
-*/
+// Utility function to delete a role and return any errors
 func testTokenRoleDelete(testingT *testing.T, confluentCloudBackend *ccloudBackend, logicalStorage logical.Storage) (*logical.Response, error) {
 	testingT.Helper()
 	return confluentCloudBackend.HandleRequest(context.Background(), &logical.Request{
