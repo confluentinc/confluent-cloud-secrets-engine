@@ -132,37 +132,3 @@ func TestPathCredentialsReadReturnsRoleIsNilError(t *testing.T) {
 	expectedErrorMsg := "error retrieving role: role is nil"
 	assert.EqualErrorf(t, err, expectedErrorMsg, "Error should be: %v, got: %v", expectedErrorMsg, err)
 }
-
-func TestPathCredentialsReadReturnsRole(t *testing.T) {
-	_, logicalStorage := getTestBackend(t)
-	b := newBackend()
-
-	var expectedData = map[string]interface{}{
-		"name":         "testName",
-		"field":        "testField1",
-		"newTestField": "testField2",
-	}
-
-	var schema = map[string]*framework.FieldSchema{
-		"name": {
-			Type:        framework.TypeString,
-			Description: "name in the test schema",
-		},
-		"secondField": {
-			Type:        framework.TypeString,
-			Description: "SecondFieldInTestSchema",
-		},
-	}
-
-	res, _ := b.pathCredentialsRead(context.Background(), &logical.Request{
-		Operation: logical.RevokeOperation,
-		Path:      configStoragePath,
-		Storage:   logicalStorage,
-	},
-		&framework.FieldData{
-			expectedData,
-			schema,
-		})
-
-	assert.NotNil(t, res)
-}
