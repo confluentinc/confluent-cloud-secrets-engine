@@ -43,7 +43,6 @@ func newAcceptanceTestEnv() (*testEnv, error) {
 }
 
 //TestAcceptanceUserToken tests a series of steps to make sure the role and token creation work correctly.
-
 func TestAcceptanceUserToken(t *testing.T) {
 	if !runAcceptanceTests {
 		t.SkipNow()
