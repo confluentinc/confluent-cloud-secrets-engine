@@ -2,10 +2,9 @@ package plugin
 
 import (
 	"context"
+	"github.com/hashicorp/go-hclog"
 	"os"
 	"testing"
-
-	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/vault/sdk/logical"
 	"github.com/stretchr/testify/require"
 )
@@ -18,31 +17,26 @@ const (
 	envVarCCloudOwner  = "TEST_CCLOUD_OWNER"
 )
 
-// getTestBackend will help you construct a test backend object.
-// Update this function with your target backend.
-func getTestBackend(tb testing.TB) (*ccloudBackend, logical.Storage) {
-	tb.Helper()
-
+// getTestBackend will help you construct a test backend object. Update this function with your target backend.
+func getTestBackend(testingBackground testing.TB) (*ccloudBackend, logical.Storage) {
+	testingBackground.Helper()
 	config := logical.TestBackendConfig()
 	config.StorageView = new(logical.InmemStorage)
 	config.Logger = hclog.NewNullLogger()
 	config.System = logical.TestSystemView()
 
-	b, err := Factory(context.Background(), config)
+	factoryBackground, err := Factory(context.Background(), config)
 	if err != nil {
-		tb.Fatal(err)
+		testingBackground.Fatal(err)
 	}
 
-	return b.(*ccloudBackend), config.StorageView
+	return factoryBackground.(*ccloudBackend), config.StorageView
 }
 
-// runAcceptanceTests will separate unit tests from
-// acceptance tests, which will make active requests
-// to your target API.
+// runAcceptanceTests will separate unit tests from acceptance tests, which will make active requests to your target API.
 var runAcceptanceTests = os.Getenv(envVarRunAccTests) == "1"
 
-// testEnv creates an object to store and track testing environment
-// resources
+// testEnv creates an object to store and track testing environment resources
 type testEnv struct {
 	KeyId  string
 	Secret string
@@ -60,23 +54,63 @@ type testEnv struct {
 	Keys []string
 }
 
-// AddConfig adds the configuration to the test backend.
-// Make sure data includes all of the configuration
-// attributes you need and the `config` path!
-func (e *testEnv) AddConfig(t *testing.T) {
+// AddConfig adds the configuration to the test backend. Make sure data includes all the configuration attributes you need and the `config` path!
+func (testEnv *testEnv) AddConfig(testing *testing.T) {
 	req := &logical.Request{
 		Operation: logical.CreateOperation,
 		Path:      "config",
-		Storage:   e.Storage,
+		Storage:   testEnv.Storage,
 		Data: map[string]interface{}{
-			"ccloud_api_key_id":     e.KeyId,
-			"ccloud_api_key_secret": e.Secret,
-			"url":                   e.URL,
+			"ccloud_api_key_id":     testEnv.KeyId,
+			"ccloud_api_key_secret": testEnv.Secret,
+			"url":                   testEnv.URL,
 		},
 	}
-	resp, err := e.Backend.HandleRequest(e.Context, req)
-	require.Nil(t, resp)
-	require.Nil(t, err)
+	resp, err := testEnv.Backend.HandleRequest(testEnv.Context, req)
+	require.NotNil(testing, resp)
+	require.Nil(testing, err)
+}
+
+// AddRole adds a role for CCloud Cluster API keys.
+func (testEnv *testEnv) AddRole(testing *testing.T) {
+	request := &logical.Request{
+		Operation: logical.UpdateOperation,
+		Path:      "role/test-cluster-role",
+		Storage:   testEnv.Storage,
+		Data: map[string]interface{}{
+			"owner": testEnv.Owner,
+		},
+	}
+	response, err := testEnv.Backend.HandleRequest(testEnv.Context, request)
+	require.NotNil(testing, response)
+	require.Nil(testing, err)
+}
+
+// ReadKey retrieves the Cluster API key based on a Vault role.
+func (testEnv *testEnv) ReadToken(testing *testing.T) {
+	request := &logical.Request{
+		Operation: logical.ReadOperation,
+		Path:      "creds/test-cluster-token",
+		Storage:   testEnv.Storage,
+	}
+	response, err := testEnv.Backend.HandleRequest(testEnv.Context, request)
+	require.Nil(testing, err)
+	require.NotNil(testing, response)
+
+	if t, ok := response.Data["token"]; ok {
+		testEnv.Keys = append(testEnv.Keys, t.(string))
+	}
+	require.NotEmpty(testing, response.Data["token"])
+
+	if testEnv.SecretToken != "" {
+		require.NotEqual(testing, testEnv.SecretToken, response.Data["token"])
+	}
+
+	// collect secret IDs to revoke at end of test
+	require.NotNil(testing, response.Secret)
+	if testToken, ok := response.Secret.InternalData["token"]; ok {
+		testEnv.SecretToken = testToken.(string)
+	}
 }
 
 // AddRole adds a role for CCloud Cluster API keys.
