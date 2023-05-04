@@ -409,6 +409,16 @@ func testTokenRoleCreate(testingT *testing.T, confluentCloudBackend *ccloudBacke
 	return resp, nil
 }
 
+// Utility function to list roles and return any errors
+func testTokenRoleList(t *testing.T, b *ccloudBackend, s logical.Storage) (*logical.Response, error) {
+	t.Helper()
+	return b.HandleRequest(context.Background(), &logical.Request{
+		Operation: logical.ListOperation,
+		Path:      "role/",
+		Storage:   s,
+	})
+}
+
 // Utility function to update a role while, returning any response (including errors)
 func testPathRoleUpdate(t *testing.T, b *ccloudBackend, s logical.Storage, d map[string]interface{}) (*logical.Response, error) {
 	t.Helper()
