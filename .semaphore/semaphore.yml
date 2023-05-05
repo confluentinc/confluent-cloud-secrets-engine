@@ -54,14 +54,13 @@ blocks:
         - name: " Run Tests"
           commands:
           #go test ./... runs all tests in all the directories and sub-directories
-          - go test ./...
+            - go test ./...
       epilogue:
         always:
           commands:
           #print location to be able to see where the test results are, lineage are in instrumentation/**/build/test-results/**/*.xml
-            - ls
-            - pwd
-            - test-results publish pie-cc-hashicorp-vault-plugin/build/*.xml
+            - test-results publish instrumentation/**/build/test-results/**/*.xml
+            - pie-cc-hashicorp-vault-plugin/build/c87e4469-1dda-445e-9e2e-d2cb0ac19e0a-TEST-result.xml
 after_pipeline:
   task:
     jobs:
