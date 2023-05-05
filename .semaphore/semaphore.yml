@@ -60,7 +60,9 @@ blocks:
           commands:
             - cd pkg/plugin
             - go build
-            - go test -v ./... -coverprofile=coverage.out -xml > report.xml
+            #in go you have to use the coverprofile to be able to generate a test xml or generate it as json then convert to xml
+            - go test -v ./... -coverprofile=coverage.out -json > report.json
+            - go-junit-report < report.json > report.xml
             - ls pie-cc-hashicorp-vault-plugin
             - test-results publish pie-cc-hashicorp-vault-plugin/build/*.xml
 after_pipeline:
