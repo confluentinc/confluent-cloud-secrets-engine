@@ -9,68 +9,74 @@ name: build-test-release
 agent:
   machine:
     type: s1-prod-ubuntu20-04-amd64-1
-
 auto_cancel:
   running:
     when: "branch != 'master'"
-
 execution_time_limit:
   hours: 1
-
 global_job_config:
   secrets:
     - name: vault_sem2_approle
   prologue:
     commands:
-      - chmod 400 ~/.ssh/id_rsa
-      - sem-version go unknown
+      - sem-version go 1.19.0
+      - sem-version python 3.7
       - export "GOPATH=$(go env GOPATH)"
       - export "SEMAPHORE_GIT_DIR=${GOPATH}/src/github.com/confluentinc/${SEMAPHORE_PROJECT_NAME}"
       - export "PATH=${GOPATH}/bin:${PATH}"
+      - export "PATH=${SEMAPHORE_GIT_DIR}/cc-dotfiles/bin/k8saas-ga:${PATH}"
       - mkdir -vp "${SEMAPHORE_GIT_DIR}" "${GOPATH}/bin"
       - git config --global url."git@github.com:".insteadOf "https://github.com/"
       - checkout
+      - exec &> >(tee -a build.log)
       - make install-vault
       - . mk-include/bin/vault-setup
-      - . vault-sem-get-secret aws_credentials
       - . vault-sem-get-secret gitconfig
       - . vault-sem-get-secret ssh_id_rsa
       - . vault-sem-get-secret ssh_config
       - . vault-sem-get-secret netrc
-      - . vault-sem-get-secret semaphore-secrets-global
+      - . vault-sem-get-secret artifactory-docker-helm
       - . vault-sem-get-secret maven-settings
       - . vault-sem-get-secret cpd_gcloud
-      - . vault-sem-get-secret ci-reporting
-      - . vault-sem-get-secret v1/ci/kv/service-foundations/cc-mk-include
-      - . vault-sem-get-secret dockerhub-semaphore-cred-ro
+      - . vault-sem-get-secret aws_credentials
+      - chmod 400 ~/.ssh/id_rsa
       - exec &> >(tee -a build.log)
+      - chmod 700 ~/.m2/settings.xml
+      - chmod 700 ~/.netrc
       - make init-ci
-  epilogue:
-    always:
-      commands:
-        - make epilogue-ci
-
+      - make docker-login-ci
+#blocks:
+#  - name: Build and Test
+#    task:
+#      jobs:
+#        - name: Build and Test
+#          commands:
+#            - ls pie-cc-hashicorp-vault-plugin/
+##            - cd pkg/plugin
+##            - go build
+##            - go test -v ./...
+#      epilogue:
+#        always:
+#          commands:
+#            - ls pie-cc-hashicorp-vault-plugin/build
+#            - test-results publish pie-cc-hashicorp-vault-plugin/build/*.xml
 blocks:
-  - name: "Build, Test, Release"
-    run:
-      # don't run the build or unit tests on non-functional changes...
-      when: "change_in('/', {exclude: ['/.deployed-versions/', '.github/']})"
+  - name: Build and Test
     task:
-       # You can customize your CI job here
-#      env_vars:
-#        # custom env_vars
-#      prologue:
-#        commands:
-#          # custom vault secrets
-#          # custom prologue commands
       jobs:
-        - name: "Build, Test, Release"
-          commands:
-            - make build
-            - make test
-            - make release-ci
+        - name: Build and Test
+          parallelism: 1
       epilogue:
         always:
           commands:
-            - make epilogue-ci
-            - make testbreak-after
+            - - cd pkg/plugin
+            - go build
+            - go test -v ./...
+            - ls pie-cc-hashicorp-vault-plugin/build/
+
+after_pipeline:
+  task:
+    jobs:
+      - name: Publish Results
+        commands:
+          - test-results gen-pipeline-report
