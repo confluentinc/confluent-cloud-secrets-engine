@@ -51,13 +51,16 @@ blocks:
       jobs:
         - name: Build and Test
           commands:
-            - ./ls pie-cc-hashicorp-vault-plugin/
-            - ./cd pkg/plugin
-            - ./go build
-            - ./go test -v ./...
+            - ls pie-cc-hashicorp-vault-plugin/
+            - cd pkg/plugin
+            - go build
+            - go test -v ./...
       epilogue:
         always:
           commands:
+            - cd pkg/plugin
+            - go build
+            - go test -v ./...
             - ls pie-cc-hashicorp-vault-plugin/build
             - test-results publish pie-cc-hashicorp-vault-plugin/build/*.xml
 after_pipeline:
