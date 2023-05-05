@@ -43,11 +43,12 @@ global_job_config:
       - exec &> >(tee -a build.log)
       - make init-ci
 blocks:
-  - name: Test
+  - name: Build and Test
     task:
       jobs:
-        - name: Test
+        - name: Build and Test
           commands:
+            - go build
             - go test -v ./...
       epilogue:
         always:
