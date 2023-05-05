@@ -22,11 +22,11 @@ global_job_config:
     - name: vault_sem2_approle
   prologue:
     commands:
+      - chmod 400 ~/.ssh/id_rsa
       - checkout
       - make install-vault
       - . mk-include/bin/vault-setup
       - . vault-sem-get-secret semaphore-secrets-global
-      - chmod 400 ~/.ssh/id_rsa
       - sem-version go 1.19
       - export GOPATH=$(go env GOPATH)
       - export PATH="$PATH:$GOPATH/bin"
