@@ -11,6 +11,7 @@ require (
 )
 
 require (
+	github.com/jstemmer/go-junit-report v2.0.0 // indirect
 	github.com/armon/go-metrics v0.3.9 // indirect
 	github.com/armon/go-radix v1.0.0 // indirect
 	github.com/cenkalti/backoff/v3 v3.0.0 // indirect
