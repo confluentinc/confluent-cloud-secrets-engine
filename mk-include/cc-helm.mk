@@ -4,14 +4,15 @@ CHART_NAME ?=
 CHARTS_ROOT ?= charts
 IMAGE_VERSION ?= 0.0.0
 
-HELM_VERSION ?= v3.3.4
-HELM_TGZ := https://get.helm.sh/helm-$(HELM_VERSION)-linux-amd64.tar.gz
+ARCH ?= amd64
+
+HELM_VERSION ?= v3.10.1
+HELM_TGZ := https://get.helm.sh/helm-$(HELM_VERSION)-linux-$(ARCH).tar.gz
 HELM_BINARY := helm
 HELM_ARTIFACTORY_PLUGIN_VERSION ?= 1.0.1
 HELM_LOCAL_CHART_PLUGIN_VERSION ?= 0.0.7
 HELM_REPO := https://confluent.jfrog.io/confluent/helm-cloud
 INCLUDE_HELM_TARGETS ?= true
-
 # Other services like CPD may use helm but do not build/test helm.
 ifeq ($(INCLUDE_HELM_TARGETS),true)
 INIT_CI_TARGETS += helm-setup-ci
@@ -22,7 +23,7 @@ RELEASE_PRECOMMIT += helm-set-bumped-version helm-update-floating-deps
 RELEASE_MAKE_TARGETS += helm-release $(HELM_DOWNSTREAM_CHARTS)
 endif
 
-CHART_VERSION := $(VERSION_NO_V)
+CHART_VERSION ?= $(VERSION_NO_V)
 BUMPED_CHART_VERSION := $(BUMPED_CLEAN_VERSION)
 
 CHART_NAMESPACE := $(CHART_NAME)-dev
@@ -97,34 +98,9 @@ helm-set-bumped-version:
 	$(HELM_BINARY) local-chart-version set --chart $(CHART_LOCAL_PATH) --version $(BUMPED_CHART_VERSION) || true
 	git add $(CHART_YAML_FILE) || true
 
-.PHONY: helm-set-version
-helm-set-version:
-	@echo ❌ target $@ is DEPRECATED - please update your Makefiles.; false
-
 .PHONY: helm-release-local
 ## Set the version to the current un-bumped version and package
 helm-release-local: helm-release
-
-$(HELM_REPO_CACHE)/helm-cloud-index.yaml:
-# Adds the helm-cloud helm repo if missing
-	@echo 💬 helm repo helm-cloud repo missing, adding...
-	@echo helm repo helm-cloud repo missing, adding...
-ifeq ($(HELM_USER)$(HELM_APIKEY),$(_empty))
-ifeq ($(CI),true)
-	@echo ❌ HELM_USER and HELM_APIKEY must be set on CI
-	false
-else
-	$(eval user := $(shell bash -c 'read -p "Artifactory Email: " user; echo $$user'))
-	$(eval pass := $(shell bash -c 'read -p "Artifactory API Key: " pass; echo $$pass'))
-	@$(HELM_BINARY) repo add helm-cloud $(HELM_REPO) --username $(user) --password $(pass)
-endif
-else
-	@$(HELM_BINARY) repo add helm-cloud $(HELM_REPO) --username $(HELM_USER) --password $(HELM_APIKEY)
-endif
-
-$(HELM_REPO_CACHE)/bitnami-index.yaml:
-	@echo 💬 helm repo bitnami repo missing, adding...
-	@$(HELM_BINARY) repo add bitnami https://charts.bitnami.com/bitnami
 
 $(HELM_REPO_CACHE)/stable-index.yaml:
 	@echo 💬 helm repo stable repo missing, adding...
@@ -134,24 +110,24 @@ $(HELM_REPO_CACHE)/gloo-index.yaml:
 	@echo 💬 helm repo gloo repo missing, adding...
 	@$(HELM_BINARY) repo add gloo https://storage.googleapis.com/solo-public-helm
 
+$(HELM_REPO_CACHE)/gloo-mesh-index.yaml:
+	@echo 💬 helm repo gloo mesh repo missing, adding...
+	@$(HELM_BINARY) repo add gloo-platform https://storage.googleapis.com/gloo-platform/helm-charts
+
 .PHONY: helm-update-repo
-helm-update-repo: $(HELM_REPO_CACHE)/helm-cloud-index.yaml $(HELM_REPO_CACHE)/bitnami-index.yaml $(HELM_REPO_CACHE)/stable-index.yaml $(HELM_REPO_CACHE)/gloo-index.yaml
+helm-update-repo:  $(HELM_REPO_CACHE)/stable-index.yaml $(HELM_REPO_CACHE)/gloo-index.yaml $(HELM_REPO_CACHE)/gloo-mesh-index.yaml
 	@echo 💬 updating index / cache of helm repos
 	@$(HELM_BINARY) repo update
 
 .PHONY: helm-install-deps
 ## Install subchart files in charts/ based on Chart.lock file
-helm-install-deps: $(HELM_REPO_CACHE)/helm-cloud-index.yaml $(HELM_REPO_CACHE)/bitnami-index.yaml $(HELM_REPO_CACHE)/stable-index.yaml $(HELM_REPO_CACHE)/gloo-index.yaml
+helm-install-deps: $(HELM_REPO_CACHE)/stable-index.yaml $(HELM_REPO_CACHE)/gloo-index.yaml $(HELM_REPO_CACHE)/gloo-mesh-index.yaml
 	@echo 💬 building charts/ directory from Chart.lock
 	$(HELM_BINARY) dep build $(CHART_LOCAL_PATH) $(HELM_DEP_BUILD_EXTRA_ARGS)
 
-.PHONY: helm-update-deps
-helm-update-deps:
-	@echo ❌ target $@ is DEPRECATED - please update your Makefiles.; false
-
 .PHONY: helm-update-floating-deps
 ## Update floating subchart versions that match the semantic version ranges in Chart.yaml
-helm-update-floating-deps: $(HELM_REPO_CACHE)/helm-cloud-index.yaml $(HELM_REPO_CACHE)/bitnami-index.yaml $(HELM_REPO_CACHE)/stable-index.yaml $(HELM_REPO_CACHE)/gloo-index.yaml
+helm-update-floating-deps: $(HELM_REPO_CACHE)/stable-index.yaml $(HELM_REPO_CACHE)/gloo-index.yaml $(HELM_REPO_CACHE)/gloo-mesh-index.yaml
 	@echo 💬 updating floating chart dependencies and updating lock file
 	$(HELM_BINARY) dep update $(CHART_LOCAL_PATH)
 	git add $(CHART_LOCK_FILE) || true
@@ -164,59 +140,34 @@ helm-pin-dependency-from-upstream:
 	$(MAKE) $(MAKE_ARGS) helm-update-floating-deps
 	git add $(CHART_YAML_FILE) $(CHART_LOCK_FILE) || true
 
-.PHONY: helm-add-requirements
-helm-add-requirements:
-	@echo ❌ target $@ is DEPRECATED - please update your Makefiles.; false
+.PHONY: helm-package helm-push-ecr helm-registry-login
 
-.PHONY: helm-package
-## Build helm package at the current version
-helm-package: helm-install-deps
+helm-registry-login:
+	@echo 💬 Log into ECR Helm registry
+	@aws ecr get-login-password --region us-west-2 | helm registry login --username AWS --password-stdin ${DEVPROD_PROD_ECR}
+
+helm-package: helm-registry-login helm-install-deps
 	mkdir -p $(CHARTS_ROOT)/package
-	rm -rf $(CHARTS_ROOT)/package/$(CHART_NAME)-$(CHART_VERSION).tgz
+	rm -f $(CHARTS_ROOT)/package/$(CHART_NAME)-$(CHART_VERSION).tgz
 	@echo 💬 build chart package $(CHART_NAME)-$(CHART_VERSION).tgz
 	$(HELM_BINARY) package --version "$(CHART_VERSION)" $(CHART_LOCAL_PATH) -d $(CHARTS_ROOT)/package
 
+helm-push-ecr:
+	@if aws ecr list-images --repository-name ${DEVPROD_PROD_ECR_HELM_REPO_PREFIX}${CHART_NAME} --registry-id ${DEVPROD_PROD_AWS_ACCOUNT} --region us-west-2| jq '.imageIds[].imageTag | contains("${CHART_VERSION}")' | grep -q "true"; then\
+		echo 💬 chart ${DEVPROD_PROD_ECR_HELM_REPO_PREFIX}$(CHART_NAME) with version $(CHART_VERSION) already exists;\
+	else\
+		echo 💬 pushing $(CHART_NAME)-$(CHART_VERSION) to ECR;\
+		$(HELM_BINARY) push $(CHARTS_ROOT)/package/$(CHART_NAME)-$(CHART_VERSION).tgz oci://${DEVPROD_PROD_ECR}/${DEVPROD_PROD_ECR_HELM_REPO_PREFIX};\
+	fi
+
 .PHONY: helm-release
-helm-release: helm-package helm-push-artifactory
-
-.PHONY: helm-push-artifactory
-# push-artifactory takes up to 20 seconds to update helm-repo and reflect in helm repo update
-helm-push-artifactory: $(HELM_REPO_CACHE)/helm-cloud-index.yaml
-	$(HELM_BINARY) plugin list | grep push-artifactory | grep -q "$(HELM_ARTIFACTORY_PLUGIN_VERSION)" || helm plugin install https://github.com/belitre/helm-push-artifactory-plugin --version "v$(HELM_ARTIFACTORY_PLUGIN_VERSION)"
-	$(HELM_BINARY) repo update
-ifeq ($(HELM_CHART_NAME_EXACT_MATCH),true)
-	@if ! $(HELM_BINARY) search repo --devel "$(CHART_NAME)" --version "$(CHART_VERSION)" | grep -E "$(CHART_NAME)\s+" | grep -q "$(CHART_VERSION)"; then\
-		echo 💬 uploading chart package $(CHART_NAME)-$(CHART_VERSION).tgz;\
-		$(HELM_BINARY) push-artifactory --skip-reindex $(CHARTS_ROOT)/package/$(CHART_NAME)-$(CHART_VERSION).tgz helm-cloud;\
-	else\
-		echo 💬 chart $(CHART_NAME) with version $(CHART_VERSION) already exists;\
-	fi
-else
-	@if ! $(HELM_BINARY) search repo --devel "$(CHART_NAME)" --version "$(CHART_VERSION)" | grep -q "$(CHART_VERSION)"; then\
-		echo 💬 uploading chart package $(CHART_NAME)-$(CHART_VERSION).tgz;\
-		$(HELM_BINARY) push-artifactory --skip-reindex $(CHARTS_ROOT)/package/$(CHART_NAME)-$(CHART_VERSION).tgz helm-cloud;\
-	else\
-		echo 💬 chart $(CHART_NAME) with version $(CHART_VERSION) already exists;\
-	fi
-endif
-
-.PHONY: helm-push-via-cpd
-helm-push-via-cpd:
-	@echo ❌ target $@ is DEPRECATED - please update your Makefiles.; false
-
-.PHONY: helm-push-artifactory-install
-helm-push-artifactory-install:
-	@echo ❌ target $@ is DEPRECATED - please update your Makefiles.; false
-
-.PHONY: helm-push-via-plugin
-helm-push-via-plugin:
-	@echo ❌ target $@ is DEPRECATED - please update your Makefiles.; false
+helm-release: helm-package helm-push-ecr
 
 .PHONY: helm-setup-ci
 helm-setup-ci:
 	@echo 💬 checking / installing helm version $(HELM_VERSION)
 	$(HELM_BINARY) version --short | grep -q $(HELM_VERSION) || \
-		curl -s -L -o - $(HELM_TGZ) | tar -xz --strip-components=1 -C $(CI_BIN) linux-amd64/helm
+		curl -s -L -o - $(HELM_TGZ) | tar -xz --strip-components=1 -C $(CI_BIN) linux-$(ARCH)/helm
 	# if helm 2 is detected, run helm init
 	@echo $(HELM_VERSION) | grep -Eq "^v2" && \
 		$(HELM_BINARY) init --stable-repo-url "https://charts.helm.sh/stable" --client-only || true
@@ -257,6 +208,7 @@ endif
 .PHONY: test-helm-commands
 ## Test important helm commands, e.g. to validate a new helm version
 test-helm-commands:
+	$(MAKE) $(MAKE_ARGS) helm-registry-login
 	$(MAKE) $(MAKE_ARGS) helm-update-repo
 	$(MAKE) $(MAKE_ARGS) helm-install-deps
 	$(MAKE) $(MAKE_ARGS) helm-update-floating-deps
