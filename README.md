@@ -1,405 +1,199 @@
-# Confluent Cloud Makefile Includes
-This is a set of Makefile include targets that are used in cloud applications.
+# Project Pre-Requisites
 
-Repo Structure:
-*  All makefiles related are maintained by dev prod team
-*  [`/seed-db/`](./seed-db) includes mothership db seed files are maintained by ccloud and connect-cloud
+1. Install Go https://go.dev/doc/install
+2. Install vault CLI https://developer.hashicorp.com/vault/tutorials/getting-started/getting-started-install
+3. Docker installed and running.
+4. Confluent Cloud Account
+5. Confluent Cloud API key - This can be created under Cloud Api keys which is found within the top right hamburger within Confluent Cloud. If you don't already have one associated with your account go ahead and create one.
+   After cloning this repo, to install all the necessary dependencies run
 
-The purpose of cc-mk-include is to present a consistent developer experience across repos/projects:
-```
-make deps
-make build
-make test
-make clean
-```
+# Quick Start
+After cloning this repo have docker running locally before continuing.
 
-It also helps standardize our CI pipeline across repos:
-```
-make init-ci
-make build
-make test
-make release-ci
-make epilogue-ci
-```
-
-## Install
-Add this repo to your repo with the command:
+## 1. Download dependencies 
 ```shell
-git subtree add --prefix mk-include git@github.com:confluentinc/cc-mk-include.git master --squash
+cd pkg/plugin
+go build
 ```
 
-To exclude these makefiles from your project language summary on GitHub, add this to your `.gitattributes`:
+## 2. Build
+Run this command in the top level of the project. If you have just downloaded the project dependencies please cd into the top level. 
+ ```shell
+ make create
+ ```
+## 3. Start Docker Container
+```shell
+docker-compose up -d 
+   ```
+
+## 4. Export Config
+This command exports the address and token for vault, gets the SHA256 digest of the binary file and enables the new secret's engine.
+```shell
+export VAULT_ADDR='http://0.0.0.0:8200'
+export VAULT_TOKEN=12345
+make enable
 ```
-mk-include/** linguist-vendored
-```
+On success, you should see 
+```Success! Registered plugin: ccloud-secrets-engine```
 
-Then update your makefile like so:
-
-### Go + Docker + Helm Service
-```make
-SERVICE_NAME := scraper
-CHART_NAME := cc-$(SERVICE_NAME)
-IMAGE_NAME := cc-$(SERVICE_NAME)
-GO_BINS := cmd/scraper/main.go=cc-scraper
-
-include ./mk-include/cc-begin.mk
-include ./mk-include/cc-semver.mk
-include ./mk-include/cc-go.mk
-include ./mk-include/cc-docker.mk
-include ./mk-include/cc-cpd.mk
-include ./mk-include/cc-helm.mk
-include ./mk-include/cc-testbreak.mk
-include ./mk-include/cc-vault.mk
-include ./mk-include/cc-end.mk
-```
-
-### Docker + Helm Only Service
-```make
-IMAGE_NAME := cc-example
-CHART_NAME := $(IMAGE_NAME)
-
-include ./mk-include/cc-begin.mk
-include ./mk-include/cc-semver.mk
-include ./mk-include/cc-docker.mk
-include ./mk-include/cc-cpd.mk
-include ./mk-include/cc-helm.mk
-include ./mk-include/cc-end.mk
-```
-
-### Java (Maven) + Docker + Helm Service
-
-#### Maven-orchestrated Docker build
-```make
-IMAGE_NAME := cc-java-example
-CHART_NAME := cc-java-example
-BUILD_DOCKER_OVERRIDE := mvn-docker-package
-
-include ./mk-include/cc-begin.mk
-include ./mk-include/cc-semver.mk
-include ./mk-include/cc-maven.mk
-include ./mk-include/cc-docker.mk
-include ./mk-include/cc-cpd.mk
-include ./mk-include/cc-helm.mk
-include ./mk-include/cc-end.mk
-```
-
-#### Make-orchestrated Docker build
-```make
-IMAGE_NAME := cc-java-example
-CHART_NAME := cc-java-example
-MAVEN_INSTALL_PROFILES += docker
-
-build-docker: mvn-install
-
-include ./mk-include/cc-begin.mk
-include ./mk-include/cc-semver.mk
-include ./mk-include/cc-maven.mk
-include ./mk-include/cc-docker.mk
-include ./mk-include/cc-cpd.mk
-include ./mk-include/cc-helm.mk
-include ./mk-include/cc-end.mk
-```
-
-In this scenario, the `docker` profile from `io.confluent:common` is leveraged to assemble the filesystem layout
-for the Docker build.  However, `cc-docker.mk` is used to invoke the actual `docker build` command.
-
-You must also configure your project's `pom.xml` to skip the `dockerfile-maven-plugin`:
-```xml
-  <properties>
-    <docker.skip-build>false</docker.skip-build>
-  </properties>
-  <profiles>
-    <profile>
-      <id>docker</id>
-      <build>
-        <plugins>
-          <!--
-          Skip dockerfile-maven-plugin since we do the actual docker build from make
-          Note that we still leverage the `docker` profile to do the filesystem assembly
-          -->
-          <plugin>
-            <groupId>com.spotify</groupId>
-            <artifactId>dockerfile-maven-plugin</artifactId>
-            <executions>
-              <execution>
-                <id>package</id>
-                <configuration>
-                  <skip>true</skip>
-                </configuration>
-              </execution>
-            </executions>
-          </plugin>
-        </plugins>
-      </build>
-    </profile>
-  </profiles>
-```
-
-## Updating
-Once you have the make targets installed, you can update at any time by running
+## 5. Export Environment Variables
+Export the necessary environment variables and run make setup to enable plugin and configure a test role in Vault:
+Log into confluent cloud to find these environment variables. 
+If you have an existing confluent cloud api key and secret you can use that. If not go to Cloud API Keys and create a new key.
+CONFLUENT_KEY (confluent cloud api key), CONFLUENT_SECRET (confluent cloud api key secret), CONFLUENT_ENVIRONMENT_ID (where cluster lives), CONFLUENT_OWNER_ID (create keys under this user/service acct), and CONFLUENT_RESOURCE_ID ( the kafka cluster to register keys with).
+Owner can be found in Accounts and Access then in the table it is the ID, resource_env is the same as owner_env
 
 ```shell
-make update-mk-include
+export CONFLUENT_KEY="xxx"
+export CONFLUENT_SECRET="xxx"
+export CONFLUENT_ENVIRONMENT_ID="xxx"
+export CONFLUENT_OWNER_ID="xxx"
+export CONFLUENT_RESOURCE_ID="xxx"
+make setup
 ```
-### Update to a specific version
 
-Add
+## 6. Finally, Request a New Dynamic API-Key
 ```shell
-MK_INCLUDE_UPDATE_VERSION := v<version>
+vault read ccloud/creds/test
 ```
-to you Makefile and commit the change. Then run 
+On success should return
+```
+Key                Value
+---                -----
+lease_id           ccloud/creds/test/xxxxxx
+lease_duration     1h
+lease_renewable    true
+key_id             xxxx
+secret             xxxxxxxxxx
+```
+
+# Detailed Installation
+After cloning this repo, to install all the necessary dependencies run  
 ```shell
-make update-mk-include
+cd pkg/plugin
+go build
 ```
-It will update to that specific tag version of mk-include.
 
-## Auto Update
-The cc-mk-include by default auto-sync your repo with the newest or pinned version of cc-mk-include. It will *auto open* a PR if your master branch is not at the same version with newest or pinned version. And it will *auto merged* if the CI passed. 
-The default sync version will be master branch, you can pin whatever version you want to by enable
+## 1. Generate Binary File
+Now that the project has been built cd into the top level of the project because we want to generate the binary file hashicorp-vault-ccloud-secrets-engine under bin/hashicorp-vault-ccloud-secrets-engine
 ```shell
-MK_INCLUDE_UPDATE_VERSION := <tag>
-```
-if you do not want to auto merge the change once CI passed, and get hand on reviews. In your toplevel Makefile, you can set
+ 	GOOS=linux GOARCH=amd64  make build
+ ```
+
+## 2. Start Docker Container
 ```shell
-UPDATE_MK_INCLUDE_AUTO_MERGE := false
-```
-If you want to turn off auto update competely
+docker-compose up -d 
+   ```
+
+## 3. Export SHA256
+Get the SHA256 digest of the binary file:
+Mac command:
 ```shell
-UPDATE_MK_INCLUDE := false
+export SHA256=$(shasum -a 256 bin/vault-ccloud-secrets-engine | cut -d' ' -f1)
 ```
 
-GITHUB token is required for gh cli, so you might need to get the right credentials to export github token.
-```
-. vault-sem-get-secret semaphore-secrets-global
-```
-
-### Auto Merge
-Leverage gh cli, cc-mk-include now support auto merge, add
+Linux command:
 ```shell
-make auto-merge
-```
-in the end semaphore.yml, once all CI passed
-
-## Passing Credentials Into A Docker Build
-
-If your docker build requires ssh, aws, netrc, or other credentials to be passed into the
-docker build, see [the secrets readme](BuildKitSecrets.md).
-
-## Standardized Dependencies
-
-If you need to install a standardized dependency, just include its file.
-```
-include ./mk-include/cc-librdkafka.mk
-include ./mk-include/cc-sops.mk
+export SHA256=$(sha256sum bin/vault-ccloud-secrets-engine | cut -d' ' -f1)
 ```
 
-## OpenAPI Spec
-Include `cc-api.mk` for make targets supporting OpenAPI spec development:
+## 4. Export Config
+In another shell set the vault address, vault token and register the plugin with the type being a "secret" and passing in the SHA of the binary.
+```shell
+export VAULT_ADDR='http://0.0.0.0:8200'
+export VAULT_TOKEN=12345
+vault plugin register -sha256="${SHA256}" -command="vault-ccloud-secrets-engine" secret ccloud-secrets-engine
 ```
-API_SPEC_DIRS := src/main/resources/openapi
 
-include ./mk-include/cc-api.mk
+To confirm commands have run successfully you should see an output simialr to ```Success! Registered plugin: ccloud-secrets-engine```
+
+## 5. Enable The New Secrets Engine
+```shell
+vault secrets enable -path="ccloud" -plugin-name="ccloud-secrets-engine" plugin
 ```
-Ensure your CI job includes a `~/.netrc` secret with an `api.github.com` entry
-with credentials to post [openapi-linter](https://github.com/confluentinc/openapi-linter)
-[warnings as PR comments](https://github.com/confluentinc/cc-mk-include/pull/751/files#diff-c83353d0fb5da910fbeb54df156c929925be7535fe64213f82cf34c9f21913fbR18)
-on your github repo.
+When successfully enabled you should see ```Success! Enabled the ccloud-secrets-engine secrets engine at: ccloud/```
 
-This integration looks in `API_SPEC_DIRS` for files named `minispec.yaml` and/or `openapi.yaml`.
-All generated files are output into the same directory as the input files.
+## 6. Write to Confluent Cloud
 
-This will automatically integrate into the `build` and `test` top-level make targets:
-* [`build` phase] Generate API-related artifacts.
-  * Generate OpenAPI specification using Minispec (target: `api-spec` or `openapi`)
-  * Generate HTML API documentation using ReDoc (target: `api-docs`)
-* [`test` phase] Lint the API spec using:
-  * [`yamllint`](https://github.com/adrienverge/yamllint) (target: `api-lint-yaml`)
-  * [`openapi-spec-validator`](https://github.com/p1c2u/openapi-spec-validator) (target: `api-lint-openapi-spec-validator`)
-  * [`spectral`](https://github.com/stoplightio/spectral) (target: `api-lint-spectral`)
-* [`clean` phase] Remove all generated artifacts.
+These steps provide the backend with an API key and secret used to make authenticated calls to the Confluent Cloud
+```shell
+vault write ccloud/config ccloud_api_key_id="xxx" ccloud_api_key_secret="xxx" url="https://api.confluent.cloud"
+```
 
-This also provides integration with the following tools:
-  * (POC) Lint your API spec using [`speccy`](https://github.com/wework/speccy) (target: `api-lint-speccy`)
-  * (POC) Auto-reload API docs using [`redoc-cli`](https://github.com/Redocly/redoc/tree/master/cli) (target: `redoc-serve` or `redoc-start`/`redoc-stop`)
-  * (POC) Run a mock API server using [`prism`](https://github.com/stoplightio/prism) (target: `api-mock`)
-  * (POC) Generate API load tests using [`gatling`](https://gatling.io/) (target: `api-loadtest`)
-  * (POC) Generate Postman collections using [`openapi-to-postmanv2`](https://www.npmjs.com/package/openapi-to-postmanv2) (target: `api-postman`)
-  * (POC) Generate SDK in Golang using [`openapi-generator`](https://github.com/OpenAPITools/openapi-generator) (target: `sdk/go`)
-  * (POC) Generate SDK in Java using [`openapi-generator`](https://github.com/OpenAPITools/openapi-generator) (target: `sdk/java`)
+On success you should see ```Success! Data written to: ccloud/config```
 
-## Add github templates
+## 7. Configuring a Role
+The following steps setup a new role.
 
-To add the github PR templates to your repo
+Set up a role and pass in a name, environment_id (where cluster lives), owner_id (create keys under this user/service acct), and resource_id ( the kafka cluster to register keys with).
+owner can be found in Accounts and Access then in the table it is the ID, resource_env is the same as owner_env
 
 ```shell
-make add-github-templates
+vault write ccloud/role/test name="test" owner="xxxx" owner_env="env-xxx" resource="lkc-xxx" resource_env="env-xxx"
 ```
 
-## LaunchDarkly Code References
+On success, you should see '''Success! Data written to: ccloud/role/test'''
 
-To generate and upload feature flag code references, you can include the `cc-launchdarkly.mk` file in your project Makefile:
-
-```
-include ./mk-include/cc-launchdarkly.mk
-```
-
-This script will install LaunchDarkly's code ref tool from [github](https://github.com/launchdarkly/ld-find-code-refs), and run it as a release target.
-
-This tool requires API tokens from LaunchDarkly, which are stored in Vault. Include the following line in your Semaphore configuration file (`.semaphore/semaphore.yml`) to add the token as an environment variable:
-
-```
-. vault-sem-get-secret v1/ci/kv/service-foundations/cc-mk-include
+## 8. Finally, Request a New Dynamic API-key
+```shell
+vault read ccloud/creds/test
 ```
 
-Once this target successfully runs, we can navigate to the Code References tab for a feature flag, and see a list of references to the git codebase that uses this flag.
-
-## Database Plugin and DB Migrations (WIP)
-
-We're developing a runtime-library for go with [cc-go-template-service](https://github.com/confluentinc/cc-go-template-service).
-One of the developer productivity improvements is that it allows you to manage your database schema,
-migrations, and seed data in your service repo (instead of cc-dbmigrate and cc-mk-include/seed-db).
-
-1. Use the [runtime-library](https://github.com/confluentinc/cc-go-template-service/tree/be480a66bd8172dab089c4779314bb10b925e5e7/pkg/runtime).
-   In particular, you need an executable with a command like `config <name>` to return the resolved value
-   just like your service would see it for `db.url`, `db.name`, `db.username`, `db.schema`, `migration.dir`.
-
-2. In your project Makefile, add:
-
-        READ_CONFIG_CMD := ./bin/<my-executable>
-        include ./mk-include/cc-db.mk
-3. You can check the configuration used by this plugin using
-
-        % make show-db
-        DB_SCHEMA_FILE: ./db/schema.sql
-        DB_SEED_FILE: ./db/seeds.sql
-        READ_CONFIG_CMD: ./bin/go-template-service
-        DATABASE_URL: postgres://go_template_service@127.0.0.1:5432/go_template_service?sslmode=disable
-        DATABASE_NAME: go_template_service
-        DATABASE_USER: go_template_service
-        DATABASE_SCHEMA: go_template_service
-        MIGRATION_DIR: db/migrations
-        MIGRATION_DIR_URL: file://db/migrations
-        MIGRATION_DB_URL: postgres://go_template_service@127.0.0.1:5432/go_template_service?sslmode=disable&search_path=go_template_service&x-migrations-table-quoted=true&x-migrations-table="go_template_service"."schema_migrations"
-        ADMIN_DB_URL: postgres://
-
-4. Now you have access to some great `db` and `db-migrate` make targets:
-
-        % make help | grep -E '\x1b\[36mdb-'                                                              
-        db-dump-schema      Dump the current DB schema and migration version to $(DB_SCHEMA_FILE) 
-        db-local-reset      Reset the local database from the schema, migrations, and seeds 
-        db-migrate-create   Create a new DB migration. Usage: make db-migrate-create NAME=migration_name_here 
-        db-migrate-down     Rollback DB migrations. Usage: make db-migrate-down [N=1, default 1] 
-        db-migrate-force    Force override the DB migration version in the DB to a specific version 
-        db-migrate-goto     Go to a specific DB migration version 
-        db-migrate-up       Apply DB migrations. Usage: make db-migrate-up [N=1, default all] 
-        db-migrate-version  Show current DB migration version 
-        db-seed             Seed the database from $(DB_SEED_FILE) 
-        db-seed-dump        Overwrite the $(DB_SEED_FILE) from the current database 
-
-5. Not strictly a requirement, but these make targets are designed primarily for local development.
-   While it's possible to build a release strategy using this, the designed approach is to use
-   `dbmigrate.Module`'s built-in auto-migrator support in the new runtime library. Then the only
-   time any of this is used in production is for emergency rollback cases, in which you have to
-   `exec` in to a service pod and call one of these targets.
-
-## Developing
-
-If you're developing an app that uses cc-mk-include or needs to extend it, it's useful
-to understand how the "library" is structured.
-
-The consistent developer experience of `make build`, `make test`, etc. is enabled by exposing a
-handful of extension points that are used internally and available for individual apps as well.
-For example, when you include `cc-go.mk` it adds `clean-go` to `CLEAN_TARGETS`, `build-go` to
-`BUILD_TARGETS`, and so on. Each of these imports (like `semver`, `go`, `docker`, etc) is
-essentially a standardized extension.
-
-**The ultimate effect is to be able to "mix and match" different extensions
-(e.g., semver, docker, go, helm, cpd) for different applications.**
-
-You can run `make show-args` when you're inside any given project to see what extensions
-are enabled for a given standard extensible command. For example, we can see that when you
-run `make build` in the `cc-scheduler-service`, it'll run `build-go`, `build-docker`, and
-`helm-package`.
+Which on success should return
 ```
-cc-scheduler-service cody$ make show-args
-INIT_CI_TARGETS:      seed-local-mothership deps cpd-update gcloud-install helm-setup-ci
-CLEAN_TARGETS:         clean-go clean-images clean-terraform clean-cc-system-tests helm-clean
-BUILD_TARGETS:         build-go build-docker helm-package
-TEST_TARGETS:          lint-go test-go test-cc-system helm-lint
-RELEASE_TARGETS:      set-tf-bumped-version helm-set-bumped-version get-release-image commit-release tag-release cc-cluster-spec-service push-docker
-RELEASE_MAKE_TARGETS:  bump-downstream-tf-consumers helm-release
-CI_BIN:
+Key                Value
+---                -----
+lease_id           ccloud/creds/test/xxxxxx
+lease_duration     1h
+lease_renewable    true
+key_id             xxxx
+secret             xxxxxxxxxx
 ```
 
-This also shows the full list of supported extension points (`INIT_CI_TARGETS`, `CLEAN_TARGETS`, and so on).
+You should be able to see your new api key inside the list of api keys for the cluster under your account.
 
-Applications themselves may also use these extension points; for example, you can append
-your custom `clean-myapp` target to `CLEAN_TARGETS` to invoke as part of `make clean`.
+
+# Possible Errors
+```
+command not found: vault
+```
+This error means that the hashicorp vault cli isn't installed on the local machine. Please read the Project Pre-Requisites for all necessary tools.
 
 ```
-SERVICE_NAME := myapp
-CLEAN_TARGETS += clean-myapp
+error creating CCloud Cluster API token - Error reading ccloud/creds/test: Error making API request.
 
-include ./mk-include/cc-begin.mk
-include ./mk-include/cc-api.mk
-include ./mk-include/cc-semver.mk
-include ./mk-include/cc-end.mk
+URL: GET http://0.0.0.0:8200/v1/ccloud/creds/test
+Code: 500. Errors:
 
-.PHONY: clean-myapp
-clean-myapp:
-  rm some/special/file
-```
-Running `make show-args` will now show your new task
-```
-$ make show-args | grep CLEAN
-CLEAN_TARGETS:        clean-myapp  api-clean
-```
-
-If you need to _append_ your target to this list to run after the others, you can do that by
-adding it after the mk-include imports, for example
-```
-SERVICE_NAME := myapp
-
-include ./mk-include/cc-begin.mk
-include ./mk-include/cc-semver.mk
-include ./mk-include/cc-api.mk
-include ./mk-include/cc-end.mk
-
-CLEAN_TARGETS += clean-myapp
-
-.PHONY: clean-myapp
-clean-myapp:
-  rm some/special/file
+* 1 error occurred:
+	* error creating CCloud Cluster API token: error creating CCloud Cluster API Key: error creating CCloud Cluster API Key: 401 Unauthorized. Ccloud response: {
+  "errors": [
+    {
+      "id": "xxxxx",
+      "status": "401",
+      "detail": "invalid API key: make sure you're using a Cloud API Key and not a Cluster API Key: https://docs.confluent.io/cloud/current/api.html#section/Authentication",
+      "source": {}
+    }
+  ]
+}
 ```
 
-Running `make show-args` will show the order these will actually be invoked:
+Make sure the api token was created under Cloud Api keys found in the top right hamburger.
+
+# Tests
+To run the tests you have to be in pkg/plugin. Then run the command 
+```go test```
+
+# Integration Testing
+Go to ```TestAcceptanceUserToken``` in ```pie-cc-hashicorp-vault-plugin/pkg/plugin```.
+
+In the run configurations you will need to set some environment config which can be found in confluent cloud. This is the same information needed in the quick start:
+
+If you have an existing confluent cloud api key and secret you can use that. If not go to Cloud API Keys and create a new key.
+CONFLUENT_KEY (confluent cloud api key), CONFLUENT_SECRET (confluent cloud api key secret), CONFLUENT_ENVIRONMENT_ID (where cluster lives), CONFLUENT_OWNER_ID (create keys under this user/service acct), and CONFLUENT_RESOURCE_ID ( the kafka cluster to register keys with).
+Owner can be found in Accounts and Access then in the table it is the ID, resource_env is the same as owner_env
+
+In the environment field for the tests add:
 ```
-$ make show-args | grep CLEAN
-CLEAN_TARGETS:        api-clean clean-myapp
+CONFLUENT_ENVIRONMENT_ID=Environment_id;CONFLUENT_RESOURCE_ID=resource_id;TEST_CCLOUD_KEY_ID=cloudKey;TEST_CCLOUD_OWNER=Environment_id;TEST_CCLOUD_SECRET=cloudSecret;TEST_URL=https://api.confluent.cloud
 ```
-
-We also expose a small number of override points for special cases (e.g., `BUILD_DOCKER_OVERRIDE`)
-but these should be rather rare.
-
-### IntelliJ / Goland Debugging
-
-*Note*: for now, only supported on OS X Intel
-
-The `test-go-goland-debug` target is provided to enable remote debugging of Go
-applications via the IntelliJ/Goland integrated debugger (via delve).  If
-using a typical Goland installation, then no special overriding should be
-needed.  However, there are two environment variables that will affect the
-remote debugger.
-
-* `GOLAND_PORT` - the port to start the delve server on (defaults to 12345)
-* `GOLAND_PLUGIN_PATH` - the path to the IntelliJ Go plugin (which is
-                         assumed to contain the dlv executable at a certain
-                         subpath - `./lib/dlv/mac/dlv`)
-
-For a normal Goland installation, neither of these need to be changed. 
-For IntelliJ Ultimate with the Go plugin, then `GOLAND_PLUGIN_PATH` will
-need to be set to something 
-`~/Library/Application\ Support/JetBrains/IntelliJIdea2021.3/plugins/go`
-
-See [go/goland](https://go/goland) for more information.
-

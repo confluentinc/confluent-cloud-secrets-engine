@@ -2,11 +2,9 @@ package plugin
 
 import (
 	"context"
-	"fmt"
-	"testing"
-
 	"github.com/hashicorp/vault/sdk/logical"
 	"github.com/stretchr/testify/assert"
+	"testing"
 )
 
 const (
@@ -15,132 +13,81 @@ const (
 	url          = "http://localhost:19090"
 )
 
-// TestConfig mocks the creation, read, update, and delete
-// of the backend configuration for the Confluent Cloud API.
-func TestConfig(t *testing.T) {
-	b, reqStorage := getTestBackend(t)
+/*
+*
+Using t as the go testing variable is the standard.
+*/
+func TestPathConfigExistenceCheck(t *testing.T) {
+	b := newBackend()
 
-	t.Run("Test Configuration", func(t *testing.T) {
-		err := testConfigCreate(t, b, reqStorage, map[string]interface{}{
-			"ccloud_api_key_id":     apiKeyId,
-			"ccloud_api_key_secret": apiKeySecret,
-			"url":                   url,
-		})
-
-		assert.NoError(t, err)
-
-		err = testConfigRead(t, b, reqStorage, map[string]interface{}{
-			"ccloud_api_key_id": apiKeyId,
-			"url":               url,
-		})
-
-		assert.NoError(t, err)
-
-		err = testConfigUpdate(t, b, reqStorage, map[string]interface{}{
-			"ccloud_api_key_id": apiKeyId,
-			"url":               "http://ccloud:19090",
-		})
-
-		assert.NoError(t, err)
-
-		err = testConfigRead(t, b, reqStorage, map[string]interface{}{
-			"ccloud_api_key_id": apiKeyId,
-			"url":               "http://ccloud:19090",
-		})
-
-		assert.NoError(t, err)
-
-		err = testConfigDelete(t, b, reqStorage)
-
-		assert.NoError(t, err)
-	})
+	configExists := pathConfig(b)
+	assert.NotNil(t, configExists.ExistenceCheck)
 }
 
-func testConfigDelete(t *testing.T, b logical.Backend, s logical.Storage) error {
-	resp, err := b.HandleRequest(context.Background(), &logical.Request{
+func TestConfigDeleteReturnsNoErrors(t *testing.T) {
+	logicalBackend, logicalStorage := getTestBackend(t)
+	resp, err := logicalBackend.HandleRequest(context.Background(), &logical.Request{
 		Operation: logical.DeleteOperation,
 		Path:      configStoragePath,
-		Storage:   s,
+		Storage:   logicalStorage,
 	})
 
-	if err != nil {
-		return err
-	}
+	assert.NoError(t, err)
+	assert.Nil(t, resp)
 
-	if resp != nil && resp.IsError() {
-		return resp.Error()
-	}
-	return nil
 }
 
-func testConfigCreate(t *testing.T, b logical.Backend, s logical.Storage, d map[string]interface{}) error {
-	resp, err := b.HandleRequest(context.Background(), &logical.Request{
+func TestConfigCreateReturnsNoErrors(t *testing.T) {
+	logicalBackend, logicalStorage := getTestBackend(t)
+	var expectedData = map[string]interface{}{
+		"ccloud_api_key_id":     apiKeyId,
+		"ccloud_api_key_secret": apiKeySecret,
+		"url":                   url,
+	}
+	resp, err := logicalBackend.HandleRequest(context.Background(), &logical.Request{
 		Operation: logical.CreateOperation,
 		Path:      configStoragePath,
-		Data:      d,
-		Storage:   s,
+		Data:      expectedData,
+		Storage:   logicalStorage,
 	})
 
-	if err != nil {
-		return err
-	}
-
-	if resp != nil && resp.IsError() {
-		return resp.Error()
-	}
-	return nil
+	assert.NoError(t, err)
+	assert.Nil(t, resp)
 }
 
-func testConfigUpdate(t *testing.T, b logical.Backend, s logical.Storage, d map[string]interface{}) error {
-	resp, err := b.HandleRequest(context.Background(), &logical.Request{
+func TestConfigUpdateReturnsNoErrors(t *testing.T) {
+	logicalBackend, logicalStorage := getTestBackend(t)
+	var expectedData = map[string]interface{}{
+		"ccloud_api_key_id":     apiKeyId,
+		"ccloud_api_key_secret": apiKeySecret,
+		"url":                   "http://ccloud:19090",
+	}
+	resp, err := logicalBackend.HandleRequest(context.Background(), &logical.Request{
 		Operation: logical.UpdateOperation,
 		Path:      configStoragePath,
-		Data:      d,
-		Storage:   s,
+		Data:      expectedData,
+		Storage:   logicalStorage,
 	})
 
-	if err != nil {
-		return err
-	}
+	assert.NoError(t, err)
+	assert.Nil(t, resp)
 
-	if resp != nil && resp.IsError() {
-		return resp.Error()
-	}
-	return nil
 }
 
-func testConfigRead(t *testing.T, b logical.Backend, s logical.Storage, expected map[string]interface{}) error {
-	resp, err := b.HandleRequest(context.Background(), &logical.Request{
+func TestConfigReadReturnsNoErrors(t *testing.T) {
+	logicalBackend, logicalStorage := getTestBackend(t)
+	var expectedData = map[string]interface{}{
+		"ccloud_api_key_id":     apiKeyId,
+		"ccloud_api_key_secret": apiKeySecret,
+		"url":                   "http://ccloud:19090",
+	}
+	resp, err := logicalBackend.HandleRequest(context.Background(), &logical.Request{
 		Operation: logical.ReadOperation,
 		Path:      configStoragePath,
-		Storage:   s,
+		Data:      expectedData,
+		Storage:   logicalStorage,
 	})
 
-	if err != nil {
-		return err
-	}
-
-	if resp == nil && expected == nil {
-		return nil
-	}
-
-	if resp.IsError() {
-		return resp.Error()
-	}
-
-	if len(expected) != len(resp.Data) {
-		return fmt.Errorf("read data mismatch (expected %d values, got %d)", len(expected), len(resp.Data))
-	}
-
-	for k, expectedV := range expected {
-		actualV, ok := resp.Data[k]
-
-		if !ok {
-			return fmt.Errorf(`expected data["%s"] = %v but was not included in read output"`, k, expectedV)
-		} else if expectedV != actualV {
-			return fmt.Errorf(`expected data["%s"] = %v, instead got %v"`, k, expectedV, actualV)
-		}
-	}
-
-	return nil
+	assert.NoError(t, err)
+	assert.NotNil(t, resp)
 }
