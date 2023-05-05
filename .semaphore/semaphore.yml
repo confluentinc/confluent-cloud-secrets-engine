@@ -60,8 +60,8 @@ blocks:
           commands:
             - cd pkg/plugin
             - go build
-            - go test -v ./...
-            - ls pie-cc-hashicorp-vault-plugin/build
+            - go test -v ./... -xml > report.xml
+            - ls pie-cc-hashicorp-vault-plugin
             - test-results publish pie-cc-hashicorp-vault-plugin/build/*.xml
 after_pipeline:
   task:
