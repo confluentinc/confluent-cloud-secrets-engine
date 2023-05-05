@@ -1,1 +1,3 @@
-*	@confluentinc/csid-admins
+*   @confluentinc/DevProd
+/seed-db/   @confluentinc/ccloud
+/seed-db/sql/cts.sql   @confluentinc/authentication
