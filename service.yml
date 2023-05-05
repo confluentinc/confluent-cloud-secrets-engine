@@ -1,18 +1,9 @@
-name: cc-mk-include
-lang: unknown
+name: pie-cc-hashicorp-vault-plugin
+lang: go
 lang_version: unknown
 git:
   enable: true
-
-  repo_name: confluentinc/cc-mk-include
+github:
+  enable: true
 semaphore:
   enable: true
-  pipeline_enable: false
-  triggers:
-  - tags
-  - branches
-  - pull_requests
-  - forked_pull_requests
-  branches:
-  - master
-  - /^v\d+\.\d+\.x$/

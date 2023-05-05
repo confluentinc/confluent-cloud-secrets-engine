@@ -24,7 +24,6 @@ terraform.d
 Dockerfile.build
 .netrc
 .idea/
-.vscode/
 
 charts/package
 

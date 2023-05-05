@@ -6,17 +6,16 @@
 apiVersion: v1alpha
 kind: Project
 metadata:
-  name: cc-mk-include
+  name: pie-cc-hashicorp-vault-plugin
   description: ""
 spec:
   visibility: private
   repository:
-    url: git@github.com:confluentinc/cc-mk-include.git
+    url: git@github.com:confluentinc/pie-cc-hashicorp-vault-plugin.git
     run_on:
-    - tags
     - branches
+    - tags
     - pull_requests
-    - forked_pull_requests
     pipeline_file: .semaphore/semaphore.yml
     integration_type: github_app
     status:
@@ -26,6 +25,7 @@ spec:
     whitelist:
       branches:
       - master
+      - main
       - /^v\d+\.\d+\.x$/
   custom_permissions: true
   debug_permissions:

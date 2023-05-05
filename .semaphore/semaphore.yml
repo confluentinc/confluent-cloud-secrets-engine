@@ -46,14 +46,20 @@ global_job_config:
       - make init-ci
       - make docker-login-ci
 blocks:
-  - name: Build
-    dependencies: []
+  - name: Build and Test
     task:
       jobs:
-        - name: Build, test
+        - name: Build and Test
           commands:
-            - make build  # use `make show-args` to see what this calls
-            - make test
+            - ./ls pie-cc-hashicorp-vault-plugin/
+            - ./cd pkg/plugin
+            - ./go build
+            - ./go test -v ./...
+      epilogue:
+        always:
+          commands:
+            - ls pie-cc-hashicorp-vault-plugin/build
+            - test-results publish pie-cc-hashicorp-vault-plugin/build/*.xml
 after_pipeline:
   task:
     jobs:
