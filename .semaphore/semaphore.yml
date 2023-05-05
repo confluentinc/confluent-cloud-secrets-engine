@@ -41,7 +41,25 @@ global_job_config:
       - . vault-sem-get-secret aws_credentials
       - chmod 400 ~/.ssh/id_rsa
       - exec &> >(tee -a build.log)
+      - chmod 700 ~/.m2/settings.xml
+      - chmod 700 ~/.netrc
       - make init-ci
+      - make docker-login-ci
+#blocks:
+#  - name: Build and Test
+#    task:
+#      jobs:
+#        - name: Build and Test
+#          commands:
+#            - ls pie-cc-hashicorp-vault-plugin/
+##            - cd pkg/plugin
+##            - go build
+##            - go test -v ./...
+#      epilogue:
+#        always:
+#          commands:
+#            - ls pie-cc-hashicorp-vault-plugin/build
+#            - test-results publish pie-cc-hashicorp-vault-plugin/build/*.xml
 blocks:
   - name: Build and Test
     task:
@@ -49,14 +67,11 @@ blocks:
         - name: Build and Test
           commands:
             - ls pie-cc-hashicorp-vault-plugin/
-            - cd pkg/plugin
-            - go build
-            - go test -v ./...
+          parallelism: 1
       epilogue:
         always:
           commands:
-            - ls pie-cc-hashicorp-vault-plugin/build
-            - test-results publish pie-cc-hashicorp-vault-plugin/build/*.xml
+            - ls pie-cc-hashicorp-vault-plugin/build/
 
 after_pipeline:
   task:
