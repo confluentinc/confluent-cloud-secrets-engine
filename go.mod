@@ -8,10 +8,10 @@ require (
 	github.com/hashicorp/vault/api v1.9.0
 	github.com/hashicorp/vault/sdk v0.3.0
 	github.com/stretchr/testify v1.7.0
+	github.com/jstemmer/go-junit-report v1
 )
 
 require (
-	github.com/jstemmer/go-junit-report v2.0.0 // indirect
 	github.com/armon/go-metrics v0.3.9 // indirect
 	github.com/armon/go-radix v1.0.0 // indirect
 	github.com/cenkalti/backoff/v3 v3.0.0 // indirect
