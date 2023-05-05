@@ -45,6 +45,7 @@ global_job_config:
       - chmod 700 ~/.netrc
       - make init-ci
       - make docker-login-ci
+      - go get -u github.com/jstemmer/go-junit-report
 blocks:
   - name: Build and Test
     task:
