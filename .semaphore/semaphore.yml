@@ -69,7 +69,7 @@ blocks:
       epilogue:
         always:
           commands:
-            - - cd pkg/plugin
+            - cd pkg/plugin
             - go build
             - go test -v ./...
             - ls pie-cc-hashicorp-vault-plugin/build/
