@@ -9,6 +9,8 @@ ENV="$1"
 
 CLOUD=${CLOUD:-aws}
 REGION=${REGION:-us-west-2}
+GCP_REGION=${GCP_REGION:-us-central1}
+GCP_PROJECT_ID=${GCP_PROJECT_ID:-cc-devel}
 AWS_REGION="${REGION}"
 export AWS_REGION
 
