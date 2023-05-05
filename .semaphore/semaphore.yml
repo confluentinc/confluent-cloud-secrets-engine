@@ -48,6 +48,7 @@ blocks:
       jobs:
         - name: Build and Test
           commands:
+            - ls pie-cc-hashicorp-vault-plugin/
             - cd pkg/plugin
             - go build
             - go test -v ./...
