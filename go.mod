@@ -1,6 +1,6 @@
 module github.com/confluentinc/pie-cc-hashicorp-vault-plugin
 
-go 1.17
+go 1.19
 
 require (
 	github.com/confluentinc/ccloud-sdk-go-v2/apikeys v0.3.0
@@ -11,6 +11,7 @@ require (
 )
 
 require (
+	github.com/jstemmer/go-junit-report v2.0.0 // indirect
 	github.com/armon/go-metrics v0.3.9 // indirect
 	github.com/armon/go-radix v1.0.0 // indirect
 	github.com/cenkalti/backoff/v3 v3.0.0 // indirect
