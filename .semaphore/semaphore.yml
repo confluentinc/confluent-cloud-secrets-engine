@@ -63,9 +63,6 @@ global_job_config:
 blocks:
   - name: Build and Test
     task:
-      jobs:
-        - name: Build and Test
-          parallelism: 1
       epilogue:
         always:
           commands:
