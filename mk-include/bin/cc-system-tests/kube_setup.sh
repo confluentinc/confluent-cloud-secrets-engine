@@ -8,7 +8,6 @@ elif [ ! -z "$ZSH_VERSION" ]; then
 fi
 
 __configure_kubecfg_root_tmpdir="${TMPDIR:-/tmp}/configure_kubecfg.tmp.${USER}"
-
 # Creates a temporary config dir only once.
 __configure_kubecfg_mktemp() {
   __configure_kubecfg_tmpdir="${__configure_kubecfg_root_tmpdir}/$$"
@@ -32,7 +31,7 @@ __configure_kubecfg_purgetemp() {
 
 __with_backoff() {
   local max_attempts=${ATTEMPTS:-5}
-  local timeout=${TIMEOUT:-1}
+  local timeout=${TIMEOUT:-2}
   local attempt=0
   local exitCode=0
 
@@ -490,7 +489,6 @@ __configure_kubecfg_aws_eks() {
       "${aws_region}"
 }
 
-
 __configure_kubecfg_get_file_age_in_minutes() {
   local filename="$1"
   [ -f "${filename}" ] || return
@@ -501,7 +499,40 @@ __configure_kubecfg_get_file_age_in_minutes() {
   fi
 }
 
+__configure_kubecfg_get_from_ccdot_files() {
+  local filename="$1"
+  local env="$2"
+  vault kv get --field=json v1/ci/kv/semaphore2/GCP_LOGIN_CREDENTIALS_DEVEL > ${env}.json
+  export GCP_LOGIN_CREDENTIALS=${env}.json
+  gcloud auth activate-service-account --key-file "${GCP_LOGIN_CREDENTIALS}"
+  echo "Downloading the latest kubeconfig."
+  kubectl-ccloud-config get "${env}"
+  chmod 600 $HOME/.kube/ccloud-config/${env}/kubeconfig
+  __configure_kubecfg_merge "${filename}" "${HOME}/.kube/ccloud-config/${env}/kubeconfig"
+  rm "${CC_DOTFILES_CLONE_PATH}"/"${env}.json"
+   # resetting it back
+  export KUBECONFIG="${HOME}/.kube/config"
+}
+
+__configure_dotfiles_scripts() {
+  # add the dotfiles scripts in the path variable here in the parent shell
+  # configure_kubecfg spawns child shell (code executed inside the bracket ()) which updates the PATH variable (if any)
+  # The path variable is then not visible in parent shell when child shell exits
+  echo "Cloning the repo cc-dotfiles for pulling the pre-generated contexts for ${ENV}"
+  # To run it locally we need to have GIT CLONE PATH provided by the User
+  CC_DOTFILES_CLONE_PATH="${SEMAPHORE_GIT_DIR:-"${CC_DOTFILES_CLONE_PATH}"}"
+  echo "Git clone path ${CC_DOTFILES_CLONE_PATH}"
+  if [ ! -d "${CC_DOTFILES_CLONE_PATH}"/cc-dotfiles ]; then
+    cd "${CC_DOTFILES_CLONE_PATH}"; git clone git@github.com:confluentinc/cc-dotfiles.git
+  fi
+  export CC_DOTFILES_BETA=1
+  export CC_DOTFILES_ALPHA=1
+  export CC_DOTFILES_QUIET_OWNER=1
+  set +u; source "${CC_DOTFILES_CLONE_PATH}/cc-dotfiles/caas.sh"
+}
+
 configure_kubecfg() {
+  __configure_dotfiles_scripts
   (
   set -u -e -o pipefail
   [ -n "${DEBUG:-}" ] && set -x
@@ -540,14 +571,22 @@ configure_kubecfg() {
   shopt -s nocasematch
   case "${CLOUD}" in
     'AWS')
+      # keep __configure_kubecfg_get_from_ccdot_files first. If not, the kubeconfig of fetched by this
+      # will require authentication if you request for mothership namespace
+      # the script will fail at authentication step. Keeping it first will avoid that
+      __configure_kubecfg_get_from_ccdot_files  "${new_kubeconfig}" "${ENV}" || true
       __configure_kubecfg_aws_kops "${new_kubeconfig}" "${AWS_REGION}" || true
       __configure_kubecfg_aws_eks "${new_kubeconfig}" "${AWS_REGION}" || true
       ;;
     'GCP')
-      __configure_kubecfg_gcp_gke "${new_kubeconfig}" "${REGION}"
+      __configure_kubecfg_get_from_ccdot_files  "${new_kubeconfig}" "${ENV}" || true
+      # Commenting out this as we are generating kubeconfig from ccdot files
+      # __configure_kubecfg_gcp_gke "${new_kubeconfig}" "${REGION}"
       ;;
     'AZURE')
-      __configure_kubecfg_azure_aks "${new_kubeconfig}" "${REGION}"
+      __configure_kubecfg_get_from_ccdot_files  "${new_kubeconfig}" "${ENV}" || true
+      # Commenting this out for now as this is hitting a connectivity timeout.
+      # __configure_kubecfg_azure_aks "${new_kubeconfig}" "${REGION}"
       ;;
     *)
       echo "ERROR: Unknown Cloud ${CLOUD}"
@@ -575,6 +614,7 @@ configure_kubecfg() {
   cp "${new_kubeconfig}" "${target_kubeconfig}"
 
   )
+
   echo "Done: kubectl configured in ${KUBECONFIG:-${HOME}/.kube/config}" 1>&2
 }
 

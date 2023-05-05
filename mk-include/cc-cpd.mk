@@ -44,17 +44,8 @@ show-cpd:
 	@echo "cc-system-tests create kafka clusters: $(CREATE_KAFKA_CLUSTERS)"
 
 .PHONY: gcloud-install
-# https://cloud.google.com/sdk/docs/downloads-apt-get - updated Dec 10.
-# https://askubuntu.com/questions/1135822 - ppa:jonathonf/python-2.7
-# https://launchpad.net/~jonathonf/+archive/ubuntu/python-2.7
 gcloud-install:
 ifeq ($(CI),true)
-	sudo rm -f /etc/apt/sources.list.d/gcloud-source.list
-	install-package apt-transport-https ca-certificates gnupg || sudo apt-get -y install apt-transport-https ca-certificates gnupg
-	echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
-	curl https://www.mongodb.org/static/pgp/server-3.4.asc | sudo apt-key add -
-	curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key --keyring /usr/share/keyrings/cloud.google.gpg add -
-	install-package --update-new google-cloud-sdk kubectl || sudo apt-get update && sudo apt-get install google-cloud-sdk kubectl
 	gcloud config set project cloud-private-dev
 	gcloud config set account semaphore@cloud-private-dev.iam.gserviceaccount.com
 	gcloud auth activate-service-account --key-file ~/.config/gcloud/application_default_credentials.json
@@ -102,7 +93,7 @@ RELEASE_POSTCOMMIT += halyard-cpd-apply-services
 .PHONY: halyard-cpd-apply-services
 ## Register the new version of the halyard spec with the halyard cpd instance, aka apply -f.
 halyard-cpd-apply-services:
-ifneq ($(wildcard .halyard/*.yaml),)
+ifneq ($(CPD_HALYARD_SERVICE_FILES),)
 	# When CI is running HAL_TMPDIR is a random file. Every time it's evaluated
 	# it gives a random file. If we want to use the same random file, then we have
 	# to save its output in a variable and pass that in to our makefile targets
@@ -115,13 +106,13 @@ ifneq ($(wildcard .halyard/*.yaml),)
 	HALYARD_SOURCE_VERSION=$(BUMPED_CHART_VERSION) \
 	HALCTL_ARGS="$(CPD_HALCTL_ARGS)" \
 	HAL_TMPDIR="$(CPD_HAL_TMPDIR)" \
+	HALYARD_SERVICE_FILES="$(CPD_HALYARD_SERVICE_FILES)" \
 	$(MAKE) $(MAKE_ARGS) halyard-apply-services
 endif
 
 .PHONY: halyard-set-default-version-cpd
-## 
+## Set service default version on CPD
 halyard-set-default-version-cpd:
-## Set service default version on CPD 
 	@echo "## Setting default version on Halyard CPD";
 	HALYARD_DEPLOYER_ADDRESS=$(CPD_HALYARD_DEPLOYER_ADDRESS) \
 	HALYARD_RELEASE_ADDRESS=$(CPD_HALYARD_RELEASE_ADDRESS) \
@@ -129,8 +120,53 @@ halyard-set-default-version-cpd:
 	HALCTL_ARGS="$(CPD_HALCTL_ARGS)" \
 	$(MAKE) $(MAKE_ARGS) halyard-set-default-version
 
+.PHONY: halyard-find-helm-chart-version-cpd
+# Find the helm chart version for prod using the internal halyard `installedVersion` from cpd yaml
+# config
+halyard-find-helm-chart-version-cpd:
+ifeq ($(svc),)
+	$(error svc must be set)
+endif
+ifeq ($(env),)
+	$(error env must be set)
+endif
+ifeq ($(ver),)
+	$(error ver must be set)
+endif
+	$(eval version := $(shell HALYARD_DEPLOYER_ADDRESS=$(CPD_HALYARD_DEPLOYER_ADDRESS) \
+		HALYARD_RELEASE_ADDRESS=$(CPD_HALYARD_RELEASE_ADDRESS) \
+		HALYARD_RENDERER_ADDRESS=$(CPD_HALYARD_RENDERER_ADDRESS) \
+		HALCTL_ARGS="$(CPD_HALCTL_ARGS)" \
+		env=$(env) \
+		svc=$(svc) \
+		ver=$(ver) \
+		$(MAKE) $(MAKE_ARGS) halyard-find-helm-chart-version))
+	@echo $(version)
+
+.PHONY: find-halyard-version-from-helm-chart-cpd
+# Find the internal halyard version for cpd given the helm chart version
+find-halyard-version-from-helm-chart-cpd:
+	$(eval version := $(shell HALYARD_DEPLOYER_ADDRESS=$(CPD_HALYARD_DEPLOYER_ADDRESS) \
+		HALYARD_RELEASE_ADDRESS=$(CPD_HALYARD_RELEASE_ADDRESS) \
+		HALYARD_RENDERER_ADDRESS=$(CPD_HALYARD_RENDERER_ADDRESS) \
+		HALCTL_ARGS="$(CPD_HALCTL_ARGS)" \
+		HALYARD_ENV_TO_DEPLOY=$(HALYARD_CPD_ENV) \
+		helmChartVersion=$(helmChartVersion) \
+		$(MAKE) $(MAKE_ARGS) halyard-find-version-from-helm-chart))
+	@echo $(version)
+
+.PHONY: find-halyard-default-version-cpd
+find-halyard-default-version-cpd:
+	HALYARD_DEPLOYER_ADDRESS=$(CPD_HALYARD_DEPLOYER_ADDRESS) \
+	HALYARD_RELEASE_ADDRESS=$(CPD_HALYARD_RELEASE_ADDRESS) \
+	HALYARD_RENDERER_ADDRESS=$(CPD_HALYARD_RENDERER_ADDRESS) \
+	HALCTL_ARGS="$(CPD_HALCTL_ARGS)" \
+	env="$(HALYARD_CPD_ENV_KEY)" \
+	svc="$(svc)" \
+	$(MAKE) $(MAKE_ARGS) halyard-find-default-version
+
 .PHONY: cpd-deploy-local
-## Deploy local chart to cpd cluster
+## Deploy local chart to cpd cluster, only load images from dirty repo(GAR)
 cpd-deploy-local: cpd-update helm-update-repo cpd-priv-create-if-missing
 ifneq ($(wildcard .halyard/*.yaml),)
 ifeq ($(CPD_GATING_VIA_HALYARD), true)
@@ -141,7 +177,7 @@ ifeq ($(CPD_GATING_VIA_HALYARD), true)
 	@echo "## Updating halyard spec with dirty image";
 	$(CPD_PATH) set-halyard-values \
 		--set "image.tag=$(IMAGE_VERSION_NO_V)" \
-		--set "image.repository=$(DOCKER_REPO)/$(IMAGE_REPO)" \
+		--set "image.repository=$(DEVPROD_NONPROD_GAR_REPO)/$(IMAGE_REPO)" \
 		--file $(CPD_HALYARD_SERVICE_FILES)
 	@echo "## Updating halyard with new halyard specs";
 	HALYARD_DEPLOYER_ADDRESS=$(CPD_HALYARD_DEPLOYER_ADDRESS) \
@@ -219,7 +255,7 @@ system-tests-on-cpd:
 
 .PHONY: _system-tests-on-cpd-helper
 _system-tests-on-cpd-helper:
-	. mk-include/bin/vault-setup
+	. $(MK_INCLUDE_BIN)/vault-setup
 	$(MAKE) $(MAKE_ARGS) _run-cc-system-tests || ( $(CPD_PATH) debug --id `kubectl config current-context` --more; exit 1 )
 
 CC_SYSTEM_TEST_CHECKOUT_DIR = ./.cc-system-tests
