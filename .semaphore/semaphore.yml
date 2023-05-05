@@ -45,7 +45,6 @@ global_job_config:
       - chmod 700 ~/.netrc
       - make init-ci
       - make docker-login-ci
-      - go get -u github.com/jstemmer/go-junit-report
 blocks:
   - name: Build and Test
     task:
@@ -60,6 +59,7 @@ blocks:
         always:
           commands:
             - cd pkg/plugin
+            - go get -u github.com/jstemmer/go-junit-report
             - go build
             #in go you have to use the coverprofile to be able to generate a test xml or generate it as json then convert to xml
             - go test -v ./... -coverprofile=coverage.out -json > report.json
