@@ -48,7 +48,7 @@ blocks:
       jobs:
         - name: Build and Test
           commands:
-            - go build
+            - make init-ci
             - go test -v ./...
       epilogue:
         always:
