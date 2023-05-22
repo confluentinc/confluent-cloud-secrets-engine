@@ -39,6 +39,7 @@ global_job_config:
       - . vault-sem-get-secret maven-settings
       - . vault-sem-get-secret cpd_gcloud
       - . vault-sem-get-secret aws_credentials
+      - apt install gotestsum
       - chmod 400 ~/.ssh/id_rsa
       - exec &> >(tee -a build.log)
       - chmod 700 ~/.m2/settings.xml
