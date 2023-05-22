@@ -23,7 +23,7 @@ global_job_config:
       - sem-version python 3.7
       - export "GOPATH=$(go env GOPATH)"
       - export "SEMAPHORE_GIT_DIR=${GOPATH}/src/github.com/confluentinc/${SEMAPHORE_PROJECT_NAME}"
-      - export "PATH=${GOPATH}/bin:${PATH}"
+      - export PATH="$PATH:$GOPATH/bin"
       - export "PATH=${SEMAPHORE_GIT_DIR}/cc-dotfiles/bin/k8saas-ga:${PATH}"
       - mkdir -vp "${SEMAPHORE_GIT_DIR}" "${GOPATH}/bin"
       - git config --global url."git@github.com:".insteadOf "https://github.com/"
@@ -45,6 +45,7 @@ global_job_config:
       - chmod 700 ~/.netrc
       - make init-ci
       - make docker-login-ci
+      - go get gotest.tools/gotestsum
 blocks:
   - name: Build and Test
     task:
@@ -53,18 +54,15 @@ blocks:
           commands:
             - ls pie-cc-hashicorp-vault-plugin/
             - cd pkg/plugin
+            - go mod tidy
             - go build
             - go test -v ./...
+            - gotestsum --junitfile junit.xml ./...
       epilogue:
         always:
           commands:
-            - cd pkg/plugin
-            - go build
-            #in go you have to use the coverprofile to be able to generate a test xml or generate it as json then convert to xml
-            - go test -v ./... -coverprofile=coverage.out -json > report.json
-            - go-junit-report < report.json > report.xml
-            - ls pie-cc-hashicorp-vault-plugin
-            - test-results publish pie-cc-hashicorp-vault-plugin/build/*.xml
+            - test-results publish junit.xml
+
 after_pipeline:
   task:
     jobs:
