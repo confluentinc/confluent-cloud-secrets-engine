@@ -52,14 +52,13 @@ blocks:
       jobs:
         - name: Build and Test
           commands:
+            - ls pie-cc-hashicorp-vault-plugin/
       epilogue:
         always:
           commands:
-            - ls pie-cc-hashicorp-vault-plugin/
             - cd pkg/plugin
             - go mod tidy
             - go build
-            - go test -v ./...
             - gotestsum --junitfile junit.xml ./...
             - test-results publish junit.xml
 
