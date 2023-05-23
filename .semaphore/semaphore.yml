@@ -49,9 +49,9 @@ blocks:
       epilogue:
         always:
           commands:
+            - make ci-runner
             - make epilogue-ci
             - make testbreak-after
-            - go test -v ./...
             - make store-test-results-to-semaphore
 after_pipeline:
   task:
