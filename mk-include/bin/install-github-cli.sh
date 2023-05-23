@@ -1,6 +1,5 @@
 #!/bin/bash
 # install github cli if it is not installed
-# only work on deb based system
 set -e
 if ! gh --version | grep "gh version" ; then
     if [[ "$OSTYPE" == "linux-gnu"* ]]; then
@@ -8,11 +7,11 @@ if ! gh --version | grep "gh version" ; then
         sudo apt-get install -y ./gh_"${GITHUB_CLI_VERSION}"_linux_amd64.deb
         rm gh_"${GITHUB_CLI_VERSION}"_linux_amd64.deb
     elif [[ "$OSTYPE" == "darwin"* ]]; then
-        brew install github/gh/gh
+        brew install gh
     elif [[ "$OSTYPE" == "linux-musl"* ]]; then
         curl -O https://confluent-packaging-tools.s3-us-west-2.amazonaws.com/gh_"${GITHUB_CLI_VERSION}"_linux_amd64.tar.gz
         tar -xzf gh_"${GITHUB_CLI_VERSION}"_linux_amd64.tar.gz
-        mv ./gh_1.12.1_linux_amd64/bin/gh /usr/local/bin/
+        mv ./gh_"${GITHUB_CLI_VERSION}"_linux_amd64/bin/gh /usr/local/bin/
         rm -rf gh_"${GITHUB_CLI_VERSION}"_linux_amd64*
     fi
 else
