@@ -42,7 +42,6 @@ blocks:
       jobs:
         - name: Build and Test
           commands:
-            - make init-ci
             - cd pkg/plugin
             - go mod tidy
             - go build
@@ -51,7 +50,7 @@ blocks:
           commands:
             - go test -v ./...
             - ls /home/semaphore/pie-cc-hashicorp-vault-plugin
-            - test-results publish test_output.txt
+            - test-results publish test_output.json
 after_pipeline:
   task:
     jobs:
