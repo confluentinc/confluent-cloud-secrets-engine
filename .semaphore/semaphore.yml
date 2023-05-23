@@ -46,10 +46,10 @@ blocks:
             - cd pkg/plugin
             - go mod tidy
             - go build
-            - make vet
       epilogue:
         always:
           commands:
+            - make vet
             - make ci-runner
             - make epilogue-ci
             - make testbreak-after
