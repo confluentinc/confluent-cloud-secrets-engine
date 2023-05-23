@@ -18,7 +18,8 @@ include ./mk-include/cc-cpd.mk
 include ./mk-include/halyard.mk
 include ./mk-include/cc-api.mk
 include ./mk-include/cc-docker.mk
-
+include ./mk-include/cc-system-tests.mk
+include ./mk-include/cc-testbreak.mk
 
 # Disable CGO by default, to allow static binaries
 export CGO_ENABLED := 0
