@@ -8,3 +8,4 @@ node_modules
 Pipfile
 Pipfile.lock
 mk-include
+.git
