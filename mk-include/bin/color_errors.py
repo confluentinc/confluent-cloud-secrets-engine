@@ -11,6 +11,4 @@ import sys
 if __name__ == "__main__":
 
     for line in fileinput.input():
-        print('\033[31m{:^24s}\033[0m  ┃ {}'.format("--error--", line),
-              end='',
-              file=sys.stderr)
+        print('\033[31m{:^24s}\033[0m  ┃ {}'.format("--error--", line), end='', file=sys.stderr)
