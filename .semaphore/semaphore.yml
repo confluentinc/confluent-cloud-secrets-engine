@@ -49,7 +49,6 @@ blocks:
       epilogue:
         always:
           commands:
-            - make build-docker
             - make test
             - pwd
             - make store-test-results-to-semaphore
