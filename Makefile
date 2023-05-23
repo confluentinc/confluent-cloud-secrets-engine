@@ -80,10 +80,3 @@ setup:
 .PHONY: yaml-lint
 yaml-lint: YAMLLINT_VERSION = 1.26
 yaml-lint: YAMLLINT = docker run $(_docker_opts) --workdir /local cytopia/yamllint:$(YAMLLINT_VERSION)
-yaml-lint:
-	$(YAMLLINT) \
-		-f colored \
-		.halyard \
-		charts \
-		etc \
-		include
