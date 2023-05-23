@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 This command line script takes path to Halyard configs as an input and extracts all
 service names associated with the project/repo from config files (yaml) and prints
@@ -12,6 +11,7 @@ bump events
 
 import argparse
 import pathlib
+
 import yaml
 
 
@@ -27,7 +27,10 @@ def main(config_path):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Parse service names from Halyard config files')
-    parser.add_argument('config_path', type=str, help='Path to Halyard configs')
+    parser = argparse.ArgumentParser(
+        description='Parse service names from Halyard config files')
+    parser.add_argument('config_path',
+                        type=str,
+                        help='Path to Halyard configs')
     args = parser.parse_args()
     main(args.config_path)
