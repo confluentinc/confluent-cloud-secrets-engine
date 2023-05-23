@@ -49,7 +49,6 @@ blocks:
       epilogue:
         always:
           commands:
-            - make init-ci
             - make build-docker
             - make test
             - pwd
