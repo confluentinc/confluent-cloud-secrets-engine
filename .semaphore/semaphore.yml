@@ -42,13 +42,12 @@ blocks:
       jobs:
         - name: Build and Test
           commands:
-            - ls pie-cc-hashicorp-vault-plugin/
-      epilogue:
-        always:
-          commands:
             - cd pkg/plugin
             - go mod tidy
             - go build
+      epilogue:
+        always:
+          commands:
             - go test -v ./...
 after_pipeline:
   task:
