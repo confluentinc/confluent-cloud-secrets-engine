@@ -5,7 +5,7 @@
 # For more information, please refer to the page:
 # https://confluentinc.atlassian.net/wiki/spaces/Foundations/pages/2871296194/Add+SemaphoreCI
 version: v1.0
-name: build-test-release
+name: Build, Test, Release
 agent:
   machine:
     type: s1-prod-ubuntu20-04-amd64-1
@@ -17,29 +17,12 @@ execution_time_limit:
 global_job_config:
   secrets:
     - name: vault_sem2_approle
-  env_vars:
-    - name: PYTHON_VERSION
-      value: "3.8"
-    - name: PYTEST_LOG_LEVEL
-      value: "DEBUG"
-    - name: PYTEST_VERSION
-      value: "5.4.3"
-    - name: STRUCTLOG_VERSION
-      value: "20.1.0"
   prologue:
     commands:
-      - sem-version go 1.19.0
-      - sem-version python 3.8
-      - export "GOPATH=$(go env GOPATH)"
-      - export "SEMAPHORE_GIT_DIR=${GOPATH}/src/github.com/confluentinc/${SEMAPHORE_PROJECT_NAME}"
-      - export PATH="$PATH:$GOPATH/bin"
-      - export "PATH=${SEMAPHORE_GIT_DIR}/cc-dotfiles/bin/k8saas-ga:${PATH}"
-      - mkdir -vp "${SEMAPHORE_GIT_DIR}" "${GOPATH}/bin"
-      - git config --global url."git@github.com:".insteadOf "https://github.com/"
-      - export SEMAPHORE_CACHE_DIR=/home/semaphore
+      - sem-version go 1.19
+      - sem-version python 3.9
+      - go version
       - checkout
-      - exec &> >(tee -a build.log)
-      - make copy-parent-mk-include
       - make install-vault
       - . mk-include/bin/vault-setup
       - . vault-sem-get-secret gitconfig
@@ -47,16 +30,12 @@ global_job_config:
       - . vault-sem-get-secret ssh_config
       - . vault-sem-get-secret netrc
       - . vault-sem-get-secret artifactory-docker-helm
-      - . vault-sem-get-secret maven-settings
       - . vault-sem-get-secret cpd_gcloud
       - . vault-sem-get-secret aws_credentials
-      - apt install gotestsum
+      - . vault-sem-get-secret halyard-secrets
+      - . vault-sem-get-secret ci-reporting
+      - . vault-sem-get-secret dockerhub-semaphore-cred-ro
       - chmod 400 ~/.ssh/id_rsa
-      - exec &> >(tee -a build.log)
-      - chmod 700 ~/.m2/settings.xml
-      - chmod 700 ~/.netrc
-      - make init-ci
-      - make docker-login-ci
 blocks:
   - name: Build and Test
     task:
