@@ -17,6 +17,15 @@ execution_time_limit:
 global_job_config:
   secrets:
     - name: vault_sem2_approle
+  env_vars:
+    - name: PYTHON_VERSION
+      value: "3.8"
+    - name: PYTEST_LOG_LEVEL
+      value: "DEBUG"
+    - name: PYTEST_VERSION
+      value: "5.4.3"
+    - name: STRUCTLOG_VERSION
+      value: "20.1.0"
   prologue:
     commands:
       - sem-version go 1.18.0
