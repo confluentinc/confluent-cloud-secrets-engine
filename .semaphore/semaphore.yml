@@ -19,11 +19,10 @@ global_job_config:
     - name: vault_sem2_approle
   prologue:
     commands:
-
       - sem-version go 1.18.0
-        - sem-version python "${PYTHON_VERSION}"
-        - export "GOPATH=$(go env GOPATH)"
-        - >-
+      - sem-version python "${PYTHON_VERSION}"
+      - export "GOPATH=$(go env GOPATH)"
+      - >-
         export
         "SEMAPHORE_GIT_DIR=${GOPATH}/src/github.com/confluentinc/${SEMAPHORE_PROJECT_NAME}"
         - 'export "PATH=${GOPATH}/bin:${PATH}"'
@@ -31,12 +30,12 @@ global_job_config:
         - >-
         git config --global url."git@github.com:".insteadOf
         "https://github.com/"
-        - export SEMAPHORE_CACHE_DIR=/home/semaphore
-        - checkout
-        - exec &> >(tee -a build.log)
-        - make copy-parent-mk-include
-        - make install-vault
-        - . mk-include/bin/vault-setup
+      - export SEMAPHORE_CACHE_DIR=/home/semaphore
+      - checkout
+      - exec &> >(tee -a build.log)
+      - make copy-parent-mk-include
+      - make install-vault
+      - . mk-include/bin/vault-setup
       - . vault-sem-get-secret gitconfig
       - . vault-sem-get-secret ssh_id_rsa
       - . vault-sem-get-secret ssh_config
