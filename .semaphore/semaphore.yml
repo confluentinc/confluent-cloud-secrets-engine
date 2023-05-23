@@ -42,10 +42,10 @@ blocks:
       jobs:
         - name: Build and Test
           commands:
+            - make init-ci
             - cd pkg/plugin
             - go mod tidy
             - go build
-            - make init-ci
       epilogue:
         always:
           commands:
