@@ -49,7 +49,7 @@ blocks:
         always:
           commands:
             - go test -v ./...
-            - make epilogue-ci
+            - make store-test-results-to-semaphore
 after_pipeline:
   task:
     jobs:
