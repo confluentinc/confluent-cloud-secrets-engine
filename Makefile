@@ -2,6 +2,9 @@ GOARCH = amd64
 
 UPDATE_MK_INCLUDE := true
 UPDATE_MK_INCLUDE_AUTO_MERGE := true
+SERVICE_NAME := pie-cc-hashicorp-vault-plugin
+IMAGE_NAME := $(SERVICE_NAME)
+BASE_IMAGE := golang
 
 GO_BINS = github.com/confluentinc/pie-cc-hashicorp-vault-plugin/cmd/plugin=vault-ccloud-secrets-engine
 
@@ -14,6 +17,8 @@ include ./mk-include/cc-end.mk
 include ./mk-include/cc-cpd.mk
 include ./mk-include/halyard.mk
 include ./mk-include/cc-api.mk
+include ./mk-include/cc-docker.mk
+
 
 # Disable CGO by default, to allow static binaries
 export CGO_ENABLED := 0
