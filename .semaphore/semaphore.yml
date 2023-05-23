@@ -46,6 +46,7 @@ blocks:
             - cd pkg/plugin
             - go mod tidy
             - go build
+            - make vet
       epilogue:
         always:
           commands:
@@ -53,6 +54,7 @@ blocks:
             - make epilogue-ci
             - make testbreak-after
             - make store-test-results-to-semaphore
+            - bash mk-include/bin/cc-system-tests/store_rerun_data.sh
 after_pipeline:
   task:
     jobs:
