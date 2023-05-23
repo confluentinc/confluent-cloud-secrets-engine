@@ -5,7 +5,7 @@
 # For more information, please refer to the page:
 # https://confluentinc.atlassian.net/wiki/spaces/Foundations/pages/2871296194/Add+SemaphoreCI
 version: v1.0
-name: Build, Test, Release
+name: Build, Test
 agent:
   machine:
     type: s1-prod-ubuntu20-04-amd64-1
