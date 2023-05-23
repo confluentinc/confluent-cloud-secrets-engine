@@ -28,17 +28,15 @@ global_job_config:
       value: "20.1.0"
   prologue:
     commands:
-      - sem-version go 1.18.0
-      - sem-version python "${PYTHON_VERSION}"
+      - sem-version go 1.19.0
+      - sem-version python 3.8
       - export "GOPATH=$(go env GOPATH)"
-      - >-
-        export
-        "SEMAPHORE_GIT_DIR=${GOPATH}/src/github.com/confluentinc/${SEMAPHORE_PROJECT_NAME}"
-        - 'export "PATH=${GOPATH}/bin:${PATH}"'
-        - 'mkdir -vp "${SEMAPHORE_GIT_DIR}" "${GOPATH}/bin"'
-        - >-
-        git config --global url."git@github.com:".insteadOf
-        "https://github.com/"
+      - export "SEMAPHORE_GIT_DIR=${GOPATH}/src/github.com/confluentinc/${SEMAPHORE_PROJECT_NAME}"
+      - export PATH="$PATH:$GOPATH/bin"
+      - export "PATH=${SEMAPHORE_GIT_DIR}/cc-dotfiles/bin/k8saas-ga:${PATH}"
+      - mkdir -vp "${SEMAPHORE_GIT_DIR}" "${GOPATH}/bin"
+      - git config --global url."git@github.com:".insteadOf "https://github.com/"
+      - checkout
       - export SEMAPHORE_CACHE_DIR=/home/semaphore
       - checkout
       - exec &> >(tee -a build.log)
