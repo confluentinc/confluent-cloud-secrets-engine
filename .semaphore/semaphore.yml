@@ -48,8 +48,8 @@ blocks:
       epilogue:
         always:
           commands:
-            - make test
-            - make epilogue-ci
+            - gotestsum --junitfile junit.xml ./...
+            - test-results publish junit.xml
 after_pipeline:
   task:
     jobs:
