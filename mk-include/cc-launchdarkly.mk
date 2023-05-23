@@ -1,6 +1,8 @@
 # The 'run-ld-find-code-refs' target defined here will generate LaunchDarkly flag code 
 # references and upload them to LaunchDarkly, which can then be found against each flag.
 # Before running this target, inject the credentials found in v1/ci/kv/service-foundations/cc-mk-include
+# The code refs searches for extinctions only looking back one commit. Hence, this tool works best
+# when the PR is squashed into a single commit when merging to master/main branches.
 
 BUILD_TARGETS += run-ld-find-code-ref
 
@@ -36,5 +38,5 @@ run-ld-find-code-ref: install-ld-find-code-refs
 ifeq ($(CI),true)
 	@ld-find-code-refs --debug --branch $(GIT_BRANCH_NAME_LD) --dir=. --repoName $(SEMAPHORE_PROJECT_NAME) \
 	--repoUrl https://github.com/$(SEMAPHORE_GIT_REPO_SLUG) \
-	--projKey default --accessToken $(LD_ACCESS_TOKEN) 2>&1
+	--projKey default --accessToken $(LD_ACCESS_TOKEN) --lookback 1 2>&1
 endif

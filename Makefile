@@ -2,13 +2,38 @@ GOARCH = amd64
 
 UPDATE_MK_INCLUDE := true
 UPDATE_MK_INCLUDE_AUTO_MERGE := true
+SERVICE_NAME := pie-cc-hashicorp-vault-plugin
+IMAGE_NAME := $(SERVICE_NAME)
+BASE_IMAGE := golang
 
 GO_BINS = github.com/confluentinc/pie-cc-hashicorp-vault-plugin/cmd/plugin=vault-ccloud-secrets-engine
 
+CHART_NAME := $(SERVICE_NAME)
+GO_ALPINE := false
+BASE_VERSION := 1.19-bullseye
+
+TEST_TARGETS += yaml-lint
+
+DOCKER_BUILD_MULTIARCH ?= true
+ALLOW_BUILD_LATEST_TAG = true
+
+RELEASE_PRECOMMIT := pre-release-check
+
+export DOCKER_BUILDKIT := 1
+DOCKER_SSH_MOUNT := true
+
 include ./mk-include/cc-begin.mk
+include ./mk-include/cc-vault.mk
 include ./mk-include/cc-semaphore.mk
 include ./mk-include/cc-semver.mk
 include ./mk-include/cc-go.mk
+include ./mk-include/cc-docker.mk
+include ./mk-include/cc-cpd.mk
+include ./mk-include/cc-helm.mk
+include ./mk-include/cc-helmfile.mk
+include ./mk-include/halyard.mk
+include ./mk-include/cc-api.mk
+include ./mk-include/cc-ci-metrics.mk
 include ./mk-include/cc-end.mk
 
 # Disable CGO by default, to allow static binaries
