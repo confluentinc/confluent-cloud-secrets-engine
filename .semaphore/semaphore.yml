@@ -51,9 +51,7 @@ blocks:
           commands:
             - go test -v ./...
             - ls /home/semaphore/pie-cc-hashicorp-vault-plugin
-            - ls /home/semaphore/pie-cc-hashicorp-vault-plugin/build/
-            - make store-test-results-to-semaphore
-            - bash mk-include/bin/cc-system-tests/store_rerun_data.sh
+            - test-results publish test_output.txt
 after_pipeline:
   task:
     jobs:
