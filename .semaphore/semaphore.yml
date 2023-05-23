@@ -60,9 +60,7 @@ blocks:
             - cd pkg/plugin
             - go mod tidy
             - go build
-            - gotestsum --junitfile junit.xml ./...
-            - test-results publish junit.xml
-
+            - go test -v ./...
 after_pipeline:
   task:
     jobs:
