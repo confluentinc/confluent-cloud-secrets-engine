@@ -49,8 +49,9 @@ blocks:
       epilogue:
         always:
           commands:
-            - go test -v ./... -coverprofile=coverage.out -json > report.json
-            - go-junit-report < report.json > report.xml
+            - make init-ci
+            - make build-docker
+            - make test
             - pwd
             - make store-test-results-to-semaphore
             - bash mk-include/bin/cc-system-tests/store_rerun_data.sh
