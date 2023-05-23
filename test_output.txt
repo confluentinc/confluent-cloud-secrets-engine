@@ -1,0 +1,63 @@
+?   	github.com/confluentinc/pie-cc-hashicorp-vault-plugin/cmd/plugin	[no test files]
+=== RUN   TestCloudClusterApiKeyReturnsAnIDandSecret
+--- PASS: TestCloudClusterApiKeyReturnsAnIDandSecret (0.00s)
+=== RUN   TestRevokeTokenReturnsErrorGettingClient
+--- PASS: TestRevokeTokenReturnsErrorGettingClient (0.00s)
+=== RUN   TestClientConfigReturnsErrorWhenConfigIsNil
+--- PASS: TestClientConfigReturnsErrorWhenConfigIsNil (0.00s)
+=== RUN   TestClientConfigReturnsErrorWhenCloudApiKeyIdIsNotDefined
+--- PASS: TestClientConfigReturnsErrorWhenCloudApiKeyIdIsNotDefined (0.00s)
+=== RUN   TestClientConfigReturnsResponseWhenApiKeySecretIsNotDefined
+--- PASS: TestClientConfigReturnsResponseWhenApiKeySecretIsNotDefined (0.00s)
+=== RUN   TestClientConfigReturnsResponseWhenUrlIsNotDefined
+--- PASS: TestClientConfigReturnsResponseWhenUrlIsNotDefined (0.00s)
+=== RUN   TestClientConfigReturnsResponseWhenConfigIsNotNil
+--- PASS: TestClientConfigReturnsResponseWhenConfigIsNotNil (0.00s)
+=== RUN   TestPathConfigExistenceCheck
+--- PASS: TestPathConfigExistenceCheck (0.00s)
+=== RUN   TestConfigDeleteReturnsNoErrors
+--- PASS: TestConfigDeleteReturnsNoErrors (0.00s)
+=== RUN   TestConfigCreateReturnsNoErrors
+--- PASS: TestConfigCreateReturnsNoErrors (0.00s)
+=== RUN   TestConfigUpdateReturnsNoErrors
+--- PASS: TestConfigUpdateReturnsNoErrors (0.00s)
+=== RUN   TestConfigReadReturnsNoErrors
+--- PASS: TestConfigReadReturnsNoErrors (0.00s)
+=== RUN   TestAcceptanceUserToken
+--- SKIP: TestAcceptanceUserToken (0.00s)
+=== RUN   TestPathCredentialsReadReturnsErrorWhenNameIsMissing
+--- PASS: TestPathCredentialsReadReturnsErrorWhenNameIsMissing (0.00s)
+=== RUN   TestPathCredentialsReadReturnsRoleIsNilError
+--- PASS: TestPathCredentialsReadReturnsRoleIsNilError (0.00s)
+=== RUN   TestUserRole
+=== RUN   TestUserRole/responseDataReturnedForARole
+=== RUN   TestUserRole/List_All_Roles
+=== RUN   TestUserRole/Create_User_Role
+=== RUN   TestUserRole/Read_User_Role
+=== RUN   TestUserRole/Update_User_Role
+=== RUN   TestUserRole/Re-read_User_Role
+=== RUN   TestUserRole/Delete_User_Role
+=== RUN   TestUserRole/pathRolesReadReturnsErrorWhenTtlIsGreaterThanMaxTtl
+=== RUN   TestUserRole/pathRolesReadReturnsErrorWhenResourceIsMissingInRole
+=== RUN   TestUserRole/pathRolesReadReturnsErrorWhenResourceEnvIsMissingInRole
+=== RUN   TestUserRole/pathRolesReadReturnsErrorWhenOwnerIsMissingInRole
+=== RUN   TestUserRole/pathRolesReadReturnsErrorWhenOwnerEnvIsMissingInRole
+=== RUN   TestUserRole/getRoleReturnsErrorWhenRoleIsEmpty
+=== RUN   TestUserRole/getRoleReturnsNilWhenRoleIsMissing
+--- PASS: TestUserRole (0.00s)
+    --- PASS: TestUserRole/responseDataReturnedForARole (0.00s)
+    --- PASS: TestUserRole/List_All_Roles (0.00s)
+    --- PASS: TestUserRole/Create_User_Role (0.00s)
+    --- PASS: TestUserRole/Read_User_Role (0.00s)
+    --- PASS: TestUserRole/Update_User_Role (0.00s)
+    --- PASS: TestUserRole/Re-read_User_Role (0.00s)
+    --- PASS: TestUserRole/Delete_User_Role (0.00s)
+    --- PASS: TestUserRole/pathRolesReadReturnsErrorWhenTtlIsGreaterThanMaxTtl (0.00s)
+    --- PASS: TestUserRole/pathRolesReadReturnsErrorWhenResourceIsMissingInRole (0.00s)
+    --- PASS: TestUserRole/pathRolesReadReturnsErrorWhenResourceEnvIsMissingInRole (0.00s)
+    --- PASS: TestUserRole/pathRolesReadReturnsErrorWhenOwnerIsMissingInRole (0.00s)
+    --- PASS: TestUserRole/pathRolesReadReturnsErrorWhenOwnerEnvIsMissingInRole (0.00s)
+    --- PASS: TestUserRole/getRoleReturnsErrorWhenRoleIsEmpty (0.00s)
+    --- PASS: TestUserRole/getRoleReturnsNilWhenRoleIsMissing (0.00s)
+PASS
+ok  	github.com/confluentinc/pie-cc-hashicorp-vault-plugin/pkg/plugin	0.592s
