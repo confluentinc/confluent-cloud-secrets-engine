@@ -53,8 +53,8 @@ cp -R "${PROTO_DIR}/github.com/gogo/protobuf/protobuf/google" "${PROTO_DIR}"
 cp -R "${PROTO_DIR}/github.com/gogo/protobuf/gogoproto" "${PROTO_DIR}"
 rm -rf "${PROTO_DIR}/github.com/"
 
-cp "$(go list -f '{{ .Dir }}' -m github.com/confluentinc/protoc-gen-ccloud)"/ccloud.proto  "${PROTO_DIR}/ccloud.proto"
 cp "$(go list -f '{{ .Dir }}' -m github.com/confluentinc/proto-go-setter)"/setter.proto  "${PROTO_DIR}/setter.proto"
 cp "$(go list -f '{{ .Dir }}' -m github.com/travisjeffery/proto-go-sql)"/sql.proto  "${PROTO_DIR}/sql.proto"
 mkdir "${PROTO_DIR}/validate"
+go get github.com/envoyproxy/protoc-gen-validate
 cp "$(go list -f '{{ .Dir }}' -m github.com/envoyproxy/protoc-gen-validate)"/validate/validate.proto "${PROTO_DIR}/validate/validate.proto"
