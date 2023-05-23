@@ -50,7 +50,7 @@ blocks:
         always:
           commands:
             - go test -v ./...
-            - pwd
+            - ls /home/semaphore/pie-cc-hashicorp-vault-plugin
             - make store-test-results-to-semaphore
             - bash mk-include/bin/cc-system-tests/store_rerun_data.sh
 after_pipeline:
