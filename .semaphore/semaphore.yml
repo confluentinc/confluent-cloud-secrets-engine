@@ -51,7 +51,7 @@ blocks:
           commands:
             - make epilogue-ci
             - make testbreak-after
-            - make test
+            - go test -v ./...
             - make store-test-results-to-semaphore
 after_pipeline:
   task:
