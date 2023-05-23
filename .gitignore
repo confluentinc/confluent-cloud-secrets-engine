@@ -42,8 +42,6 @@ helm-*.tar.gz
 linux-amd64/
 .semaphore-*
 
-**/mk-include
-
 # Chart dependencies
 **/charts/*.tgz
 
