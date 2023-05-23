@@ -42,13 +42,16 @@ blocks:
       jobs:
         - name: Build and Test
           commands:
+            - make init-ci
             - cd pkg/plugin
             - go mod tidy
             - go build
       epilogue:
         always:
           commands:
-            - go test -v ./...
+            - make epilogue-ci
+            - make testbreak-after
+            - make store-test-results-to-semaphore
             - make store-test-results-to-semaphore
 after_pipeline:
   task:
