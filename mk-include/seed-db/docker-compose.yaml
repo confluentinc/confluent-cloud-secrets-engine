@@ -9,6 +9,4 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - ./mothership-seed.sql:/docker-entrypoint-initdb.d/seed.sql
-
-
+      - ./sql:/docker-entrypoint-initdb.d/
