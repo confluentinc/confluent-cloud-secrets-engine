@@ -48,7 +48,8 @@ blocks:
       epilogue:
         always:
           commands:
-            - go test -v ./...
+            - make test
+            - make epilogue-ci
 after_pipeline:
   task:
     jobs:
