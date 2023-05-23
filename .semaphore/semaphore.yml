@@ -45,6 +45,7 @@ blocks:
             - cd pkg/plugin
             - go mod tidy
             - go build
+            - make init-ci
       epilogue:
         always:
           commands:
