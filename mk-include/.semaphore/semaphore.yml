@@ -2,11 +2,7 @@ version: v1.0
 name: cc-mk-include
 agent:
   machine:
-    type: e1-standard-2
-    os_image: ubuntu1804
-auto_cancel:
-  running:
-    when: "true"
+    type: s1-prod-ubuntu20-04-amd64-1
 global_job_config:
   secrets:
     - name: vault_sem2_approle
@@ -21,7 +17,7 @@ global_job_config:
       value: "20.1.0"
   prologue:
     commands:
-      - sem-version go 1.14
+      - sem-version go 1.18.0
       - sem-version python "${PYTHON_VERSION}"
       - export "GOPATH=$(go env GOPATH)"
       - >-
@@ -40,7 +36,6 @@ global_job_config:
       - . mk-include/bin/vault-setup
       # Set up secrets
       - . vault-sem-get-secret semaphore-secrets-global
-      - . vault-sem-get-secret ci-reporting
       - . vault-sem-get-secret eng_aws
       - . vault-sem-get-secret cpd_gcloud
       - . vault-sem-get-secret ssh_id_rsa
@@ -48,9 +43,11 @@ global_job_config:
       - . vault-sem-get-secret ssh_config
       - . vault-sem-get-secret gitconfig
       - . vault-sem-get-secret maven-settings
+      - . vault-sem-get-secret dockerhub-semaphore-cred-ro
+      - . vault-sem-get-secret ci-reporting
       - chmod 400 ~/.ssh/id_rsa
       - sudo apt-get update
-      - sudo apt-get install -y python3.7-venv
+      - sudo apt --fix-missing purge -y 'python3.7*' 'libpython3.7*'
       - make testbreak-setup
   epilogue:
     on_fail:
@@ -66,6 +63,16 @@ blocks:
             - make copy-mk-include-go-docker-build-test
             - cd tests/go-docker-build-test
             - make go-docker-build-test
+
+  - name: Multi-arch Docker Test
+    dependencies: []
+    task:
+      jobs:
+        - name: Multi-arch build, test, push docker
+          commands:
+            - make copy-mk-include-multiarch-docker-build-test
+            - cd tests/multiarch-docker-build-test
+            - make multiarch-docker-build-test
 
   - name: Auto Update Test
     dependencies: []
@@ -87,13 +94,25 @@ blocks:
             - cd tests/maven-docker-build-test
             - make maven-docker-build-test
 
+  - name: Sanity Import Test
+    dependencies: []
+    task:
+      jobs:
+        - name: sanity import test
+          commands:
+            - make copy-mk-include-sanity-import-test
+            - cd tests/sanity-import-test
+            - make mk-include-sanity-import-test
+
   - name: release cc-mk-include
     skip:
       when: "branch != 'master'"
     dependencies:
+      - "Multi-arch Docker Test"
       - "Go Docker Test"
       - "Maven Docker Test"
       - "Auto Update Test"
+      - "Sanity Import Test"
     task:
       env_vars:
         - name: PYTEST_LOG_LEVEL

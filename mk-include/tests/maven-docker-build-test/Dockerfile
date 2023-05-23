@@ -4,7 +4,7 @@
 ARG DOCKER_UPSTREAM_TAG
 
 # https://github.com/confluentinc/cc-docker-base
-FROM confluent-docker.jfrog.io/confluentinc/cc-base:v9.0.0
+FROM 519856050701.dkr.ecr.us-west-2.amazonaws.com/docker/prod/confluentinc/cc-base:v18.6.0
 
 ARG PROJECT_VERSION
 ARG ARTIFACT_ID
