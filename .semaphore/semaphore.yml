@@ -49,7 +49,7 @@ blocks:
       epilogue:
         always:
           commands:
-            - make vet
+            - make test
             - make ci-runner
             - make epilogue-ci
             - make testbreak-after
