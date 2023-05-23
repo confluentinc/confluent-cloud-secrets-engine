@@ -11,6 +11,9 @@ include ./mk-include/cc-semaphore.mk
 include ./mk-include/cc-semver.mk
 include ./mk-include/cc-go.mk
 include ./mk-include/cc-end.mk
+include ./mk-include/cc-cpd.mk
+include ./mk-include/halyard.mk
+include ./mk-include/cc-api.mk
 
 # Disable CGO by default, to allow static binaries
 export CGO_ENABLED := 0
