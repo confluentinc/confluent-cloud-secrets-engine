@@ -76,3 +76,14 @@ setup:
 	vault write ccloud/config ccloud_api_key_id=${CONFLUENT_KEY} ccloud_api_key_secret=${CONFLUENT_SECRET} url="https://api.confluent.cloud"
 	vault write ccloud/role/test name="test" owner=${CONFLUENT_OWNER_ID} owner_env=${CONFLUENT_ENVIRONMENT_ID} resource=${CONFLUENT_RESOURCE_ID} resource_env=${CONFLUENT_ENVIRONMENT_ID}
 
+
+.PHONY: yaml-lint
+yaml-lint: YAMLLINT_VERSION = 1.26
+yaml-lint: YAMLLINT = docker run $(_docker_opts) --workdir /local cytopia/yamllint:$(YAMLLINT_VERSION)
+yaml-lint:
+	$(YAMLLINT) \
+		-f colored \
+		.halyard \
+		charts \
+		etc \
+		include
