@@ -43,7 +43,7 @@ blocks:
         - name: "Build and Test"
           commands:
             - make init-ci
-            - make test
+            - make test show-args
       epilogue:
         commands:
           - make epilogue-ci
