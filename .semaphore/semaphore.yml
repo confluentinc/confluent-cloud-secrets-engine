@@ -43,6 +43,7 @@ blocks:
         - name: "Build and Test"
           commands:
             - make init-ci
+            - ls bin/
             - make test
       epilogue:
         commands:
