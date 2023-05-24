@@ -5,72 +5,55 @@
 # For more information, please refer to the page:
 # https://confluentinc.atlassian.net/wiki/spaces/Foundations/pages/2871296194/Add+SemaphoreCI
 version: v1.0
-name: build-test-release
+name: Build, Test
 agent:
   machine:
     type: s1-prod-ubuntu20-04-amd64-1
-
 auto_cancel:
   running:
     when: "branch != 'master'"
-
 execution_time_limit:
   hours: 1
-
 global_job_config:
   secrets:
     - name: vault_sem2_approle
   prologue:
     commands:
-      - chmod 400 ~/.ssh/id_rsa
-      - sem-version go unknown
-      - export "GOPATH=$(go env GOPATH)"
-      - export "SEMAPHORE_GIT_DIR=${GOPATH}/src/github.com/confluentinc/${SEMAPHORE_PROJECT_NAME}"
-      - export "PATH=${GOPATH}/bin:${PATH}"
-      - mkdir -vp "${SEMAPHORE_GIT_DIR}" "${GOPATH}/bin"
-      - git config --global url."git@github.com:".insteadOf "https://github.com/"
+      - sem-version go 1.19
+      - sem-version python 3.9
+      - go version
       - checkout
       - make install-vault
       - . mk-include/bin/vault-setup
-      - . vault-sem-get-secret aws_credentials
       - . vault-sem-get-secret gitconfig
       - . vault-sem-get-secret ssh_id_rsa
       - . vault-sem-get-secret ssh_config
       - . vault-sem-get-secret netrc
-      - . vault-sem-get-secret semaphore-secrets-global
-      - . vault-sem-get-secret maven-settings
+      - . vault-sem-get-secret artifactory-docker-helm
       - . vault-sem-get-secret cpd_gcloud
+      - . vault-sem-get-secret aws_credentials
+      - . vault-sem-get-secret halyard-secrets
       - . vault-sem-get-secret ci-reporting
-      - . vault-sem-get-secret v1/ci/kv/service-foundations/cc-mk-include
       - . vault-sem-get-secret dockerhub-semaphore-cred-ro
-      - exec &> >(tee -a build.log)
+      - chmod 400 ~/.ssh/id_rsa
       - make init-ci
-  epilogue:
-    always:
-      commands:
-        - make epilogue-ci
-
 blocks:
-  - name: "Build, Test, Release"
-    run:
-      # don't run the build or unit tests on non-functional changes...
-      when: "change_in('/', {exclude: ['/.deployed-versions/', '.github/']})"
+  - name: Build and Test
     task:
-       # You can customize your CI job here
-#      env_vars:
-#        # custom env_vars
-#      prologue:
-#        commands:
-#          # custom vault secrets
-#          # custom prologue commands
       jobs:
-        - name: "Build, Test, Release"
+        - name: Build and Test
           commands:
-            - make build
+            - cd pkg/plugin
+            - go mod tidy
+            - go build
             - make test
-            - make release-ci
       epilogue:
         always:
           commands:
             - make epilogue-ci
-            - make testbreak-after
+after_pipeline:
+  task:
+    jobs:
+      - name: Publish Results
+        commands:
+          - test-results gen-pipeline-report
