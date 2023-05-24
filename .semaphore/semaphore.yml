@@ -36,24 +36,11 @@ global_job_config:
       - . vault-sem-get-secret ci-reporting
       - . vault-sem-get-secret dockerhub-semaphore-cred-ro
       - chmod 400 ~/.ssh/id_rsa
-      - make init-ci
+  jobs:
+    - name: "Build and Test"
+      commands:
+        - make init-ci
+        - make test
+  epilogue:
+    commands:
       - make epilogue-ci
-blocks:
-  - name: Build and Test
-    task:
-      jobs:
-        - name: Build and Test
-          commands:
-            - cd pkg/plugin
-            - go mod tidy
-            - go build
-      epilogue:
-        always:
-          commands:
-            - make epilogue-ci
-after_pipeline:
-  task:
-    jobs:
-      - name: Publish Results
-        commands:
-          - test-results gen-pipeline-report
