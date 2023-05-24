@@ -11,14 +11,31 @@ endif
 
 PROTOC_ARCH := $(shell uname -m)
 
+# for arm64, older versions of protobuf dont have an arm64 (aarch_64)
+# version. OSX supports running the x86_64 version directly as well so
+# retry with that if arm64 is missing. also, the spelling for arm64 is
+# aarch_64 for the arch for protobuf downloads
+ifeq ($(PROTOC_ARCH),arm64)
+  define PROTOC_DOWNLOAD_CMD
+	( \
+	  curl --fail -L -o /tmp/protoc/protoc.zip https://github.com/protocolbuffers/protobuf/releases/download/v$(PROTOC_VERSION)/protoc-$(PROTOC_VERSION)-$(PROTOC_OS)-aarch_64.zip || \
+	  curl --fail -L -o /tmp/protoc/protoc.zip https://github.com/protocolbuffers/protobuf/releases/download/v$(PROTOC_VERSION)/protoc-$(PROTOC_VERSION)-$(PROTOC_OS)-x86_64.zip \
+	)
+  endef
+else
+  define PROTOC_DOWNLOAD_CMD
+	curl --fail -L -o /tmp/protoc/protoc.zip https://github.com/protocolbuffers/protobuf/releases/download/v$(PROTOC_VERSION)/protoc-$(PROTOC_VERSION)-$(PROTOC_OS)-$(PROTOC_ARCH).zip
+  endef
+endif
+
 .PHONY: install-protoc
 install-protoc:
 ifneq ($(PROTOC_VERSION),$(PROTOC_INSTALLED_VERSION))
 	mkdir -p /tmp/protoc && \
-	curl -L -o /tmp/protoc/protoc.zip https://github.com/protocolbuffers/protobuf/releases/download/v$(PROTOC_VERSION)/protoc-$(PROTOC_VERSION)-$(PROTOC_OS)-$(PROTOC_ARCH).zip && \
+	$(PROTOC_DOWNLOAD_CMD) && \
 	cd /tmp/protoc && \
-	unzip -j protoc.zip -d $(BIN_PATH) bin/protoc && \
-	unzip protoc.zip -d $(BIN_PATH) include/* && \
+	unzip -jo protoc.zip -d $(BIN_PATH) bin/protoc && \
+	unzip -o protoc.zip -d $(BIN_PATH) include/* && \
 	rm -rf /tmp/protoc
 endif
 
