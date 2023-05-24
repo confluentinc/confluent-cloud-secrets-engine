@@ -42,7 +42,7 @@ func newAcceptanceTestEnv() (*testEnv, error) {
 	}, nil
 }
 
-//TestAcceptanceUserToken tests a series of steps to make sure the role and token creation work correctly.
+// TestAcceptanceUserToken tests a series of steps to make sure the role and token creation work correctly.
 func TestAcceptanceUserToken(t *testing.T) {
 	if !runAcceptanceTests {
 		t.SkipNow()
@@ -89,8 +89,8 @@ func TestPathCredentialsReadReturnsErrorWhenNameIsMissing(t *testing.T) {
 		Storage:   logicalStorage,
 	},
 		&framework.FieldData{
-			expectedData,
-			schema,
+			Raw:    expectedData,
+			Schema: schema,
 		})
 
 	expectedErrorMsg := "error retrieving role: missing role name"
@@ -124,8 +124,8 @@ func TestPathCredentialsReadReturnsRoleIsNilError(t *testing.T) {
 		Storage:   logicalStorage,
 	},
 		&framework.FieldData{
-			expectedData,
-			schema,
+			Raw:    expectedData,
+			Schema: schema,
 		})
 
 	expectedErrorMsg := "error retrieving role: role is nil"
