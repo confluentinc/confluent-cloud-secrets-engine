@@ -1,6 +1,5 @@
 GOARCH = amd64
 MASTER_BRANCH ?= main
-GO_EXTRA_LINT += lint-test-imports, golangci-lint
 
 UPDATE_MK_INCLUDE := true
 UPDATE_MK_INCLUDE_AUTO_MERGE := true
@@ -37,6 +36,8 @@ include ./mk-include/halyard.mk
 include ./mk-include/cc-api.mk
 include ./mk-include/cc-ci-metrics.mk
 include ./mk-include/cc-end.mk
+
+GO_EXTRA_LINT += lint-test-imports, golangci-lint
 
 # Disable CGO by default, to allow static binaries
 export CGO_ENABLED := 0
