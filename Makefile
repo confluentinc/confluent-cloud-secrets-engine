@@ -1,5 +1,6 @@
 GOARCH = amd64
 MASTER_BRANCH ?= main
+GO_EXTRA_LINT += lint-test-imports, golangci-lint
 
 UPDATE_MK_INCLUDE := true
 UPDATE_MK_INCLUDE_AUTO_MERGE := true

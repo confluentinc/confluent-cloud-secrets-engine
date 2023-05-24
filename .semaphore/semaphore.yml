@@ -43,7 +43,6 @@ blocks:
         - name: "Build and Test"
           commands:
             - make init-ci
-            - make lint-test-imports
             - make test
       epilogue:
         commands:
