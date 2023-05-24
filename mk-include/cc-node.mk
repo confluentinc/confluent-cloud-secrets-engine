@@ -2,7 +2,7 @@ DOCKER_BUILD_PRE  += .npmrc
 DOCKER_BUILD_POST += clean-npmrc
 RELEASE_PRECOMMIT += set-node-bumped-version
 
-NPM_REPOSITORY ?= npm-internal
+NPM_REGISTRY ?= https://confluent.jfrog.io/confluent/api/npm/npm-internal/
 NPM_SCOPE ?= @confluent
 
 .PHONY: set-node-bumped-version
@@ -18,27 +18,32 @@ set-node-bumped-version:
 clean-npmrc:
 	rm .npmrc
 
-# DEVPROD_PROD_AWS_ACCOUNT is defined in cc-begin.mk
 $(HOME)/.npmrc:
-ifneq ($(NPM_SCOPE),$(_empty))
-	@aws codeartifact login \
-		--tool npm \
-		--domain confluent \
-		--domain-owner $(DEVPROD_PROD_AWS_ACCOUNT) \
-		--region us-west-2 \
-		--repository $(NPM_REPOSITORY) \
-		--namespace $(NPM_SCOPE) \
-	2> /dev/null || echo "Unable to configure $@ for codeartifact access"
+ifneq ($(NPM_USER)$(NPM_PASS)$(NPM_EMAIL),$(_empty))
+	@docker run \
+			-e NPM_USER=$(NPM_USER) \
+			-e NPM_PASS=$(NPM_PASS) \
+			-e NPM_EMAIL=$(NPM_EMAIL) \
+			-e NPM_REGISTRY=$(NPM_REGISTRY) \
+			-e NPM_SCOPE=$(NPM_SCOPE) \
+			bravissimolabs/generate-npm-authtoken \
+			> $(HOME)/.npmrc
+else ifneq ("$(wildcard $(HOME)/.m2/settings.xml)","")
+	@$(eval NPM_USER := $(shell xpath ~/.m2/settings.xml '//settings/servers[1]/server/username/text()' 2>/dev/null)) \
+	 $(eval NPM_PASS := $(shell xpath ~/.m2/settings.xml '//settings/servers[1]/server/password/text()' 2>/dev/null)) \
+	 $(eval NPM_EMAIL := $(NPM_USER)@confluent.io) \
+	 docker run \
+			-e NPM_USER=$(NPM_USER) \
+			-e NPM_PASS=$(NPM_PASS) \
+			-e NPM_EMAIL=$(NPM_EMAIL) \
+			-e NPM_REGISTRY=$(NPM_REGISTRY) \
+			-e NPM_SCOPE=$(NPM_SCOPE) \
+			bravissimolabs/generate-npm-authtoken \
+			> $(HOME)/.npmrc
 else
-	@aws codeartifact login \
-		--tool npm \
-		--domain confluent \
-		--domain-owner $(DEVPROD_PROD_AWS_ACCOUNT) \
-		--region us-west-2 \
-		--repository $(NPM_REPOSITORY) \
-	2> /dev/null || echo "Unable to configure $@ for codeartifact access"
+	@echo "Follow instructions here to configure .npmrc: https://confluentinc.atlassian.net/wiki/spaces/MMA/pages/966057260/Setup+NPM"
 endif
 
 .PHONY: npm-login
-## Login to Confluent's private npm on CodeArtifact
+## Login to Confluent's private npm on Nexus
 npm-login: $(HOME)/.npmrc

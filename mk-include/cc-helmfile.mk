@@ -1,13 +1,11 @@
 # Common make targets for using https://github.com/roboll/helmfile
 # Helmfile is a tool for automated git-ops style deployments
 
-HELMFILE_VERSION ?= v0.144.0
-HELMDIFF_VERSION ?= 3.6.0
+HELMFILE_VERSION := v0.133.0
+HELMDIFF_VERSION := 3.1.2
 HELMFILE_URL := https://github.com/roboll/helmfile/releases/download
 
-ARCH ?= amd64
-
-HELMFILES ?= $(strip $(shell find -type f -name helmfile.yaml -printf '%p '))
+HELMFILES := $(strip $(shell find -type f -name helmfile.yaml -printf '%p '))
 
 INIT_CI_TARGETS += helmfile-install-ci helmdiff-install-ci
 
@@ -15,7 +13,7 @@ INIT_CI_TARGETS += helmfile-install-ci helmdiff-install-ci
 #TEST_TARGETS += helmfile-test
 
 $(CI_BIN)/helmfile:
-	curl -L -s -o - $(HELMFILE_URL)/$(HELMFILE_VERSION)/helmfile_linux_$(ARCH) > $(CI_BIN)/helmfile \
+	curl -L -s -o - $(HELMFILE_URL)/$(HELMFILE_VERSION)/helmfile_linux_amd64 > $(CI_BIN)/helmfile \
 		&& chmod a+x $(CI_BIN)/helmfile
 
 .PHONY: helmfile-install-ci

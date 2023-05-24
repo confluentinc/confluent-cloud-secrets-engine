@@ -1,4 +1,5 @@
 GOARCH = amd64
+MASTER_BRANCH ?= main
 
 UPDATE_MK_INCLUDE := true
 UPDATE_MK_INCLUDE_AUTO_MERGE := true
@@ -8,29 +9,12 @@ BASE_IMAGE := golang
 
 GO_BINS = github.com/confluentinc/pie-cc-hashicorp-vault-plugin/cmd/plugin=vault-ccloud-secrets-engine
 
-CHART_NAME := $(SERVICE_NAME)
-GO_ALPINE := false
-BASE_VERSION := 1.19-bullseye
-
-TEST_TARGETS += yaml-lint
-
-DOCKER_BUILD_MULTIARCH ?= true
-ALLOW_BUILD_LATEST_TAG = true
-
-RELEASE_PRECOMMIT := pre-release-check
-
-export DOCKER_BUILDKIT := 1
-DOCKER_SSH_MOUNT := true
-
 include ./mk-include/cc-begin.mk
 include ./mk-include/cc-vault.mk
 include ./mk-include/cc-semaphore.mk
 include ./mk-include/cc-semver.mk
 include ./mk-include/cc-go.mk
-include ./mk-include/cc-docker.mk
 include ./mk-include/cc-cpd.mk
-include ./mk-include/cc-helm.mk
-include ./mk-include/cc-helmfile.mk
 include ./mk-include/halyard.mk
 include ./mk-include/cc-api.mk
 include ./mk-include/cc-ci-metrics.mk
@@ -76,7 +60,3 @@ setup:
 	vault write ccloud/config ccloud_api_key_id=${CONFLUENT_KEY} ccloud_api_key_secret=${CONFLUENT_SECRET} url="https://api.confluent.cloud"
 	vault write ccloud/role/test name="test" owner=${CONFLUENT_OWNER_ID} owner_env=${CONFLUENT_ENVIRONMENT_ID} resource=${CONFLUENT_RESOURCE_ID} resource_env=${CONFLUENT_ENVIRONMENT_ID}
 
-
-.PHONY: yaml-lint
-yaml-lint: YAMLLINT_VERSION = 1.26
-yaml-lint: YAMLLINT = docker run $(_docker_opts) --workdir /local cytopia/yamllint:$(YAMLLINT_VERSION)

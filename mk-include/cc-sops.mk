@@ -1,4 +1,4 @@
-SOPS_VERSION ?= v3.7.3
+SOPS_VERSION ?= 3.2.0
 
 INIT_CI_TARGETS += install-sops
 

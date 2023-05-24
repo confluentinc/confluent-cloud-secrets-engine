@@ -18,7 +18,7 @@
         <repository>
         <id>confluent-artifactory-internal</id><!-- Matches server id in semaphore's ~/.m2/settings.xml -->
         <name>confluent-releases</name>
-        <url>https://confluent-519856050701.d.codeartifact.us-west-2.amazonaws.com/maven/maven-releases</url>
+        <url>https://confluent.jfrog.io/confluent/maven-releases</url>
         </repository>
     </distributionManagement>
 

@@ -22,7 +22,6 @@ terraform.d
 Dockerfile.build
 .netrc
 .idea/
-.vscode/
 
 charts/package
 
@@ -50,5 +49,3 @@ linux-amd64/
 # python
 __pycache__/
 *.pyc
-
-.vscode/

@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1.0.0-experimental
-FROM golang:1.18.0 AS builder
+FROM golang:1.14.2 AS builder
 
 WORKDIR /root
 RUN mkdir -p -m 0600 .ssh && ssh-keyscan -t rsa github.com >> .ssh/known_hosts
@@ -18,7 +18,7 @@ COPY . .
 ARG version
 RUN CGO_ENABLED=0 make build-go GO_OUTDIR= VERSION=${version}
 
-FROM 519856050701.dkr.ecr.us-west-2.amazonaws.com/docker/prod/confluentinc/cc-built-base:v1.1.0
+FROM confluent-docker.jfrog.io/confluentinc/cc-built-base:v1.1.0
 
 COPY --from=0 /test-service /
 
