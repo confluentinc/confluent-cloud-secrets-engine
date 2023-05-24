@@ -48,10 +48,8 @@ blocks:
       epilogue:
         always:
           commands:
-            - go test --json
-            - ls /home/semaphore/pie-cc-hashicorp-vault-plugin
-            - ls /home/semaphore/pie-cc-hashicorp-vault-plugin/build
-            - test-results publish unit-tests.json
+            - go test -json > report.json
+            - make epilogue-ci
 after_pipeline:
   task:
     jobs:
