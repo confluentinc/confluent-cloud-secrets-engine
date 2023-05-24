@@ -51,3 +51,7 @@ linux-amd64/
 # python
 __pycache__/
 *.pyc
+
+#Ignore test xml
+*unit-tests.xml
+report.xml
