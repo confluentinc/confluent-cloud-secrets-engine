@@ -48,7 +48,6 @@ include ./mk-include/cc-go.mk
 include ./mk-include/cc-docker.mk
 include ./mk-include/cc-cpd.mk
 include ./mk-include/cc-helm.mk
-include ./mk-include/cc-deployer.mk
 include ./mk-include/cc-testbreak.mk
 include ./mk-include/cc-vault.mk
 include ./mk-include/cc-end.mk
@@ -64,7 +63,6 @@ include ./mk-include/cc-semver.mk
 include ./mk-include/cc-docker.mk
 include ./mk-include/cc-cpd.mk
 include ./mk-include/cc-helm.mk
-include ./mk-include/cc-deployer.mk
 include ./mk-include/cc-end.mk
 ```
 
@@ -82,7 +80,6 @@ include ./mk-include/cc-maven.mk
 include ./mk-include/cc-docker.mk
 include ./mk-include/cc-cpd.mk
 include ./mk-include/cc-helm.mk
-include ./mk-include/cc-deployer.mk
 include ./mk-include/cc-end.mk
 ```
 
@@ -100,7 +97,6 @@ include ./mk-include/cc-maven.mk
 include ./mk-include/cc-docker.mk
 include ./mk-include/cc-cpd.mk
 include ./mk-include/cc-helm.mk
-include ./mk-include/cc-deployer.mk
 include ./mk-include/cc-end.mk
 ```
 
@@ -158,18 +154,20 @@ make update-mk-include
 It will update to that specific tag version of mk-include.
 
 ## Auto Update
-The cc-mk-include now provides a solution to auto-sync your repo with the newest or pinned version of cc-mk-include. It will *auto open* a PR if your master branch is not at the same version with newest or pinned version. And it will *auto merged* if the CI passed. To use it, first you must have cc-begin.mk and cc-semver.mk in your toplevel Makefile. Then you need to add
-```shell
-UPDATE_MK_INCLUDE := true
-```
-To disable auto merge CI
-```shell
-UPDATE_MK_INCLUDE_AUTO_MERGE := false
-```
-in your toplevel Makefile. The default sync version will be master which is the newest version, you can pin whatever version you want to by enable
+The cc-mk-include by default auto-sync your repo with the newest or pinned version of cc-mk-include. It will *auto open* a PR if your master branch is not at the same version with newest or pinned version. And it will *auto merged* if the CI passed. 
+The default sync version will be master branch, you can pin whatever version you want to by enable
 ```shell
 MK_INCLUDE_UPDATE_VERSION := <tag>
 ```
+if you do not want to auto merge the change once CI passed, and get hand on reviews. In your toplevel Makefile, you can set
+```shell
+UPDATE_MK_INCLUDE_AUTO_MERGE := false
+```
+If you want to turn off auto update competely
+```shell
+UPDATE_MK_INCLUDE := false
+```
+
 GITHUB token is required for gh cli, so you might need to get the right credentials to export github token.
 ```
 . vault-sem-get-secret semaphore-secrets-global
@@ -255,6 +253,55 @@ This tool requires API tokens from LaunchDarkly, which are stored in Vault. Incl
 
 Once this target successfully runs, we can navigate to the Code References tab for a feature flag, and see a list of references to the git codebase that uses this flag.
 
+## Database Plugin and DB Migrations (WIP)
+
+We're developing a runtime-library for go with [cc-go-template-service](https://github.com/confluentinc/cc-go-template-service).
+One of the developer productivity improvements is that it allows you to manage your database schema,
+migrations, and seed data in your service repo (instead of cc-dbmigrate and cc-mk-include/seed-db).
+
+1. Use the [runtime-library](https://github.com/confluentinc/cc-go-template-service/tree/be480a66bd8172dab089c4779314bb10b925e5e7/pkg/runtime).
+   In particular, you need an executable with a command like `config <name>` to return the resolved value
+   just like your service would see it for `db.url`, `db.name`, `db.username`, `db.schema`, `migration.dir`.
+
+2. In your project Makefile, add:
+
+        READ_CONFIG_CMD := ./bin/<my-executable>
+        include ./mk-include/cc-db.mk
+3. You can check the configuration used by this plugin using
+
+        % make show-db
+        DB_SCHEMA_FILE: ./db/schema.sql
+        DB_SEED_FILE: ./db/seeds.sql
+        READ_CONFIG_CMD: ./bin/go-template-service
+        DATABASE_URL: postgres://go_template_service@127.0.0.1:5432/go_template_service?sslmode=disable
+        DATABASE_NAME: go_template_service
+        DATABASE_USER: go_template_service
+        DATABASE_SCHEMA: go_template_service
+        MIGRATION_DIR: db/migrations
+        MIGRATION_DIR_URL: file://db/migrations
+        MIGRATION_DB_URL: postgres://go_template_service@127.0.0.1:5432/go_template_service?sslmode=disable&search_path=go_template_service&x-migrations-table-quoted=true&x-migrations-table="go_template_service"."schema_migrations"
+        ADMIN_DB_URL: postgres://
+
+4. Now you have access to some great `db` and `db-migrate` make targets:
+
+        % make help | grep -E '\x1b\[36mdb-'                                                              
+        db-dump-schema      Dump the current DB schema and migration version to $(DB_SCHEMA_FILE) 
+        db-local-reset      Reset the local database from the schema, migrations, and seeds 
+        db-migrate-create   Create a new DB migration. Usage: make db-migrate-create NAME=migration_name_here 
+        db-migrate-down     Rollback DB migrations. Usage: make db-migrate-down [N=1, default 1] 
+        db-migrate-force    Force override the DB migration version in the DB to a specific version 
+        db-migrate-goto     Go to a specific DB migration version 
+        db-migrate-up       Apply DB migrations. Usage: make db-migrate-up [N=1, default all] 
+        db-migrate-version  Show current DB migration version 
+        db-seed             Seed the database from $(DB_SEED_FILE) 
+        db-seed-dump        Overwrite the $(DB_SEED_FILE) from the current database 
+
+5. Not strictly a requirement, but these make targets are designed primarily for local development.
+   While it's possible to build a release strategy using this, the designed approach is to use
+   `dbmigrate.Module`'s built-in auto-migrator support in the new runtime library. Then the only
+   time any of this is used in production is for emergency rollback cases, in which you have to
+   `exec` in to a service pod and call one of these targets.
+
 ## Developing
 
 If you're developing an app that uses cc-mk-include or needs to extend it, it's useful
@@ -333,3 +380,26 @@ CLEAN_TARGETS:        api-clean clean-myapp
 
 We also expose a small number of override points for special cases (e.g., `BUILD_DOCKER_OVERRIDE`)
 but these should be rather rare.
+
+### IntelliJ / Goland Debugging
+
+*Note*: for now, only supported on OS X Intel
+
+The `test-go-goland-debug` target is provided to enable remote debugging of Go
+applications via the IntelliJ/Goland integrated debugger (via delve).  If
+using a typical Goland installation, then no special overriding should be
+needed.  However, there are two environment variables that will affect the
+remote debugger.
+
+* `GOLAND_PORT` - the port to start the delve server on (defaults to 12345)
+* `GOLAND_PLUGIN_PATH` - the path to the IntelliJ Go plugin (which is
+                         assumed to contain the dlv executable at a certain
+                         subpath - `./lib/dlv/mac/dlv`)
+
+For a normal Goland installation, neither of these need to be changed. 
+For IntelliJ Ultimate with the Go plugin, then `GOLAND_PLUGIN_PATH` will
+need to be set to something 
+`~/Library/Application\ Support/JetBrains/IntelliJIdea2021.3/plugins/go`
+
+See [go/goland](https://go/goland) for more information.
+
