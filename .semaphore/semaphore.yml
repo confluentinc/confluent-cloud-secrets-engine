@@ -37,6 +37,7 @@ global_job_config:
       - . vault-sem-get-secret dockerhub-semaphore-cred-ro
       - chmod 400 ~/.ssh/id_rsa
       - make init-ci
+      - make vet
       - make test
 blocks:
   - name: Build and Test
