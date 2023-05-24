@@ -2,6 +2,7 @@
 
 SCRIPT_NAME="$0"
 SCRIPT_PATH="$(cd "$(dirname "$0")"; pwd)"
+CURRENT_WORKING_DIR="$(pwd)"
 
 SSH_USER=${CAAS_USER:-$USER}
 SSH_KEY=${HOME}/.ssh/caas-${SSH_USER}
@@ -101,23 +102,44 @@ done
 
 export DATADOG_BASE_URL='https://ccloud-local-dev.datadoghq.com/'
 export DATADOG_KAFKA_DETAIL_ID='epa-i4i-k8i'
-export KIBANA_BASE_URL='https://devel.logs.aws.confluent.cloud/'
+export KIBANA_BASE_URL='https://dev.logs.aws.confluent.cloud/'
 export KIBANA_INDEX='73f14690-4679-11e9-a586-991d8fddfb2e'
 if [[ "${ENV}" = "devel" ]]; then
   export DATADOG_BASE_URL='https://ccloud-development.datadoghq.com/'
-  export DATADOG_KAFKA_DETAIL_ID='8m3-z7n-idu'
-  export KIBANA_BASE_URL='https://devel.logs.aws.confluent.cloud/'
+  export DATADOG_KAFKA_DETAIL_ID='t4u-e8z-rxs'
+  export KIBANA_BASE_URL='https://dev.logs.aws.confluent.cloud/'
   export KIBANA_INDEX='a4e307c0-4679-11e9-ac38-85968bb5acdc'
 elif [[ "${ENV}" = "stag" ]]; then
   export DATADOG_BASE_URL='https://ccloud-staging.datadoghq.com/'
   export DATADOG_KAFKA_DETAIL_ID='wem-4dr-fyf'
-  export KIBANA_BASE_URL='https://stag.logs.aws.confluent.cloud/'
+  export KIBANA_BASE_URL='https://stg.logs.aws.confluent.cloud/'
   export KIBANA_INDEX='73f14690-4679-11e9-a586-991d8fddfb2e'
 elif [[ "${ENV}" = "prod" ]]; then
   export DATADOG_KAFKA_DETAIL_ID='nre-iwx-b4h'
   export DATADOG_BASE_URL='https://ccloud-production.datadoghq.com/'
-  export KIBANA_BASE_URL='https://prod.logs.aws.confluent.cloud/'
+  export KIBANA_BASE_URL='https://prd.logs.aws.confluent.cloud/'
   export KIBANA_INDEX='7ae0cc50-dcdc-11ea-b484-556ef92a2241'
+fi
+
+echo "Changing the current directory from ${CURRENT_WORKING_DIR} to ${SEMAPHORE_GIT_DIR} for TF binary"
+cd "${SEMAPHORE_GIT_DIR}"; git clone git@github.com:confluentinc/ccloud-connectivity.git
+export TF_WORKING_PATH="${SEMAPHORE_GIT_DIR}/ccloud-connectivity/privatelink/"${CLOUD}"/terraform"
+export TF_EXEC_PATH=`which terraform`
+export TF_VAR_FILE_PATH="${SEMAPHORE_GIT_DIR}/ccloud-connectivity/privatelink/"${CLOUD}"/terraform"
+export TF_PLAN_OUT_PATH="${TF_VAR_FILE_PATH}/tfplan"
+echo "Reverting the current directory to ${CURRENT_WORKING_DIR} from ${SEMAPHORE_GIT_DIR}"
+cd "${CURRENT_WORKING_DIR}"
+if [[ "${CLOUD}" = "azure" ]]; then
+  export ARM_CLIENT_ID="${AZURE_CLIENT_ID}"
+  export ARM_CLIENT_SECRET="${AZURE_CLIENT_SECRET}"
+  export ARM_TENANT_ID="${AZURE_TENANT_ID}"
+  az login --service-principal -u "${AZURE_CLIENT_ID}" -p "${AZURE_CLIENT_SECRET}" --tenant "${AZURE_TENANT_ID}"
+  az account set --subscription cc-"${ENV}"
+  if [[ "${ENV}" = "devel" ]]; then
+     export ARM_SUBSCRIPTION_ID="731dc59f-3a04-4367-919c-5c3410cab038"
+  elif  [[ "${ENV}" = "stag" ]]; then
+     export ARM_SUBSCRIPTION_ID="26812801-9a17-44c2-8398-a2e2ab4eb803"
+  fi
 fi
 
 _get_ssh_agent_env() {
@@ -236,6 +258,8 @@ export MOTHERSHIP_K8S=${mothership_k8s}
 export CLOUD
 AWS_REGION="${REGION}"
 export AWS_REGION
+REGION="${REGION}"
+export REGION
 
 # set semaphore ci user in based on env
 if [ "${CI}" = true ]; then
