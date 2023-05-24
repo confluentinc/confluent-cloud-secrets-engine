@@ -48,9 +48,9 @@ blocks:
       epilogue:
         always:
           commands:
-            - go test -v ./...
+            - gotestsum --junitfile unit-tests.xml
             - ls /home/semaphore/pie-cc-hashicorp-vault-plugin
-            - test-results publish test_output.json
+            - test-results publish unit-tests.xml
 after_pipeline:
   task:
     jobs:
