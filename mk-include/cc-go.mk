@@ -1,12 +1,27 @@
 # Defaults
 GO ?= $(shell which go)# default go bin to whatever's on the path
-GO_VERSION := $(shell $(GO) version)# the version of the go bin
+GO_VERSION := $(subst go,,$(shell $(GO) env GOVERSION))# the version of the go bin
 GO_ALPINE ?= true# default to alpine images
 GO_STATIC ?= true# default to static binaries
 GO_BINS ?= main.go=main# format: space seperated list of source.go=output_bin
 GO_OUTDIR ?= bin# default to output bins to bin/
 GO_LDFLAGS ?= -X main.version=$(VERSION)# Setup LD Flags
 GO_EXTRA_FLAGS ?=
+GO_FIPS_ENV_VARS ?=
+GO_FIPS_ENABLE_INPLACE ?= false
+
+GO_VERSION_MAJOR := $(or $(word 1,$(subst ., ,$(GO_VERSION))),0)
+GO_VERSION_MINOR := $(or $(word 2,$(subst ., ,$(GO_VERSION))),0)
+GO_VERSION_PATCH := $(or $(word 3,$(subst ., ,$(GO_VERSION))),0)
+
+# port to which dlv debugger attaches
+GOLAND_PORT ?= 12345
+# path to Jetbrains Go plugin
+GOLAND_PLUGIN_PATH ?= /Applications/GoLand.app/Contents/plugins/go/
+
+GO_COVERAGE_PROFILE ?= coverage.txt
+GO_COVERAGE_HTML ?= coverage.html
+GO_COVERAGE_GATE ?= 80
 
 # Whether to use go module vendoring, see https://golang.org/ref/mod#go-mod-vendor
 #
@@ -31,11 +46,46 @@ GO_USE_VENDOR ?=
 GO_TEST_SETUP_CMD ?= :
 GO_TEST_ARGS ?= -race -v -cover# default list of args to pass to go test
 ifdef TESTS_TO_RUN
-GO_TEST_ARGS += -run $(TESTS_TO_RUN)
+GO_TEST_ARGS += -run "$(TESTS_TO_RUN)"
 endif
 GO_TEST_PACKAGE_ARGS ?= ./...
 
-GO_GENERATE_ARGS ?=
+GO_GENERATE_ARGS ?= ./...
+
+# use golangci-lint
+GOLANGCI_LINT ?= false
+GOLANGCI_LINT_CONFIG ?= $(MK_INCLUDE_RESOURCE)/.golangci.yml
+GOLANGCI_LINT_TESTS ?= false
+GOLANGCI_LINT_TESTS_CONFIG ?= $(MK_INCLUDE_RESOURCE)/.golangci-tests.yml
+
+# Usage: $(call go-version-at-least,MAJOR,[MINOR,[PATCH]])
+# Test whether the current Go toolchain version satisfies a minimum version.
+# On success, expands to the current Go version. Otherwise, expands to the empty
+# string. If MINOR or PATCH are not specified, they default to 0.
+# Example:
+#   ifneq (,$(call go-version-at-least,1,19)
+#     ... actions for Go versions 1.19 and newer
+#   endif
+go-version-at-least = $(strip $(shell \
+		test $$(( ((($(GO_VERSION_MAJOR)*1000)+$(GO_VERSION_MINOR))*1000)+$(GO_VERSION_PATCH) )) \
+			-ge $$(( ((($(1)*1000)+$(or $(2),0))*1000)+$(or $(3),0) )) \
+		&& echo $(GO_VERSION) \
+	))
+
+# run the golangci-linter in CI if enabled above
+ifeq ($(CI), true)
+GO_EXTRA_LINT += _go-golangci-lint-ci
+else
+GO_EXTRA_LINT += go-golangci-lint
+endif
+
+# FIPS
+ifeq ($(GO_FIPS_ENABLE_INPLACE),true)
+ifneq (,$(call go-version-at-least,1,19))
+GO_FIPS_ENV_VARS = CGO_ENABLED=1 GOOS=linux GOARCH=amd64
+GO_EXPERIMENTS += boringcrypto
+endif
+endif
 
 # flags for confluent-kafka-go-dev / librdkafka on alpine
 ifeq ($(GO_ALPINE),true)
@@ -50,6 +100,19 @@ endif
 # Build the listed main packages and everything they import into executables
 ifeq ($(GO_STATIC),true)
 GO_EXTRA_FLAGS += -tags static_all -buildmode=exe
+endif
+
+# Improve reproducability of Go binaries by disabling behaviors that embed
+# details of the build environment (like working directory) in the executable.
+ifeq ($(CI),true)
+# Currently gated to CI jobs due to concerns about debugger compatibility with
+# trimmed paths.
+ifneq (,$(call go-version-at-least,1,19))
+# Gated on Go 1.19 because this version fixed the behavior of 'go generate'
+# when running generators built with -trimpath.
+# https://tip.golang.org/doc/go1.19
+GO_EXTRA_FLAGS += -trimpath
+endif
 endif
 
 # List of all go files in project
@@ -103,7 +166,7 @@ CLEAN_TARGETS += $(GO_CLEAN_TARGET)
 RELEASE_PRECOMMIT += commit-cli-docs-go
 RELEASE_POSTCOMMIT += $(GO_DOWNSTREAM_DEPS)
 
-GO_BINDATA_VERSION := 3.11.0
+GO_BINDATA_VERSION := 3.23.0
 GO_BINDATA_OPTIONS ?=
 GO_BINDATA_OUTPUT ?= deploy/bindata.go
 
@@ -134,6 +197,7 @@ show-go:
 	@echo "GO_PREFETCH_DEPS: $(GO_PREFETCH_DEPS)"
 	@echo "GO_TEST_ARGS: $(GO_TEST_ARGS)"
 	@echo "GO_TEST_PACKAGE_ARGS: $(GO_TEST_PACKAGE_ARGS)"
+	@echo "GO_EXTRA_LINT: $(GO_EXTRA_LINT)"
 
 
 .PHONY: clean-go
@@ -168,10 +232,10 @@ $(HOME)/.hgrc:
 .PHONY: lint-go
 ## Lints (gofmt)
 lint-go: $(GO_EXTRA_LINT)
-	@test -z "$$(gofmt -e -s -l -d $(ALL_SRC) | tee /dev/tty)"
+	@gofmt -e -s -l -d $(ALL_SRC)
 
 .PHONY: fmt
-# Format entire codebase
+## Format entire codebase
 fmt:
 	@gofmt -e -s -l -w $(ALL_SRC)
 
@@ -180,13 +244,40 @@ fmt:
 build-go: go-bindata $(GO_BINS)
 $(GO_BINS):
 	$(eval split := $(subst =, ,$(@)))
-	$(GO) build $(GO_USE_VENDOR) $(GO_MOD_DOWNLOAD_MODE_FLAG) -o $(GO_OUTDIR)/$(word 2,$(split)) -ldflags "$(GO_LDFLAGS)" $(GO_EXTRA_FLAGS) $(word 1,$(split))
+	$(if $(GO_EXPERIMENTS),GOEXPERIMENT=$(subst $(_space),$(_comma),$(GO_EXPERIMENTS))) \
+	$(GO_FIPS_ENV_VARS) $(GO) build $(GO_USE_VENDOR) $(GO_MOD_DOWNLOAD_MODE_FLAG) -o $(GO_OUTDIR)/$(word 2,$(split)) -ldflags "$(GO_LDFLAGS)" $(GO_EXTRA_FLAGS) $(word 1,$(split))
 
 .PHONY: test-go
 ## Run Go Tests and Vet code
 test-go: vet
-	test -f coverage.txt && truncate -s 0 coverage.txt || true
-	set -o pipefail && $(GO_TEST_SETUP_CMD) &&  $(GO) test $(GO_MOD_DOWNLOAD_MODE_FLAG) -coverprofile=coverage.txt $(GO_TEST_ARGS) $(GO_TEST_PACKAGE_ARGS) -json > >($(MK_INCLUDE_BIN)/decode_test2json.py) 2> >($(MK_INCLUDE_BIN)/color_errors.py >&2)
+	test -f $(GO_COVERAGE_PROFILE) && truncate -s 0 $(GO_COVERAGE_PROFILE) || true
+	set -o pipefail && $(GO_TEST_SETUP_CMD) &&  $(GO) test $(GO_MOD_DOWNLOAD_MODE_FLAG) -coverprofile=$(GO_COVERAGE_PROFILE) $(GO_TEST_BUILD_ARGS) $(GO_TEST_ARGS) $(GO_TEST_PACKAGE_ARGS) -json > >($(MK_INCLUDE_BIN)/decode_test2json.py) 2> >($(MK_INCLUDE_BIN)/color_errors.py >&2)
+
+# by default this is make coverage.html
+$(GO_COVERAGE_HTML): $(GO_COVERAGE_PROFILE)
+	$(GO) tool cover -html "$(GO_COVERAGE_PROFILE)" -o "$(GO_COVERAGE_HTML)"
+
+.PHONY: go-coverage-html
+# opens an html page to go coverage
+go-coverage-html: $(GO_COVERAGE_PROFILE)
+	$(GO) tool cover -html "$(GO_COVERAGE_PROFILE)"
+
+.PHONY: print-coverage-out
+print-coverage-out: $(GO_COVERAGE_PROFILE)
+	$(GO) tool cover -func "$(GO_COVERAGE_PROFILE)"
+
+.PHONY: go-gate-coverage
+## Extract test coverage percent, and fail if under environment variable GO_COVERAGE_GATE
+go-gate-coverage: $(GO_COVERAGE_PROFILE)
+	$(eval coverage_percent :=  $(shell \
+		$(MAKE) print-coverage-out | \
+		grep 'total' | \
+		tail -n 1 | \
+		awk '{print substr($$3, 1, length($$3)-1)}' \
+	))
+	@echo "have coverage percentage of $(coverage_percent)"
+	@echo "testing coverage: $(coverage_percent) >= $(GO_COVERAGE_GATE)"
+	@bash -c "(( \$$(echo '$(coverage_percent) >= $(GO_COVERAGE_GATE)' | bc -l) ))"
 
 .PHONY: test-go-goland-debug
 ## Vet code, Launch Go Tests and wait for GoLand debugger to attach on ${DEBUG_PORT}
@@ -195,14 +286,11 @@ ifeq ($(GO_TEST_PACKAGE_ARGS),./...)
 	@echo "Error: must specify a test/package using GO_TEST_PACKAGE_ARGS= on the commandline"
 	@echo "Usage: GO_TEST_PACKAGE_ARGS=./test/connect/... make $@" && exit 1
 endif
-	test -f coverage.txt && truncate -s 0 coverage.txt || true
+	test -f $(GO_COVERAGE_PROFILE) && truncate -s 0 $(GO_COVERAGE_PROFILE) || true
 	go test -c $(GO_MOD_DOWNLOAD_MODE_FLAG) $(GO_TEST_PACKAGE_ARGS) -gcflags='all=-N -l'
-	$(eval go_test_binary := $(shell echo "$(GO_TEST_PACKAGE_ARGS)" | awk -F/ '{print "./"$$3"."$$2}'))
+	$(eval go_test_binary := $(shell echo "$(GO_TEST_PACKAGE_ARGS)" | awk -F/ '{print "./"$$(NF - 1)"."$$2}'))
 	$(eval prefixed_go_test_args := $(shell echo "$(GO_TEST_ARGS)" |  sed 's/-/-test./g'))
-	$(eval goland_dlv_cmd := /Applications/GoLand.app/Contents/plugins/go/lib/dlv/mac/dlv --listen=0.0.0.0:12345 --headless=true --api-version=2 --check-go-version=false --only-same-user=false)
-ifneq ($(GOLAND_PORT),)
-	$(eval goland_dlv_cmd := $(subst 12345,$(GOLAND_PORT),$(goland_dlv_cmd)))
-endif
+	$(eval goland_dlv_cmd := $(GOLAND_PLUGIN_PATH)/lib/dlv/mac/dlv --listen=0.0.0.0:$(GOLAND_PORT) --headless=true --api-version=2 --check-go-version=false --only-same-user=false)
 	set -o pipefail && go tool test2json -t ${goland_dlv_cmd} exec ${go_test_binary} -- ${prefixed_go_test_args} | $(MK_INCLUDE_BIN)/decode_test2json.py
 
 .PHONY: generate
@@ -211,14 +299,15 @@ generate:
 	$(GO) generate $(GO_MOD_DOWNLOAD_MODE_FLAG) $(GO_GENERATE_ARGS)
 
 SEED_POSTGRES_URL ?= postgres://
+SEED_POSTGRES_FILES ?= $(shell find mk-include/seed-db/sql -iname "*.sql")
 
 .PHONY: seed-local-mothership
 ## Seed local mothership DB. Optionally set SEED_POSTGRES_URL for base postgres url
 seed-local-mothership:
-	@echo "Seeding postgres in 'SEED_POSTGRES_URL=${SEED_POSTGRES_URL}'. Set SEED_POSTGRES_URL to override"
+	@echo "Seeding postgres in 'SEED_POSTGRES_URL=${SEED_POSTGRES_URL}' with ${SEED_POSTGRES_FILES}. Set SEED_POSTGRES_URL/SEED_POSTGRES_FILES to override"
 	psql -P pager=off ${SEED_POSTGRES_URL}/postgres -c 'DROP DATABASE IF EXISTS mothership;'
 	psql -P pager=off ${SEED_POSTGRES_URL}/postgres -c 'CREATE DATABASE mothership;'
-	psql -P pager=off ${SEED_POSTGRES_URL}/mothership -f mk-include/seed-db/mothership-seed.sql
+	@echo ${SEED_POSTGRES_FILES} | xargs -n1 -t psql -P pager=off ${SEED_POSTGRES_URL}/mothership -f
 
 .PHONY: install-go-bindata
 GO_BINDATA_INSTALLED_VERSION := $(shell $(BIN_PATH)/go-bindata -version 2>/dev/null | head -n 1 | awk '{print $$2}' | xargs)
@@ -316,8 +405,53 @@ else
 	rm -rf $@
 endif
 
-## (POC) Component testing
 .PHONY: go-component-tests
+## (POC) Component testing
 go-component-tests:
 	$(MK_INCLUDE_BIN)/copy_protos.sh
 	$(MK_INCLUDE_BIN)/run_component_test.sh
+
+.PHONY: go-golangci-lint
+## Run golangci-lint
+go-golangci-lint:
+ifeq ($(GOLANGCI_LINT),true)
+	@CGO_ENABLED=1 golangci-lint run --config $(GOLANGCI_LINT_CONFIG)
+endif
+ifeq ($(GOLANGCI_LINT_TESTS),true)
+	@CGO_ENABLED=1 golangci-lint run --config $(GOLANGCI_LINT_TESTS_CONFIG)
+endif
+
+.PHONY: go-golangci-fix
+## Run golangci-lint auto fix
+go-golangci-fix:
+ifeq ($(GOLANGCI_LINT),true)
+	@CGO_ENABLED=1 golangci-lint run --config $(GOLANGCI_LINT_CONFIG) --fix
+endif
+ifeq ($(GOLANGCI_LINT_TESTS),true)
+	@CGO_ENABLED=1 golangci-lint run --config $(GOLANGCI_LINT_TESTS_CONFIG) --fix
+endif
+
+.PHONY: go-golangci-clean
+## Clean the golangci-lint cache
+go-golangci-clean:
+	@CGO_ENABLED=1 golangci-lint cache clean
+
+.PHONY: _go-golangci-lint-ci
+_go-golangci-lint-ci: github-cli-auth
+ifeq ($(GOLANGCI_LINT),true)
+	$(MAKE) go-golangci-lint | tee golangci-lint.output
+	./mk-include/bin/comment-pr-golangci-lint.sh
+endif
+ifeq ($(GOLANGCI_LINT_TESTS),true)
+	$(MAKE) go-golangci-lint-tests | tee golangci-lint.output
+	./mk-include/bin/comment-pr-golangci-lint.sh
+endif
+
+.PHONY: _go-golangci-local
+_go-golangci-local:
+ifeq ($(GOLANGCI_LINT),true)
+	$(MAKE) go-golangci-lint
+endif
+ifeq ($(GOLANGCI_LINT_TESTS),true)
+	$(MAKE) go-golangci-lint-tests
+endif
