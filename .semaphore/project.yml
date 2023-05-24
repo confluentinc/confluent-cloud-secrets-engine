@@ -24,7 +24,6 @@ spec:
         level: pipeline
     whitelist:
       branches:
-      - master
       - main
       - /^v\d+\.\d+\.x$/
   custom_permissions: true
