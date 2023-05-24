@@ -7,6 +7,7 @@ MAKE ?= make
 # Include this file first
 _empty :=
 _space := $(_empty) $(empty)
+_comma := ,
 
 # Master branch
 MASTER_BRANCH ?= master
@@ -14,9 +15,20 @@ MASTER_BRANCH ?= master
 # set default update version to master
 MK_INCLUDE_UPDATE_VERSION ?= master
 
-# set default mk-include auto update to false, default mk-include auto merge to true
-UPDATE_MK_INCLUDE ?= false
+# enable mk-include update by default, enable auto merge mk-include change by default
+UPDATE_MK_INCLUDE ?= true
 UPDATE_MK_INCLUDE_AUTO_MERGE ?= true
+
+# DevprodProd docker registries hostname
+DEVPROD_PROD_AWS_ACCOUNT := 519856050701
+DEVPROD_PROD_ECR := $(DEVPROD_PROD_AWS_ACCOUNT).dkr.ecr.us-west-2.amazonaws.com
+DEVPROD_PROD_ECR_PROFILE := cc-internal-devprod-prod-1/developer-reader
+DEVPROD_PROD_ECR_PREFIX := docker/prod
+DEVPROD_PROD_ECR_REPO := $(DEVPROD_PROD_ECR)/$(DEVPROD_PROD_ECR_PREFIX)
+DEVPROD_PROD_ECR_HELM_REPO_PREFIX ?= helm/prod/confluentinc/
+GCLOUD_CI_AUTH_CRED := $(HOME)/.config/gcloud/application_default_credentials.json
+GCLOUD_US_DOMAIN := us-docker.pkg.dev
+DEVPROD_NONPROD_GAR_REPO := $(GCLOUD_US_DOMAIN)/devprod-nonprod-052022/docker/dev
 
 ifeq (true, $(UPDATE_MK_INCLUDE))
 INIT_CI_TARGETS += diff-mk-include
@@ -24,6 +36,7 @@ endif
 RELEASE_TARGETS += $(_empty)
 BUILD_TARGETS += $(_empty)
 TEST_TARGETS += $(_empty)
+POST_TEST_TARGETS += $(_empty)
 CLEAN_TARGETS += $(_empty)
 
 # If this variable is set, release will run $(MAKE) $(RELEASE_MAKE_TARGETS)
@@ -63,9 +76,9 @@ CI_BIN := /tmp/bin
 endif
 
 # Defaults
-MK_INCLUDE_BIN ?= ./mk-include/bin
-
-MK_INCLUDE_DATA := mk-include/data
+MK_INCLUDE_BIN ?= $(GIT_ROOT)/mk-include/bin
+MK_INCLUDE_RESOURCE ?= $(GIT_ROOT)/mk-include/resources
+MK_INCLUDE_DATA ?= $(GIT_ROOT)/mk-include/data
 
 # Where test reports get generated, used by testbreak reporting.
 ifeq ($(SEMAPHORE),true)
@@ -115,11 +128,17 @@ PATH := $(PYTHON_SCRIPT_DIR):$(PATH)
 export PATH
 endif
 
+# Retrieve the aws ec2 instance id which sempahore job is running on
+ifneq ($(findstring s1-, $(SEMAPHORE_AGENT_MACHINE_TYPE)),)
+INSTANCE_ID := $(shell $(MK_INCLUDE_BIN)/get_self_hosted_agent.sh)
+$(info $(INSTANCE_ID))
+endif
+
 # Git stuff
 BRANCH_NAME ?= $(shell git rev-parse --abbrev-ref HEAD || true)
 # Set RELEASE_BRANCH if we're on master or vN.N.x
 # special case for ce-kafka: v0.NNNN.x-N.N.N-ce-SNAPSHOT, v0.NNNN.x-N.N.N-N-ce
-RELEASE_BRANCH := $(shell echo $(BRANCH_NAME) | grep -E '^($(MASTER_BRANCH)|v[0-9]+\.[0-9]+\.x(-[0-9]+\.[0-9]+\.[0-9](-[0-9])?(-ce)?(-SNAPSHOT)?)?)$$')
+RELEASE_BRANCH := $(shell echo $(BRANCH_NAME) | grep -E '^($(MASTER_BRANCH)|v[0-9]+\.[0-9]+\.x(-[0-9]+\.[0-9]+\.[0-9](-[0-9])?(-ce)?(-SNAPSHOT)?)?)$$|^release-[0-9]+\.[0-9]+-confluent$$')
 # assume the remote name is origin by default
 GIT_REMOTE_NAME ?= origin
 
@@ -147,15 +166,15 @@ endif
 # default mk-include git hash location
 MK_INCLUDE_GIT_HASH_LOCATION := $(MK_INCLUDE_DATA)/mk-include-git-hash
 ifeq ($(MK_INCLUDE_UPDATE_VERSION),master)
-MK_INCLUDE_GIT_HASH := $(shell git ls-remote --tags git@github.com:confluentinc/cc-mk-include.git \
+MK_INCLUDE_GIT_HASH = $(shell git ls-remote --tags git@github.com:confluentinc/cc-mk-include.git \
 | sort -t '/' -k 3 -V | tail -n1 | tr -d " \t\n\r" | sed -E -e "s/refs\/(tags|heads)//")
 else
-MK_INCLUDE_GIT_HASH := $(shell git ls-remote --tags git@github.com:confluentinc/cc-mk-include.git $(MK_INCLUDE_UPDATE_VERSION)\
+MK_INCLUDE_GIT_HASH = $(shell git ls-remote --tags git@github.com:confluentinc/cc-mk-include.git $(MK_INCLUDE_UPDATE_VERSION)\
 | tail -n1 | tr -d " \t\n\r" | sed -E -e "s/refs\/(tags|heads)//")
 endif
 MK_INCLUDE_UPDATE_COMMIT_MESSAGE := "chore: update mk-include"
 
-GITHUB_CLI_VERSION ?= 1.12.1
+GITHUB_CLI_VERSION ?= 2.13.0
 
 ifneq ($(filter $(MK_INCLUDE_UPDATE_BRANCH),$(SEMAPHORE_GIT_PR_BRANCH) $(SEMAPHORE_GIT_BRANCH)),)
 TRIGGER_PR := false
@@ -171,21 +190,36 @@ REMOVE := rm
 GH := gh
 endif
 
-# docker repository
-JFROG_DOCKER_REPO := confluent-docker.jfrog.io
-JFROG_DOCKER_REPO_INTERNAL := confluent-docker-internal-dev.jfrog.io
 DOCKERHUB_REPO := https://index.docker.io/v1/
 
+# You may call `make push-docker-version` in your pipeline config to unconditionally push to dirty repo(GAR)
+# In order to push to release repo(ECR), the recommend approach is to call `make release-ci` in your pipeline
+# config to only push upon Branch Builds (ie: Don't push PR builds)
+
 ifeq ($(CI),true)
-DOCKER_REPO ?= $(JFROG_DOCKER_REPO)
+# push images built on non-release branch to dirty repo
+ifneq ($(RELEASE_BRANCH),$(_empty))
+DOCKER_REPO ?= $(DEVPROD_PROD_ECR_REPO)
 else
-DOCKER_REPO ?= $(JFROG_DOCKER_REPO_INTERNAL)
+DOCKER_REPO ?= $(DEVPROD_NONPROD_GAR_REPO)
+endif
+else
+DOCKER_REPO ?= $(DEVPROD_NONPROD_GAR_REPO)
 endif
 
 DOCKER_LOGIN ?= true
 ifeq ($(DOCKER_LOGIN), true)
 INIT_CI_TARGETS += docker-login-ci
 endif
+
+ARCH ?= $(shell uname -m)
+ifeq ($(ARCH),x86_64)
+ARCH := amd64
+else ifeq ($(ARCH),aarch64)
+ARCH := arm64
+endif
+
+RUN_COVERAGE ?= true
 
 .PHONY: update-mk-include
 update-mk-include:
@@ -217,7 +251,7 @@ ifneq (false, $(TRIGGER_PR))
 	export MAKE=$(MAKE) ;\
 	export MK_INCLUDE_GIT_HASH=$(MK_INCLUDE_GIT_HASH) ;\
 	export MK_INCLUDE_GIT_HASH_LOCATION=$(MK_INCLUDE_GIT_HASH_LOCATION) ;\
-	mk-include/bin/diff-mk-include.sh ;
+	$(MK_INCLUDE_BIN)/diff-mk-include.sh ;
 else
 	@echo "$(MK_INCLUDE_UPDATE_BRANCH) is already trying to update the mk-include directory, will not update and file PR"
 endif
@@ -230,18 +264,21 @@ endif
 	@:
 
 .PHONY: install-github-cli
+## install github cli if not installed
 install-github-cli:
 	export GITHUB_CLI_VERSION=$(GITHUB_CLI_VERSION) ;\
-	mk-include/bin/install-github-cli.sh
+	$(MK_INCLUDE_BIN)/install-github-cli.sh
 	$(GH) config set prompt disabled
 
-.PHONY: trigger-mk-include-update-pr
-trigger-mk-include-update-pr:
-ifeq (true, $(UPDATE_MK_INCLUDE))
-	@$(MAKE) update-mk-include
-	$(GIT) push -f $(GIT_REMOTE_NAME) $(MK_INCLUDE_UPDATE_BRANCH)
-	@echo "update cc-mk-include finished, open update PR"
-	$(GH) pr create -B $(MASTER_BRANCH) -b "update mk-include" -t $(MK_INCLUDE_UPDATE_COMMIT_MESSAGE) -H $(MK_INCLUDE_UPDATE_BRANCH)
+.PHONY: github-cli-auth
+github-cli-auth:
+## login to gh cli with semaphore ci token
+ifeq ($(CI),true)
+	$(MK_INCLUDE_BIN)/vault-sem-get-secret semaphore_bot_github_token_file
+# .githubtoken is a file contains github token and loaded form vault
+# gh auth login will fail when there is a GITHUB_TOKEN env variable
+	$(GH) auth login --with-token < $(HOME)/.githubtoken || true
+	rm $(HOME)/.githubtoken
 endif
 	@:
 
@@ -287,37 +324,10 @@ add-paas-github-templates:
 	@echo "Template added."
 	@echo "Create PR with 'git push && git log --format=%B -n 1 | hub pull-request -F -'"
 
-.PHONY: add-auto-merge-templates
-add-auto-merge-templates:
-	$(eval project_root := $(shell git rev-parse --show-toplevel))
-	$(eval mk_include_relative_path := $(project_root)/mk-include)
-	$(if $(wildcard $(project_root)/.github/bulldozer.yml),$(an error ".github/bulldozer.yml already exists, try deleting it"),)
-	$(if $(filter $(BRANCH_NAME),$(MASTER_BRANCH)),$(error "You must run this command from a branch: 'git checkout -b add-github-pr-template'"),)
-
-	@mkdir -p $(project_root)/.github
-	@cp $(mk_include_relative_path)/resources/bulldozer-template.yml $(project_root)/.github/bulldozer.yml
-	@git add $(project_root)/.github/bulldozer.yml
-	@git commit \
-		-m "Add bulldozer automerge template for PRs $(CI_SKIP)"
-	@git show
-	@echo "Auto merge template added."
-	@echo "Create PR with 'git push && git log --format=%B -n 1 | hub pull-request -F -'"
-
 .PHONY: docker-login-ci
 docker-login-ci:
 ifeq ($(CI),true)
 	@mkdir -p $(HOME)/.docker && touch $(HOME)/.docker/config.json
-# Login to docker Artifactory
-ifeq ($(DOCKER_USER)$(DOCKER_APIKEY),$(_empty))
-	@echo "No docker artifactory creds are set, skip artifactory docker login"
-else
-	@jq -e '.auths."$(JFROG_DOCKER_REPO)"' $(HOME)/.docker/config.json 2>&1 >/dev/null || true
-	@docker login $(JFROG_DOCKER_REPO) --username $(DOCKER_USER) --password $(DOCKER_APIKEY) || \
-		docker login $(JFROG_DOCKER_REPO) --username $(DOCKER_USER) --password $(DOCKER_APIKEY)
-	@jq -e '.auths."$(JFROG_DOCKER_REPO_INTERNAL)"' $(HOME)/.docker/config.json 2>&1 >/dev/null || true
-	@docker login $(JFROG_DOCKER_REPO_INTERNAL) --username $(DOCKER_USER) --password $(DOCKER_APIKEY) || \
-		docker login $(JFROG_DOCKER_REPO_INTERNAL) --username $(DOCKER_USER) --password $(DOCKER_APIKEY)
-endif
 # login to dockerhub as confluentsemaphore
 ifeq ($(DOCKERHUB_USER)$(DOCKERHUB_APIKEY),$(_empty))
 	@echo "No dockerhub creds are set, skip dockerhub docker login"
@@ -326,8 +336,26 @@ else
 	@docker login --username $(DOCKERHUB_USER) --password $(DOCKERHUB_APIKEY) || \
 		docker login --username $(DOCKERHUB_USER) --password $(DOCKERHUB_APIKEY)
 endif
+# login to DevprodProd ECR via semaphoreCI role if not configured to use credential helper
+ifneq ($(shell jq '.credHelpers."$(DEVPROD_PROD_ECR)"' $(HOME)/.docker/config.json),"ecr-login")
+	@aws ecr get-login-password --region us-west-2 | \
+		docker login --username AWS --password-stdin $(DEVPROD_PROD_ECR) || echo "DevProd Prod ECR login fail"
+else
+	@echo "Configured to use credential helper with DevProd Prod ECR, skip docker login."
+endif
+ifneq ($(wildcard $(GCLOUD_CI_AUTH_CRED)),)
+# login to devprod GAR for dirty images
+	@gcloud auth activate-service-account --key-file $(GCLOUD_CI_AUTH_CRED)
+	@gcloud auth configure-docker $(GCLOUD_US_DOMAIN) -q
+else
+	@echo "No gcloud cred is set"
+endif
 endif
 
+.PHONY: docker-login-local
+docker-login-local:
+## an easy command to login to ECR
+	@echo "$(DEVPROD_PROD_ECR)" | docker-credential-cc-ecr-login.sh get >/dev/null
 
 .PHONY: bats
 bats:
