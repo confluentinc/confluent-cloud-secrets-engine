@@ -36,6 +36,7 @@ global_job_config:
       - . vault-sem-get-secret ci-reporting
       - . vault-sem-get-secret dockerhub-semaphore-cred-ro
       - chmod 400 ~/.ssh/id_rsa
+      - make init-ci
 blocks:
   - name: Build and Test
     task:
@@ -45,10 +46,10 @@ blocks:
             - cd pkg/plugin
             - go mod tidy
             - go build
+            - make test
       epilogue:
         always:
           commands:
-            - go test -json > report.json
             - make epilogue-ci
 after_pipeline:
   task:
