@@ -50,7 +50,7 @@ function run_tests() {
   fi
 
   echo "Running test directory ${GO_TEST_PACKAGE_ARGS}"
-  if "${BASEDIR}/run_tests.sh" -test-package "$GO_TEST_PACKAGE_ARGS" -env "${ENV}" -commit "${REVISION}" -pr-id "${PR_ID}" -cloud "${CLOUD:-aws}" -region "${REGION:-us-west-2}" -expected-k8s "${EXPECTED_K8S}" -ssh-key ~/.ssh/id_rsa -ssh-user caas-team; then
+  if "${BASEDIR}/run_tests.sh" -test-package "$GO_TEST_PACKAGE_ARGS" -env "${ENV}" -commit "${REVISION}" -pr-id "${PR_ID}" -cloud aws -region us-west-2 -expected-k8s "${EXPECTED_K8S}" -ssh-key ~/.ssh/id_rsa -ssh-user caas-team; then
     echo "Tests succeeded!"
     if [ "${PROMOTE}" = "true" ]; then
       promote "${ENV}" "${NEXT_ENV}"
@@ -71,14 +71,9 @@ case "${BRANCH_NAME}" in
     if make vet lint-go; then
       # automatically push code changes to devel branch
       promote master devel
-
-      # automatically push code changes to devel-canary branch
+      
+      # automatically push code changes to devel-canary branch 
       promote master devel-canary
-
-      # Running tests on master branch targeting an arbitrary environment. Prod not allowed
-      if [ "${RUN_TESTS_ON_MASTER}" = "true" ] && [ "${TEST_ENVIRONMENT}" != "prod" ]; then
-        run_tests "${TEST_ENVIRONMENT}"
-      fi
 
       if [ "${ENABLE_MASTER_TO_STAG_PROMOTION}" = "true" ]; then
         # optionally push code changes to stag branch
@@ -100,16 +95,12 @@ case "${BRANCH_NAME}" in
   'devel')
     run_tests devel
     ;;
-
+  
   devel-*)
     run_tests devel
     ;;
 
   'stag')
-    run_tests stag
-    ;;
-
-  stag-*)
     run_tests stag
     ;;
 
@@ -121,14 +112,14 @@ case "${BRANCH_NAME}" in
   *)
     # Feature branches
     if make vet lint-go; then
-      # Note: test owners can disable running system tests in specified env to avoid affecting
-      # the potentially parallel tests run for specified branch.
+      # Note: disable running system tests in devel env to avoid affecting
+      # the potentially parallel tests run for devel branch.
       # Reason: our current tests have the limitation of sharing same test
       # accounts, clusters, quota, etc.
       # If the team does have some tests safe to run in parallel, the team
       # can opt in to run those selected tests on PR branches.
-      if [ -n "${TESTS_TO_RUN_ON_PR_BRANCH}" ] && [ "${ENV_TO_RUN_TESTS_ON_FOR_PR_BRANCH}" != "prod" ]; then
-        TESTS_TO_RUN="${TESTS_TO_RUN_ON_PR_BRANCH}" run_tests ${ENV_TO_RUN_TESTS_ON_FOR_PR_BRANCH}
+      if [ -n "${TESTS_TO_RUN_ON_PR_BRANCH}" ]; then
+        TESTS_TO_RUN=${TESTS_TO_RUN_ON_PR_BRANCH} run_tests devel
       fi
     else
       echo 'make vet lint-go failed'

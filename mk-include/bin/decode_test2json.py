@@ -10,25 +10,22 @@ useful but it is not a documented behavior.
 More info about the test2json output: https://golang.org/cmd/test2json/
 """
 
-import fileinput
+from collections import defaultdict, Counter
 import json
+import fileinput
 import os
 import pprint
-import re
 import sys
-from collections import Counter, defaultdict
-from dataclasses import dataclass
-from typing import Collection, List, Optional
 from xml.dom.minidom import Document
 
+
 # The different testcase statuses.
-PASS, FAIL, SKIP, TIMEOUT, PANIC, FLAKY = 'PASS', 'FAIL', 'SKIP', 'TIMEOUT', 'PANIC', 'FLAKY'
+PASS, FAIL, SKIP, TIMEOUT, PANIC = 'PASS', 'FAIL', 'SKIP', 'TIMEOUT', 'PANIC'
 
 # The associated emojis.
 SYMBOLS = {
     PASS: '✅',
     FAIL: '❌',
-    FLAKY: '🟡',
     TIMEOUT: '🕘',
     PANIC: '🔥',
     SKIP: '🤞',
@@ -37,59 +34,30 @@ SYMBOLS = {
 # Special patterns to look for in go test outputs.
 PANIC_MESSAGE = 'panic: '
 TIMEOUT_MESSAGE = 'panic: test timed out after'
-CI = os.environ.get('CI', "false").lower() == "true"
-TEST_REPORT_FILE_NAME = "TEST-result.xml"
-if CI:
-    TEST_REPORT_FILE_NAME = f'{os.environ.get("SEMAPHORE_PIPELINE_ID", "")}-{TEST_REPORT_FILE_NAME}'
 
 # Where to put the report files.
 if 'TEST_REPORT_FILE' in os.environ:
-    TEST_REPORT_FILE = os.path.abspath(os.environ['TEST_REPORT_FILE'])
-    TEST_REPORT_FILE_NAME = os.path.basename(TEST_REPORT_FILE)
-    BUILD_DIR = os.path.dirname(TEST_REPORT_FILE)
+    TEST_REPORT_FILE = os.environ['TEST_REPORT_FILE']
 else:
     BUILD_DIR = os.path.abspath(os.environ.get('BUILD_DIR', 'build'))
-    TEST_REPORT_FILE = os.path.join(BUILD_DIR, TEST_REPORT_FILE_NAME)
-FAILED_TESTS = os.path.join(BUILD_DIR, "rerun-data", "failed_test.txt")
+    TEST_REPORT_FILE = os.path.join(BUILD_DIR, 'TEST-result.xml')
 
 
-@dataclass(frozen=True)
 class Testcase:
-    name: str
-    status: str
-    lines: List[str]
-    elapsed: float
-    timestamp: float
-
-
-class TestBuilder:
     """
     Class used to collect information about a testcase, its status and output.
     """
-    name: str
-    elapsed: Optional[float]
-    timestamp: Optional[float]
-    status: Optional[str]
-    lines: List[str]
 
-    def __init__(self, test_name):
-        self.name = test_name
+    def __init__(self):
         self.elapsed = None
         self.lines = []
         self.status = None
         self.timestamp = None
 
-    def update_status(self, status):
-        if not self.status and status:
-            self.status = status
-        elif self.status and status and self.status != FLAKY:
-            # if one of the status's is passing, and there is any other status,
-            # set to flaky, otherwise overwrite the status (ie: FAILED, then timeout
-            # should overwrite the FAILED with TIMEOUT)
-            self.status = FLAKY if self.status != status and PASS in (self.status, status) else status
-
     def report(self, status, timestamp, elapsed):
-        self.update_status(status)
+        if self.status not in (TIMEOUT, PANIC):
+            self.status = status
+
         self.timestamp = timestamp
         self.elapsed = elapsed
 
@@ -101,53 +69,32 @@ class TestBuilder:
 
         self.lines.append(line)
 
-    def build(self) -> Testcase:
-        return Testcase(self.name, self.status, self.lines, self.elapsed, self.timestamp)
-
 
 class Testsuite:
     """
     Class used to collect stats about multiple testcases falling under the
     same package / testsuite.
     """
-    counts: Counter
-    panic: bool
-    lines: List[str]
-    tests: Collection[Testcase]
-    test_builders: Collection[TestBuilder]
-    total: int
-
-    elapsed: Optional[float] = None
-    package: Optional[str] = None
-    timeout: Optional[float] = None
-    timestamp: Optional[float] = None
 
     def __init__(self):
         self.counts = Counter()
+        self.elapsed = None
         self.lines = []
-        self.panic = False
-        self.test_builders = {}
-        self.total = 0
-
-        self.elapsed = None
         self.package = None
+        self.panic = False
+        self.tests = defaultdict(Testcase)
         self.timeout = None
-        self.elapsed = None
+        self.timestamp = None
+        self.total = 0
 
     def run(self, test):
         if test is None:
             return
 
-        _ = self.get_test_builder(test)
+        _ = self.tests[test]
         self.total += 1
 
-    def report(
-        self,
-        test: str,
-        status: str,
-        timestamp: float,
-        elapsed: float
-    ):
+    def report(self, test, status, timestamp, elapsed):
         if test is None:
             self.elapsed = elapsed
             self.timestamp = timestamp
@@ -158,44 +105,33 @@ class Testsuite:
             # last test gets a chance to get duration.
             self.elapsed = elapsed
 
-        self.get_test_builder(test).report(status, timestamp, elapsed)
-
-    def get_test_builder(self, test: str) -> TestBuilder:
-        if test not in self.test_builders:
-            self.test_builders[test] = TestBuilder(test)
-        return self.test_builders[test]
-
-    def build_tests(self):
-        tests = sorted(
-            (tb.build() for tb in self.test_builders.values()),
-            key=lambda t: t.name
-        )
-        for test in tests:
-            self.counts[test.status] += 1
-        return tests
+        self.tests[test].report(status, timestamp, elapsed)
+        self.counts[status] += 1
 
     def add_output(self, test, line):
         # super weird timeout handling.
         # see golang src/testing/testing.go
         if line.startswith(TIMEOUT_MESSAGE):
             self.timeout = True
+            self.counts[TIMEOUT] += 1
         elif line.startswith(PANIC_MESSAGE):
             self.panic = True
+            self.counts[PANIC] += 1
 
         if test is None:
             self.lines.append(line)
             return
 
-        self.get_test_builder(test).add_output(line)
+        self.tests[test].add_output(line)
 
 
 # Global state.
 TESTSUITES = defaultdict(Testsuite)
 
+
 #
 # Handlers for the different go test2json TestEvents.
 #
-
 
 def debug_event(event):
     pprint.pprint(event)
@@ -273,10 +209,6 @@ def collect_results_and_print_formatted_line(line):
     1. provide user-friendly output by formatting the go test2json TestEvent.
     2. collecting test results in global state, in `TESTSUITES`.
     """
-    line = line.strip()
-    # do not parse empty lines
-    if not line:
-        return
     try:
         event = json.loads(line)
         action = event['Action']
@@ -321,28 +253,30 @@ def print_summary_and_write_junit_report():
         #
         print('┏{} {}'.format('━' * 11, package))  # Begin
 
-        tests = suite.build_tests()
-        for case in tests:
-            add_junit_elements_for_testcase(case, case.name, testsuite, doc)
+        for name in sorted(suite.tests.keys()):
+            case = suite.tests[name]
+            add_junit_elements_for_testcase(case, name, testsuite, doc)
             elapsed = case.elapsed if case.elapsed else 0.
             status = case.status if case.status else FAIL
 
-            print('┃ {} {:7} {:8.3f}s  {}'.format(SYMBOLS.get(status, ' '),
-                                                  status, elapsed, case.name))
+            print('┃ {} {:7} {:8.3f}s  {}'.format(
+                SYMBOLS.get(status, ' '),
+                status,
+                elapsed,
+                name
+            ))
 
-        print(
-            '┗{} total={} passed={} failed={} flaky={} skipped={} duration={}\n'.format(
-                '━' * 11,
-                suite.total,
-                suite.counts[PASS],
-                suite.counts[FAIL],
-                suite.counts[FLAKY],
-                suite.counts[SKIP],
-                '{:.3f}s'.format(suite.elapsed)
-                if suite.elapsed else '{} {}'.format(SYMBOLS[PANIC], PANIC) if
-                suite.panic else '{} {}'.format(SYMBOLS[TIMEOUT], TIMEOUT) if
-                suite.timeout else '[no tests]' if not suite.total else '???',
-            ))  # End.
+        print('┗{} total={} passed={} failed={} skipped={} duration={}\n'.format(
+            '━' * 11,
+            suite.total,
+            suite.counts[PASS],
+            suite.counts[FAIL],
+            suite.counts[SKIP],
+            '{:.3f}s'.format(suite.elapsed) if suite.elapsed else
+            '{} {}'.format(SYMBOLS[PANIC], PANIC) if suite.panic else
+            '{} {}'.format(SYMBOLS[TIMEOUT], TIMEOUT) if suite.timeout else
+            '[no tests]' if not suite.total else '???',
+        ))  # End.
 
         total += suite.total
         counts.update(suite.counts)
@@ -351,8 +285,7 @@ def print_summary_and_write_junit_report():
     write_junit_report_xml(doc)
 
 
-def add_junit_elements_for_testsuite(suite: Testsuite, package, testsuite,
-                                     doc):
+def add_junit_elements_for_testsuite(suite: Testsuite, package, testsuite, doc):
     testsuite.setAttribute('name', package)
     testsuite.setAttribute('tests', str(suite.total))
     testsuite.setAttribute('timestamp', suite.timestamp)
@@ -418,7 +351,8 @@ def add_junit_elements_for_testcase(case: Testcase, name, testsuite, doc):
         # default to error, e.g. issue with test framework.
         error = doc.createElement('error')
         error.setAttribute(
-            'message', 'test did not explicitly pass. please check the logs.')
+            'message',
+            'test did not explicitly pass. please check the logs.')
         testcase.appendChild(error)
     if case.lines:
         stdout = doc.createElement('system-out')
@@ -462,14 +396,11 @@ def print_totals(counts, total):
 def _createCDATAsections(doc, node, text):
     pos = text.find(']]>')
     while pos >= 0:
-        tmp = text[0:pos + 2]
+        tmp = text[0:pos+2]
         cdata = doc.createCDATASection(tmp)
         node.appendChild(cdata)
-        text = text[pos + 2:]
+        text = text[pos+2:]
         pos = text.find(']]>')
-    # ANSI escape sequences are not valid in XMLs. Below regex finds and replaces them with an empty string
-    ansi_escape = re.compile(r'(\x9B|\x1B\[)[0-?]*[ -/]*[@-~]')
-    text = ansi_escape.sub('', text)
     cdata = doc.createCDATASection(text)
     node.appendChild(cdata)
 
@@ -486,34 +417,9 @@ def write_junit_report_xml(doc):
     print('Successfully wrote {}\n'.format(TEST_REPORT_FILE))
 
 
-def write_failed_tests_file():
-    failed_tests = set()
-    for _package, suite in sorted(TESTSUITES.items(), key=lambda i: i[0]):
-        tests = suite.build_tests()
-        failed_tests.update(
-            # only include whole tests, not subtests as they do not work
-            # with go regex
-            t.name[:t.name.index('/')] if '/' in t.name else t.name
-            for t in tests
-            if t.status != PASS and t.status != SKIP
-        )
-    failed_tests_str = "|".join(failed_tests)
-    if CI:
-        print(f"writing '{failed_tests_str}' to file '{FAILED_TESTS}'")
-        try:
-            os.makedirs(os.path.dirname(FAILED_TESTS), exist_ok=True)
-            with open(FAILED_TESTS, "w") as f:
-                f.write(failed_tests_str)
-        except FileNotFoundError:
-            print("failed to write failed tests, file doesn't exist and couldn't be written two")
-    elif failed_tests_str:
-        print(f"to rerun tests that failed, run your go test command with -run '{failed_tests_str}'")
-
-
 if __name__ == "__main__":
 
     for line in fileinput.input():
         collect_results_and_print_formatted_line(line)
 
     print_summary_and_write_junit_report()
-    write_failed_tests_file()

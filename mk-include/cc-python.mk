@@ -9,10 +9,6 @@ PYTEST_ARGS ?=
 PYTEST_IGNORE_DIR = mk-include
  # You can also use pytest.ini to ignore if you overwrite pytest cmds
 PYTEST_ARGS += --ignore=$(PYTEST_IGNORE_DIR)
- # include arguments to generate coverage 
-ifeq ($(RUN_COVERAGE), true)
-PYTEST_ARGS += --cov --cov-report=xml --cov-report=html --cov-report=term --cov-report=annotate:textcov
-endif
  # If we don't specify this, fails on any suggestions, even conventions (lower than warnings)
 PYLINT_ARGS ?= --fail-under 9.0 --fail-on F,E
 
@@ -25,15 +21,14 @@ export PIPENV_IGNORE_VIRTUALENVS
 .PHONY: python-install-linters
 ## Add and Install Python linters to Pipfile
 python-install-linters:
-	pipenv install --python $(PYTHON_VERSION) yapf flake8 isort pytest pylint pytest-cov --dev
+	pipenv install --python $(PYTHON_VERSION) yapf flake8 isort pytest pylint --dev
 
 .PHONY: python-resources
 python-resources:
-	cp $(MK_INCLUDE_RESOURCE)/.flake8 ./.flake8
-	cp $(MK_INCLUDE_RESOURCE)/.style.yapf ./.style.yapf
-	cp $(MK_INCLUDE_RESOURCE)/.yapfignore ./.yapfignore
-	cp $(MK_INCLUDE_RESOURCE)/.pylintrc ./.pylintrc
-	cp $(MK_INCLUDE_RESOURCE)/.isort.cfg ./.isort.cfg
+	cp mk-include/resources/.flake8 ./.flake8
+	cp mk-include/resources/.style.yapf ./.style.yapf
+	cp mk-include/resources/.yapfignore ./.yapfignore
+	cp mk-include/resources/.pylintrc ./.pylintrc
 
 .PHONY: python-deps
 ## Setup the python env with dependencies
@@ -47,13 +42,15 @@ python-lint:
 	pipenv run yapf -rd .
 	pipenv run flake8 .
 	find . -path ./mk-include -prune -false -o -iname '*.py' | xargs pipenv run pylint $(PYLINT_ARGS)  # to lint a dir it must be a python module; instead run file-by-file
-	pipenv run isort --check-only .
+	@# this crazy looking stuff is just to make isort print errors and exit 1; it only has "strict mode" as githook
+	pipenv run isort --skip mk-include --diff . | grep -v 'Skipped' > /tmp/isort.log ; \
+		cat /tmp/isort.log ; test ! -s /tmp/isort.log ; code=$$? ; rm -r /tmp/isort.log ; exit $$code
 
 .PHONY: python-fmt
 ## Format the python code to follow the project standards
 python-fmt:
-	pipenv run yapf -ir .
-	pipenv run isort .
+	pipenv run yapf -i ./*.py
+	pipenv run isort --skip mk-include .
 
 .PHONY: python-test
 ## Run all python tests (pytest)

@@ -4,18 +4,12 @@ TEST_TARGETS += mvn-verify
 RELEASE_PRECOMMIT += mvn-set-bumped-version
 RELEASE_POSTCOMMIT += mvn-deploy
 
-MAVEN_RETRY_COUNT = 3
-MAVEN_RETRY_OPTS = -Dmaven.wagon.http.retryHandler.count=$(MAVEN_RETRY_COUNT)
 MAVEN_ARGS ?= --no-transfer-progress
-MAVEN_ADDITIONAL_ARGS ?=
-MAVEN_ARGS += $(MAVEN_ADDITIONAL_ARGS)
-MAVEN_NANO_VERSION ?= false
 ifeq ($(CI),true)
-MAVEN_LOCAL_CACHE ?= $(CI_BIN)/m2
 MAVEN_ARGS += --batch-mode
 # Put local maven repo inside CI_BIN to leverage caching done in cc-semaphore.mk
-MAVEN_ARGS += -Dmaven.repo.local=$(MAVEN_LOCAL_CACHE) -Dmaven.artifact.threads=10
-MAVEN_ARGS += $(MAVEN_RETRY_OPTS)
+MAVEN_ARGS += -Dmaven.repo.local=$(CI_BIN)/m2 -Dmaven.artifact.threads=10
+
 # enable CI profile for spotbugs, test-coverage, and dependency analysis
 MAVEN_PROFILES += jenkins
 endif
@@ -39,10 +33,6 @@ MAVEN_SKIP_CHECKS=-DskipTests=true \
 MAVEN_INSTALL_OPTS ?= --update-snapshots $(MAVEN_SKIP_CHECKS)
 MAVEN_INSTALL_ARGS = $(MAVEN_INSTALL_OPTS) install
 
-MAVEN_DEPLOY_REPO_ID ?= confluent-codeartifact-internal
-MAVEN_DEPLOY_REPO_NAME ?= maven-releases
-MAVEN_DEPLOY_REPO_URL ?= https://confluent-519856050701.d.codeartifact.us-west-2.amazonaws.com/maven/$(MAVEN_DEPLOY_REPO_NAME)/
-
 .PHONY: mvn-install
 mvn-install:
 ifneq ($(MAVEN_INSTALL_PROFILES),)
@@ -57,35 +47,32 @@ endif
 
 .PHONY: mvn-verify
 mvn-verify:
-	$(MVN) $(MAVEN_VERIFY_OPTS) verify 
+	$(MVN) verify $(MAVEN_VERIFY_OPTS)
 
 .PHONY: mvn-clean
 mvn-clean:
 	$(MVN) clean
 
+# Requires a <distributionManagement> section in your pom.xml
 # Alternatively, set <maven.deploy.skip>true</maven.deploy.skip> in your pom.xml to skip deployment
 .PHONY: mvn-deploy
 mvn-deploy:
-	$(MVN) deploy $(MAVEN_SKIP_CHECKS) -DaltDeploymentRepository=$(MAVEN_DEPLOY_REPO_ID)::default::$(MAVEN_DEPLOY_REPO_URL) -DrepositoryId=$(MAVEN_DEPLOY_REPO_ID)
+	$(MVN) deploy $(MAVEN_SKIP_CHECKS)
 
 # Set the version in pom.xml to the bumped version
 .PHONY: mvn-set-bumped-version
-ifeq ($(MAVEN_NANO_VERSION),false)
 mvn-set-bumped-version:
 	$(MVN) versions:set \
 		-DnewVersion=$(BUMPED_CLEAN_VERSION) \
 		-DgenerateBackupPoms=false
 	$(GIT) add --verbose $(shell find . -name pom.xml -maxdepth 2)
-else
-mvn-set-bumped-version: mvn-bump-nanoversion
-endif
 
 # Other projects have a superstitious dependency on docker-pull-base here
 # instead of letting `docker build` just automatically pull the base image.
 # If we start seeing build issues on MacOS we can resurrect this dependency.
 # https://confluent.slack.com/archives/C6KU9M23A/p1559867903037100
 #
-#BASE_IMAGE := 519856050701.dkr.ecr.us-west-2.amazonaws.com/docker/prod/confluentinc/cc-base
+#BASE_IMAGE := confluent-docker.jfrog.io/confluentinc/cc-base
 #BASE_VERSION := v3.2.0
 #mvn-docker-package: docker-pull-base
 .PHONY: mvn-docker-package
@@ -109,29 +96,4 @@ endif
 show-maven:
 	@echo "MVN:                     $(MVN)"
 	@echo "MAVEN_OPTS:              $(MAVEN_OPTS)"
-	@echo "MAVEN_ARGS:              $(MAVEN_ARGS)"
 	@echo "MAVEN_INSTALL_PROFILES:  $(MAVEN_INSTALL_PROFILES)"
-	@echo "MAVEN_DEPLOY_REPO_URL: 	$(MAVEN_DEPLOY_REPO_URL)"
-
-.PHONY: mvn-nanoversion-pip-deps
-mvn-nanoversion-pip-deps:
-	pip3 show confluent-ci-tools > /dev/null || pip3 install -U confluent-ci-tools
-
-ifeq ($(CI),true)
-.PHONY: mvn-bump-nanoversion
-## use ci-tools to bump nanoversion
-mvn-bump-nanoversion: mvn-nanoversion-pip-deps
-	ci-update-version . $(SEMAPHORE_GIT_DIR) --no-update-dependency-versions --update-project-version
-
-mvn-bump-dependency-nanoversion: mvn-nanoversion-pip-deps
-## use ci-tools to update dependency nanoversion(mvn versions:use-latest-versions)
-	ci-update-version . $(SEMAPHORE_GIT_DIR) --pinned-nano-versions --update-dependency-versions --no-update-project-version
-
-.PHONY: mvn-push-nanoversion-tag
-## use ci-tools to push the newest nanoversion tag
-mvn-push-nanoversion-tag: mvn-nanoversion-pip-deps
-	ci-push-tag . $(SEMAPHORE_GIT_DIR)
-
-.PHONY: mvn-bump-nanoversion-and-push-tag
-mvn-bump-nanoversion-and-push-tag: mvn-bump-nanoversion mvn-push-nanoversion-tag
-endif

@@ -5,45 +5,77 @@
 # For more information, please refer to the page:
 # https://confluentinc.atlassian.net/wiki/spaces/Foundations/pages/2871296194/Add+SemaphoreCI
 version: v1.0
-name: Build, Test, Release
+name: pie-cc-hashicorp-vault-plugin
 agent:
   machine:
     type: s1-prod-ubuntu20-04-amd64-1
-
+auto_cancel:
+  running:
+    when: "branch != 'main'"
 execution_time_limit:
   hours: 1
-
 blocks:
-  - name: "Build and Test"
-    run:
-      when: "change_in('/', {exclude: ['/.deployed-versions/']})"
+  - name: Build
+    dependencies: []
     task:
       secrets:
         - name: vault_sem2_approle
       prologue:
         commands:
+          - chmod 400 ~/.ssh/id_rsa
           - sem-version go 1.19
           - sem-version python 3.9
           - go version
+          - export "GOPATH=$(go env GOPATH)"
+          - export "SEMAPHORE_GIT_DIR=${GOPATH}/src/github.com/confluentinc/${SEMAPHORE_PROJECT_NAME}"
+          - export "PATH=${GOPATH}/bin:${PATH}"
+          - mkdir -vp "${SEMAPHORE_GIT_DIR}" "${GOPATH}/bin"
+          - git config --global url."git@github.com:".insteadOf "https://github.com/"
           - checkout
           - make install-vault
           - . mk-include/bin/vault-setup
+          - . vault-sem-get-secret aws_credentials
           - . vault-sem-get-secret gitconfig
           - . vault-sem-get-secret ssh_id_rsa
           - . vault-sem-get-secret ssh_config
           - . vault-sem-get-secret netrc
-          - . vault-sem-get-secret artifactory-docker-helm
+          - . vault-sem-get-secret semaphore-secrets-global
+          - . vault-sem-get-secret maven-settings
           - . vault-sem-get-secret cpd_gcloud
-          - . vault-sem-get-secret aws_credentials
-          - . vault-sem-get-secret halyard-secrets
           - . vault-sem-get-secret ci-reporting
+          - . vault-sem-get-secret v1/ci/kv/service-foundations/cc-mk-include
           - . vault-sem-get-secret dockerhub-semaphore-cred-ro
-          - chmod 400 ~/.ssh/id_rsa
+          - exec &> >(tee -a build.log)
       jobs:
-        - name: "Build and Test"
+        - name: Build
           commands:
-            - make init-ci
-            - make test
-      epilogue:
+            - cd pkg/plugin
+            - go build
+            - cd ../..
+            - GOOS=linux GOARCH=amd64  make build
+  - name: Test
+    dependencies: [Build]
+    task:
+      secrets:
+        - name: vault_sem2_approle
+      prologue:
         commands:
-          - make epilogue-ci
+          - checkout
+          - . vault-sem-get-secret dockerhub-semaphore-cred-ro
+          - . vault-sem-get-secret gradle_properties
+          - make docker-login-ci
+          - sem-version java 8
+      jobs:
+        - name: Unit Tests
+          commands:
+            - go test -v ./... -json | ./mk-include/bin/decode_test2json.py
+      epilogue:
+        always:
+          commands:
+            - test-results publish build/*.xml
+after_pipeline:
+  task:
+    jobs:
+      - name: Publish Results
+        commands:
+          - test-results gen-pipeline-report

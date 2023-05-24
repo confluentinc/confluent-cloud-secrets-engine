@@ -3,23 +3,25 @@ BUILD_TARGETS += openapi api-docs
 TEST_TARGETS += api-lint
 CLEAN_TARGETS += api-clean
 
-REDOC_VERSION ?= v2.0.0-rc.77
-REDOC_CLI_VERSION ?= v0.24.0
+REDOC_VERSION ?= v2.0.0-rc.18
+REDOC_CLI_VERSION ?= 0.9.12
 PRISM_VERSION ?= 3.1.1
 OPENAPI_LINTER_VERSION ?= v0.86.0
 SPECCY_VERSION ?= 0.11.0
 YAMLLINT_VERSION ?= 1.20
  # no tags in dockerhub for this one, but latest in github is v0.2.8
 OPENAPI_SPEC_VALIDATOR_VERSION ?= latest
-OPENAPI_GENERATOR_VERSION ?= v5.6.6
+OPENAPI_GENERATOR_VERSION ?= v5.6.2
 MINISPEC_VERSION ?= v0.3.0
  # or "editable" to not use docker, looks for MINISPEC_HOME
 MINISPEC_HOME ?= .
 
+JFROG_DOCKER_REPO := confluent-docker.jfrog.io
+
 _docker_opts := --user $(shell id -u):$(shell id -g) --rm
 _docker_opts += --volume $(CURDIR):/local
 
-MINISPEC = docker run $(_docker_opts) $(DEVPROD_PROD_ECR_REPO)/confluentinc/minispec:$(MINISPEC_VERSION)
+MINISPEC = docker run $(_docker_opts) $(JFROG_DOCKER_REPO)/confluentinc/minispec:$(MINISPEC_VERSION)
 MINISPEC_ARGS ?= -vvv
 
 YAMLLINT = docker run $(_docker_opts) cytopia/yamllint:$(YAMLLINT_VERSION)
@@ -29,10 +31,10 @@ OPENAPI_SPEC_VALIDATOR = docker run $(_docker_opts) p1c2u/openapi-spec-validator
 
 SPECCY = docker run $(_docker_opts) --workdir /local wework/speccy:$(SPECCY_VERSION)
 
-OPENAPI_LINTER = docker run $(_docker_opts) --workdir /local $(DEVPROD_PROD_ECR_REPO)/confluentinc/openapi-linter:$(OPENAPI_LINTER_VERSION)
+OPENAPI_LINTER = docker run $(_docker_opts) --workdir /local $(JFROG_DOCKER_REPO)/confluentinc/openapi-linter:$(OPENAPI_LINTER_VERSION)
 OPENAPI_LINTER_CONF ?= .spectral.yaml
 
-REDOC = docker run $(_docker_opts) $(DEVPROD_PROD_ECR_REPO)/confluentinc/redoc-cli:$(REDOC_CLI_VERSION)
+REDOC = docker run $(_docker_opts) $(JFROG_DOCKER_REPO)/confluentinc/redoc-cli:$(REDOC_CLI_VERSION)
 REDOC_THEME_OPTIONS ?= \
 	--options.theme.colors.primary.main='\#191924' \
 	--options.theme.typography.fontSize='16px' \
@@ -68,7 +70,7 @@ API_NAME ?= $(shell basename $(CURDIR))
 
 PRISM = docker run $(_docker_opts) stoplight/prism:$(PRISM_VERSION)
 
-OPENAPI_GENERATOR = docker run $(_docker_opts) $(DEVPROD_NONPROD_GAR_REPO)/confluentinc/openapi-generator:$(OPENAPI_GENERATOR_VERSION)
+OPENAPI_GENERATOR = docker run $(_docker_opts) $(JFROG_DOCKER_REPO)/confluentinc/openapi-generator:$(OPENAPI_GENERATOR_VERSION)
 
 .SECONDEXPANSION:
 
@@ -274,27 +276,7 @@ api-redoc-serve: $$(addsuffix /redoc-serve,$$(lastword $$(API_SPEC_DIRS)))
 .PHONY: %/redoc-stop
 ## Stop the ReDoc server for an API (in the background)
 %/redoc-stop:
-	@docker stop $(shell docker ps -q -f "ancestor=$(DEVPROD_PROD_ECR_REPO)/confluentinc/redoc-cli:$(REDOC_CLI_VERSION)")
-
- #####################################################
- ## GO TEMPLATE SERVICE / RUNTIME GLUE FOR GO (POC) ##
- #####################################################
-
-# set default update version to master
-CC_API_UPDATE_VERSION ?= master
-
-.PHONY: update-cc-api
-## Update the version of the github.com/confluentinc/api subtree in this repo
-update-cc-api:
-	@set -e ;\
-	if [[ "" != $$(git status --untracked-files=no --porcelain) ]] ; then \
-	echo "git must be clean to update cc-api" ;\
-	exit 1 ;\
-	fi ;
-	@echo "update cc-api"
-	$(REMOVE) -rf cc-api
-	$(GIT) commit -a -m 'chore: reset cc-api'
-	$(GIT) subtree add --prefix cc-api git@github.com:confluentinc/api.git $(CC_API_UPDATE_VERSION) --squash
+	docker stop $(shell docker ps -q -f "ancestor=confluent-docker.jfrog.io/confluentinc/redoc-cli")
 
  ################
  ## MOCK (POC) ##
@@ -335,7 +317,7 @@ sdk-java: $$(addsuffix /sdk/java,$$(API_SPEC_DIRS))
 		--enable-post-process-file \
 		--git-user-id confluentinc \
 		--git-repo-id ccloud-sdk-go-v2 \
-		--additional-properties=useOneOfDiscriminatorLookup=true,generateInterfaces=true
+		--additional-properties=useOneOfDiscriminatorLookup=true
 
 ## (POC) Generate Java SDKs for an API
 %/sdk/java: %/$$(API_SPEC_FILENAME)
