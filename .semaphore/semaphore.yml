@@ -58,4 +58,4 @@ blocks:
       epilogue:
         always:
           commands:
-            - test-results publish *.xml
+            - test-results publish */build/*.xml
