@@ -54,7 +54,7 @@ blocks:
             - go build
             - cd ../..
             - GOOS=linux GOARCH=amd64  make build
-            - go test -v 2>&1 ./... | go-junit-report -set-exit-code > report.xml
+            - make test
       epilogue:
         always:
           commands:
