@@ -21,7 +21,7 @@ global_job_config:
   prologue:
     commands:
       - chmod 400 ~/.ssh/id_rsa
-      - sem-version go 1.19
+      - sem-version go 1.19.0
       - sem-version python 3.9
       - go version
       - export "GOPATH=$(go env GOPATH)"
