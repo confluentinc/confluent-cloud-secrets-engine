@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites tests="30" skipped="1">
+	<testsuite name="github.com/confluentinc/pie-cc-hashicorp-vault-plugin/cmd/plugin" tests="0" failures="0" errors="0" id="0" hostname="C02FT4K8MD6T" time="0.000" timestamp="2023-05-26T11:47:33+01:00"></testsuite>
+	<testsuite name="github.com/confluentinc/pie-cc-hashicorp-vault-plugin/pkg/plugin" tests="30" failures="0" errors="0" id="1" hostname="C02FT4K8MD6T" skipped="1" time="0.000" timestamp="2023-05-26T11:47:33+01:00">
+		<testcase name="TestCloudClusterApiKeyReturnsAnIDandSecret" classname="github.com/confluentinc/pie-cc-hashicorp-vault-plugin/pkg/plugin" time="0.000"></testcase>
+		<testcase name="TestRevokeTokenReturnsErrorGettingClient" classname="github.com/confluentinc/pie-cc-hashicorp-vault-plugin/pkg/plugin" time="0.000"></testcase>
+		<testcase name="TestClientConfigReturnsErrorWhenConfigIsNil" classname="github.com/confluentinc/pie-cc-hashicorp-vault-plugin/pkg/plugin" time="0.000"></testcase>
+		<testcase name="TestClientConfigReturnsErrorWhenCloudApiKeyIdIsNotDefined" classname="github.com/confluentinc/pie-cc-hashicorp-vault-plugin/pkg/plugin" time="0.000"></testcase>
+		<testcase name="TestClientConfigReturnsResponseWhenApiKeySecretIsNotDefined" classname="github.com/confluentinc/pie-cc-hashicorp-vault-plugin/pkg/plugin" time="0.000"></testcase>
+		<testcase name="TestClientConfigReturnsResponseWhenUrlIsNotDefined" classname="github.com/confluentinc/pie-cc-hashicorp-vault-plugin/pkg/plugin" time="0.000"></testcase>
+		<testcase name="TestClientConfigReturnsResponseWhenConfigIsNotNil" classname="github.com/confluentinc/pie-cc-hashicorp-vault-plugin/pkg/plugin" time="0.000"></testcase>
+		<testcase name="TestPathConfigExistenceCheck" classname="github.com/confluentinc/pie-cc-hashicorp-vault-plugin/pkg/plugin" time="0.000"></testcase>
+		<testcase name="TestConfigDeleteReturnsNoErrors" classname="github.com/confluentinc/pie-cc-hashicorp-vault-plugin/pkg/plugin" time="0.000"></testcase>
+		<testcase name="TestConfigCreateReturnsNoErrors" classname="github.com/confluentinc/pie-cc-hashicorp-vault-plugin/pkg/plugin" time="0.000"></testcase>
+		<testcase name="TestConfigUpdateReturnsNoErrors" classname="github.com/confluentinc/pie-cc-hashicorp-vault-plugin/pkg/plugin" time="0.000"></testcase>
+		<testcase name="TestConfigReadReturnsNoErrors" classname="github.com/confluentinc/pie-cc-hashicorp-vault-plugin/pkg/plugin" time="0.000"></testcase>
+		<testcase name="TestAcceptanceUserToken" classname="github.com/confluentinc/pie-cc-hashicorp-vault-plugin/pkg/plugin" time="0.000">
+			<skipped message="Skipped"></skipped>
+		</testcase>
+		<testcase name="TestPathCredentialsReadReturnsErrorWhenNameIsMissing" classname="github.com/confluentinc/pie-cc-hashicorp-vault-plugin/pkg/plugin" time="0.000"></testcase>
+		<testcase name="TestPathCredentialsReadReturnsRoleIsNilError" classname="github.com/confluentinc/pie-cc-hashicorp-vault-plugin/pkg/plugin" time="0.000"></testcase>
+		<testcase name="TestUserRole" classname="github.com/confluentinc/pie-cc-hashicorp-vault-plugin/pkg/plugin" time="0.000"></testcase>
+		<testcase name="TestUserRole/responseDataReturnedForARole" classname="github.com/confluentinc/pie-cc-hashicorp-vault-plugin/pkg/plugin" time="0.000"></testcase>
+		<testcase name="TestUserRole/List_All_Roles" classname="github.com/confluentinc/pie-cc-hashicorp-vault-plugin/pkg/plugin" time="0.000"></testcase>
+		<testcase name="TestUserRole/Create_User_Role" classname="github.com/confluentinc/pie-cc-hashicorp-vault-plugin/pkg/plugin" time="0.000"></testcase>
+		<testcase name="TestUserRole/Read_User_Role" classname="github.com/confluentinc/pie-cc-hashicorp-vault-plugin/pkg/plugin" time="0.000"></testcase>
+		<testcase name="TestUserRole/Update_User_Role" classname="github.com/confluentinc/pie-cc-hashicorp-vault-plugin/pkg/plugin" time="0.000"></testcase>
+		<testcase name="TestUserRole/Re-read_User_Role" classname="github.com/confluentinc/pie-cc-hashicorp-vault-plugin/pkg/plugin" time="0.000"></testcase>
+		<testcase name="TestUserRole/Delete_User_Role" classname="github.com/confluentinc/pie-cc-hashicorp-vault-plugin/pkg/plugin" time="0.000"></testcase>
+		<testcase name="TestUserRole/pathRolesReadReturnsErrorWhenTtlIsGreaterThanMaxTtl" classname="github.com/confluentinc/pie-cc-hashicorp-vault-plugin/pkg/plugin" time="0.000"></testcase>
+		<testcase name="TestUserRole/pathRolesReadReturnsErrorWhenResourceIsMissingInRole" classname="github.com/confluentinc/pie-cc-hashicorp-vault-plugin/pkg/plugin" time="0.000"></testcase>
+		<testcase name="TestUserRole/pathRolesReadReturnsErrorWhenResourceEnvIsMissingInRole" classname="github.com/confluentinc/pie-cc-hashicorp-vault-plugin/pkg/plugin" time="0.000"></testcase>
+		<testcase name="TestUserRole/pathRolesReadReturnsErrorWhenOwnerIsMissingInRole" classname="github.com/confluentinc/pie-cc-hashicorp-vault-plugin/pkg/plugin" time="0.000"></testcase>
+		<testcase name="TestUserRole/pathRolesReadReturnsErrorWhenOwnerEnvIsMissingInRole" classname="github.com/confluentinc/pie-cc-hashicorp-vault-plugin/pkg/plugin" time="0.000"></testcase>
+		<testcase name="TestUserRole/getRoleReturnsErrorWhenRoleIsEmpty" classname="github.com/confluentinc/pie-cc-hashicorp-vault-plugin/pkg/plugin" time="0.000"></testcase>
+		<testcase name="TestUserRole/getRoleReturnsNilWhenRoleIsMissing" classname="github.com/confluentinc/pie-cc-hashicorp-vault-plugin/pkg/plugin" time="0.000"></testcase>
+	</testsuite>
+</testsuites>
