@@ -44,7 +44,6 @@ global_job_config:
       - . vault-sem-get-secret v1/ci/kv/service-foundations/cc-mk-include
       - . vault-sem-get-secret dockerhub-semaphore-cred-ro
       - exec &> >(tee -a build.log)
-      - make init-ci
 blocks:
   - name: "Build, Test, Release"
     task:
