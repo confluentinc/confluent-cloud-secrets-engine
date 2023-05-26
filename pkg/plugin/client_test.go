@@ -7,9 +7,9 @@ import (
 )
 
 func TestClientConfigReturnsErrorWhenConfigIsNil(t *testing.T) {
-	_, error := newClient(nil, hclog.NewNullLogger())
+	_, clientError := newClient(nil, hclog.NewNullLogger())
 	expectedErrorMsg := "Client configuration nil"
-	assert.EqualErrorf(t, error, expectedErrorMsg, "Error should be: %v, got: %v", expectedErrorMsg, error)
+	assert.EqualErrorf(t, clientError, expectedErrorMsg, "Error should be: %v, got: %v", expectedErrorMsg, clientError)
 }
 
 func TestClientConfigReturnsErrorWhenCloudApiKeyIdIsNotDefined(t *testing.T) {
@@ -29,9 +29,9 @@ func TestClientConfigReturnsResponseWhenApiKeySecretIsNotDefined(t *testing.T) {
 		ApiKeySecret: "",
 		URL:          "http://localhost:19090",
 	}
-	_, error := newClient(testCloudConfig, hclog.NewNullLogger())
+	_, clientError := newClient(testCloudConfig, hclog.NewNullLogger())
 	expectedErrorMsg := "CCloud API Key Secret not defined"
-	assert.EqualErrorf(t, error, expectedErrorMsg, "Error should be: %v, got: %v", expectedErrorMsg, error)
+	assert.EqualErrorf(t, clientError, expectedErrorMsg, "Error should be: %v, got: %v", expectedErrorMsg, clientError)
 }
 
 func TestClientConfigReturnsResponseWhenUrlIsNotDefined(t *testing.T) {
@@ -40,10 +40,10 @@ func TestClientConfigReturnsResponseWhenUrlIsNotDefined(t *testing.T) {
 		ApiKeySecret: "Testing!123",
 		URL:          "",
 	}
-	_, error := newClient(testCloudConfig, hclog.NewNullLogger())
+	_, clientError := newClient(testCloudConfig, hclog.NewNullLogger())
 
-	expectedErrorMsg := "CCloud URL not defined"
-	assert.EqualErrorf(t, error, expectedErrorMsg, "Error should be: %v, got: %v", expectedErrorMsg, error)
+	expectedErrorMsg := "CCloud URL defined"
+	assert.EqualErrorf(t, clientError, expectedErrorMsg, "Error should be: %v, got: %v", expectedErrorMsg, clientError)
 }
 
 func TestClientConfigReturnsResponseWhenConfigIsNotNil(t *testing.T) {
@@ -52,8 +52,8 @@ func TestClientConfigReturnsResponseWhenConfigIsNotNil(t *testing.T) {
 		ApiKeySecret: "Testing!123",
 		URL:          "http://localhost:19090",
 	}
-	clientResponse, error := newClient(testCloudConfig, hclog.NewNullLogger())
+	clientResponse, clientError := newClient(testCloudConfig, hclog.NewNullLogger())
 
 	assert.NotNil(t, clientResponse)
-	assert.Nil(t, error)
+	assert.Nil(t, clientError)
 }
