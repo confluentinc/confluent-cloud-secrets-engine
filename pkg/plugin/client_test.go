@@ -42,7 +42,7 @@ func TestClientConfigReturnsResponseWhenUrlIsNotDefined(t *testing.T) {
 	}
 	_, clientError := newClient(testCloudConfig, hclog.NewNullLogger())
 
-	expectedErrorMsg := "CCloud URL defined"
+	expectedErrorMsg := "CCloud URL not defined"
 	assert.EqualErrorf(t, clientError, expectedErrorMsg, "Error should be: %v, got: %v", expectedErrorMsg, clientError)
 }
 
