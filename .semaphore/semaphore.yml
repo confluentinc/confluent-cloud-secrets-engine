@@ -21,7 +21,7 @@ global_job_config:
   prologue:
     commands:
       - chmod 400 ~/.ssh/id_rsa
-      - sem-version go 1.19.0
+      - sem-version go 1.19
       - sem-version python 3.9
       - go version
       - export "GOPATH=$(go env GOPATH)"
@@ -45,11 +45,6 @@ global_job_config:
       - . vault-sem-get-secret dockerhub-semaphore-cred-ro
       - exec &> >(tee -a build.log)
       - make init-ci
-  epilogue:
-    always:
-      commands:
-        - make epilogue-ci
-
 blocks:
   - name: "Build, Test, Release"
     task:
