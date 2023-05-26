@@ -53,6 +53,7 @@ blocks:
             - cd pkg/plugin
             - go build
             - cd ../..
+            - ls bin/
             - GOOS=linux GOARCH=amd64  make build
             - go test -v 2>&1 ./... | go-junit-report -set-exit-code > report.xml
       epilogue:
