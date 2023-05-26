@@ -1,6 +1,6 @@
 module github.com/confluentinc/pie-cc-hashicorp-vault-plugin
 
-go 1.17
+go 1.19.0
 
 require (
 	github.com/confluentinc/ccloud-sdk-go-v2/apikeys v0.3.0

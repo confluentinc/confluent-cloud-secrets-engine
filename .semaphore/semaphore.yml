@@ -5,25 +5,25 @@
 # For more information, please refer to the page:
 # https://confluentinc.atlassian.net/wiki/spaces/Foundations/pages/2871296194/Add+SemaphoreCI
 version: v1.0
-name: build-test-release
+name: pie-cc-hashicorp-vault-plugin
 agent:
   machine:
     type: s1-prod-ubuntu20-04-amd64-1
 
 auto_cancel:
   running:
-    when: "branch != 'master'"
-
+    when: "branch != 'main'"
 execution_time_limit:
   hours: 1
-
 global_job_config:
   secrets:
     - name: vault_sem2_approle
   prologue:
     commands:
       - chmod 400 ~/.ssh/id_rsa
-      - sem-version go unknown
+      - sem-version go 1.19.0
+      - sem-version python 3.9
+      - go version
       - export "GOPATH=$(go env GOPATH)"
       - export "SEMAPHORE_GIT_DIR=${GOPATH}/src/github.com/confluentinc/${SEMAPHORE_PROJECT_NAME}"
       - export "PATH=${GOPATH}/bin:${PATH}"
@@ -52,25 +52,16 @@ global_job_config:
 
 blocks:
   - name: "Build, Test, Release"
-    run:
-      # don't run the build or unit tests on non-functional changes...
-      when: "change_in('/', {exclude: ['/.deployed-versions/', '.github/']})"
     task:
-       # You can customize your CI job here
-#      env_vars:
-#        # custom env_vars
-#      prologue:
-#        commands:
-#          # custom vault secrets
-#          # custom prologue commands
       jobs:
-        - name: "Build, Test, Release"
+        - name: "Build and Test"
           commands:
-            - make build
-            - make test
-            - make release-ci
+            - cd pkg/plugin
+            - go build
+            - cd ../..
+            - GOOS=linux GOARCH=amd64  make build
+            - go test -v 2>&1 ./... | go-junit-report -set-exit-code > report.xml
       epilogue:
         always:
           commands:
-            - make epilogue-ci
-            - make testbreak-after
+            - test-results publish *.xml
