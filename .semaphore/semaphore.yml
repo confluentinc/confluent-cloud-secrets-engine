@@ -54,7 +54,7 @@ blocks:
             - go build
             - cd ../..
             - GOOS=linux GOARCH=amd64  make build
-            - make test
+            - go test -v ./... -json | ./mk-include/bin/decode_test2json.py
       epilogue:
         always:
           commands:

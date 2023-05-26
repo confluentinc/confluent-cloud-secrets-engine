@@ -19,7 +19,6 @@ include ./mk-include/halyard.mk
 include ./mk-include/cc-api.mk
 include ./mk-include/cc-ci-metrics.mk
 include ./mk-include/cc-end.mk
-include ./mk-include/bin/decode_test2json.py
 
 # Disable CGO by default, to allow static binaries
 export CGO_ENABLED := 0
