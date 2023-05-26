@@ -168,18 +168,18 @@ func TestUserRole(testingT *testing.T) {
 			},
 		}
 
-		_, error := b.pathRolesWrite(context.Background(), &logical.Request{
+		_, pathError := b.pathRolesWrite(context.Background(), &logical.Request{
 			Operation: logical.UpdateOperation,
 			Path:      configStoragePath,
 			Storage:   logicalStorage,
 		},
 			&framework.FieldData{
-				expectedData,
-				schema,
+				Raw:    expectedData,
+				Schema: schema,
 			})
 
 		expectedErrorMsg := "ttl cannot be greater than max_ttl"
-		assert.EqualErrorf(t, error, expectedErrorMsg, "Error should be: %v, got: %v", expectedErrorMsg, error)
+		assert.EqualErrorf(t, pathError, expectedErrorMsg, "Error should be: %v, got: %v", expectedErrorMsg, pathError)
 	})
 
 	testingT.Run("pathRolesReadReturnsErrorWhenResourceIsMissingInRole", func(t *testing.T) {
@@ -218,18 +218,18 @@ func TestUserRole(testingT *testing.T) {
 			},
 		}
 
-		_, error := b.pathRolesWrite(context.Background(), &logical.Request{
+		_, pathError := b.pathRolesWrite(context.Background(), &logical.Request{
 			Operation: logical.CreateOperation,
 			Path:      configStoragePath,
 			Storage:   logicalStorage,
 		},
 			&framework.FieldData{
-				expectedData,
-				schema,
+				Raw:    expectedData,
+				Schema: schema,
 			})
 
 		expectedErrorMsg := "missing resource in role"
-		assert.EqualErrorf(t, error, expectedErrorMsg, "Error should be: %v, got: %v", expectedErrorMsg, error)
+		assert.EqualErrorf(t, pathError, expectedErrorMsg, "Error should be: %v, got: %v", expectedErrorMsg, pathError)
 	})
 
 	testingT.Run("pathRolesReadReturnsErrorWhenResourceEnvIsMissingInRole", func(t *testing.T) {
@@ -268,18 +268,18 @@ func TestUserRole(testingT *testing.T) {
 			},
 		}
 
-		_, error := b.pathRolesWrite(context.Background(), &logical.Request{
+		_, pathError := b.pathRolesWrite(context.Background(), &logical.Request{
 			Operation: logical.CreateOperation,
 			Path:      configStoragePath,
 			Storage:   logicalStorage,
 		},
 			&framework.FieldData{
-				expectedData,
-				schema,
+				Raw:    expectedData,
+				Schema: schema,
 			})
 
 		expectedErrorMsg := "missing resource_env in role"
-		assert.EqualErrorf(t, error, expectedErrorMsg, "Error should be: %v, got: %v", expectedErrorMsg, error)
+		assert.EqualErrorf(t, pathError, expectedErrorMsg, "Error should be: %v, got: %v", expectedErrorMsg, pathError)
 	})
 
 	testingT.Run("pathRolesReadReturnsErrorWhenOwnerIsMissingInRole", func(t *testing.T) {
@@ -314,18 +314,18 @@ func TestUserRole(testingT *testing.T) {
 			},
 		}
 
-		_, error := b.pathRolesWrite(context.Background(), &logical.Request{
+		_, pathError := b.pathRolesWrite(context.Background(), &logical.Request{
 			Operation: logical.CreateOperation,
 			Path:      configStoragePath,
 			Storage:   logicalStorage,
 		},
 			&framework.FieldData{
-				expectedData,
-				schema,
+				Raw:    expectedData,
+				Schema: schema,
 			})
 
 		expectedErrorMsg := "missing owner in role"
-		assert.EqualErrorf(t, error, expectedErrorMsg, "Error should be: %v, got: %v", expectedErrorMsg, error)
+		assert.EqualErrorf(t, pathError, expectedErrorMsg, "Error should be: %v, got: %v", expectedErrorMsg, pathError)
 	})
 
 	testingT.Run("pathRolesReadReturnsErrorWhenOwnerEnvIsMissingInRole", func(t *testing.T) {
@@ -360,27 +360,27 @@ func TestUserRole(testingT *testing.T) {
 			},
 		}
 
-		_, error := b.pathRolesWrite(context.Background(), &logical.Request{
+		_, pathError := b.pathRolesWrite(context.Background(), &logical.Request{
 			Operation: logical.CreateOperation,
 			Path:      configStoragePath,
 			Storage:   logicalStorage,
 		},
 			&framework.FieldData{
-				expectedData,
-				schema,
+				Raw:    expectedData,
+				Schema: schema,
 			})
 
 		expectedErrorMsg := "missing owner_env in role"
-		assert.EqualErrorf(t, error, expectedErrorMsg, "Error should be: %v, got: %v", expectedErrorMsg, error)
+		assert.EqualErrorf(t, pathError, expectedErrorMsg, "Error should be: %v, got: %v", expectedErrorMsg, pathError)
 	})
 
 	testingT.Run("getRoleReturnsErrorWhenRoleIsEmpty", func(t *testing.T) {
 		_, logicalStorage := getTestBackend(t)
 		b := newBackend()
-		response, error := b.getRole(context.Background(), logicalStorage, "")
+		response, pathError := b.getRole(context.Background(), logicalStorage, "")
 		assert.Nil(t, response)
 		expectedErrorMsg := "missing role name"
-		assert.EqualErrorf(t, error, expectedErrorMsg, "Error should be: %v, got: %v", expectedErrorMsg, error)
+		assert.EqualErrorf(t, pathError, expectedErrorMsg, "Error should be: %v, got: %v", expectedErrorMsg, pathError)
 	})
 
 	testingT.Run("getRoleReturnsNilWhenRoleIsMissing", func(t *testing.T) {
