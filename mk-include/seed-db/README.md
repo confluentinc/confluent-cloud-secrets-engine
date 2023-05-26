@@ -1,17 +1,12 @@
-# What are these files in the sql subdirectory?
+# mothership-seed.sql
 
-These sql files include the SQL statements used to seed an empty database locally, or by the
-[cc-postgres](https://github.com/confluentinc/cc-postgres) repo to populate the cpd
-mothership db.
+## What is this file?
 
-## Creating new schemas or tables
+This file is used by the `cc-postgres` repo:
+https://github.com/confluentinc/cc-postgres
 
-You can either edit an existing file in the sql subdirectory to add your changes, or create a separate file.
-
-If you create a new sql file:
-* Be sure to also update the [CODEOWNERS](../.github/CODEOWNERS) file to make your team the code-owner for
-the new file.
-* Once merged, make sure to also run `make update-mk-include` in `cc-postgres`
+This file includes the SQL statements used to seed an empty database.
+E.g. a postgres container in a CPD environment.
 
 ## Testing changes
 
