@@ -7,6 +7,8 @@ SERVICE_NAME := pie-cc-hashicorp-vault-plugin
 IMAGE_NAME := $(SERVICE_NAME)
 BASE_IMAGE := golang
 
+CPD_UPDATE := false
+GCLOUD_INSTALL := false
 GO_BINS = github.com/confluentinc/pie-cc-hashicorp-vault-plugin/cmd/plugin=vault-ccloud-secrets-engine
 
 include ./mk-include/cc-begin.mk
