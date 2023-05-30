@@ -60,15 +60,32 @@ blocks:
         - name: vault_sem2_approle
       prologue:
         commands:
-          - checkout
+          - sem-version go 1.19
+          - export "GOPATH=$(go env GOPATH)"
+          - export "SEMAPHORE_GIT_DIR=${GOPATH}/src/github.com/confluentinc/${SEMAPHORE_PROJECT_NAME}"
+          - export "PATH=${GOPATH}/bin:${PATH}"
+          - mkdir -vp "${SEMAPHORE_GIT_DIR}" "${GOPATH}/bin"
+          - git config --global url."git@github.com:".insteadOf "https://github.com/"
+          - make install-vault
+          - . mk-include/bin/vault-setup
+          - . vault-sem-get-secret aws_credentials
+          - . vault-sem-get-secret gitconfig
+          - . vault-sem-get-secret ssh_id_rsa
+          - . vault-sem-get-secret ssh_config
+          - . vault-sem-get-secret netrc
+          - . vault-sem-get-secret semaphore-secrets-global
+          - . vault-sem-get-secret maven-settings
+          - . vault-sem-get-secret cpd_gcloud
+          - . vault-sem-get-secret halyard-secrets
+          - . vault-sem-get-secret ci-reporting
+          - . vault-sem-get-secret v1/ci/kv/service-foundations/cc-mk-include
           - . vault-sem-get-secret dockerhub-semaphore-cred-ro
-          - . vault-sem-get-secret gradle_properties
-          - make docker-login-ci
-          - sem-version java 8
+          - exec &> >(tee -a build.log)
+          - make init-ci
       jobs:
         - name: Unit Tests
           commands:
-            - go test -v ./... -json | ./mk-include/bin/decode_test2json.py
+            - make test
       epilogue:
         always:
           commands:
