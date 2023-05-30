@@ -66,6 +66,7 @@ blocks:
           - export "PATH=${GOPATH}/bin:${PATH}"
           - mkdir -vp "${SEMAPHORE_GIT_DIR}" "${GOPATH}/bin"
           - git config --global url."git@github.com:".insteadOf "https://github.com/"
+          - checkout
           - make install-vault
           - . mk-include/bin/vault-setup
           - . vault-sem-get-secret aws_credentials
