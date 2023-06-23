@@ -52,3 +52,5 @@ linux-amd64/
 # python
 __pycache__/
 *.pyc
+/.mk-include-timestamp
+/mk-include
