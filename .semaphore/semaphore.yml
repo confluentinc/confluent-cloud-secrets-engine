@@ -5,10 +5,11 @@
 # For more information, please refer to the page:
 # https://confluentinc.atlassian.net/wiki/spaces/Foundations/pages/2871296194/Add+SemaphoreCI
 version: v1.0
-name: pie-cc-hashicorp-vault-plugin
+name: build-test-release
 agent:
   machine:
     type: s1-prod-ubuntu20-04-amd64-1
+
 auto_cancel:
   running:
     when: "branch != 'main'"
@@ -79,3 +80,31 @@ after_pipeline:
       - name: Publish Results
         commands:
           - test-results gen-pipeline-report
+global_job_config:
+  secrets:
+    - name: vault_sem2_approle
+  prologue:
+    commands:
+      - chmod 400 ~/.ssh/id_rsa
+      - sem-version go unknown
+      - export "GOPATH=$(go env GOPATH)"
+      - export "SEMAPHORE_GIT_DIR=${GOPATH}/src/github.com/confluentinc/${SEMAPHORE_PROJECT_NAME}"
+      - export "PATH=${GOPATH}/bin:${PATH}"
+      - mkdir -vp "${SEMAPHORE_GIT_DIR}" "${GOPATH}/bin"
+      - git config --global url."git@github.com:".insteadOf "https://github.com/"
+      - checkout
+      - make show-args
+      - . vault-setup
+      - . vault-sem-get-secret aws_credentials
+      - . vault-sem-get-secret semaphore-secrets-global
+      - . vault-sem-get-secret cpd_gcloud
+      - . vault-sem-get-secret ci-reporting
+      - . vault-sem-get-secret v1/ci/kv/service-foundations/cc-mk-include
+      - . vault-sem-get-secret dockerhub-semaphore-cred-ro
+      - exec &> >(tee -a build.log)
+      - make init-ci
+  epilogue:
+    always:
+      commands:
+        - make epilogue-ci
+
