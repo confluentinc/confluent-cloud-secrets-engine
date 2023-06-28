@@ -24,6 +24,7 @@ spec:
         level: pipeline
     whitelist:
       branches:
+      - master
       - main
       - /^v\d+\.\d+\.x$/
       - /^gh-readonly-queue.*/
