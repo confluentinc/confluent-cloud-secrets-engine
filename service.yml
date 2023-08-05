@@ -7,3 +7,6 @@ github:
   enable: true
 semaphore:
   enable: true
+make:
+  enable: false
+  enable_updates: true

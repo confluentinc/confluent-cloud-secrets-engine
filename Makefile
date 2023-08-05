@@ -1,8 +1,8 @@
 GOARCH = amd64
 MASTER_BRANCH ?= main
 
-UPDATE_MK_INCLUDE := true
-UPDATE_MK_INCLUDE_AUTO_MERGE := true
+UPDATE_MK_INCLUDE := false
+UPDATE_MK_INCLUDE_AUTO_MERGE := false
 SERVICE_NAME := pie-cc-hashicorp-vault-plugin
 IMAGE_NAME := $(SERVICE_NAME)
 BASE_IMAGE := golang
