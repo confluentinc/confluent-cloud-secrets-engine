@@ -13,10 +13,9 @@ spec:
   repository:
     url: git@github.com:confluentinc/cc-mk-include.git
     run_on:
-    - tags
     - branches
+    - tags
     - pull_requests
-    - forked_pull_requests
     pipeline_file: .semaphore/semaphore.yml
     integration_type: github_app
     status:

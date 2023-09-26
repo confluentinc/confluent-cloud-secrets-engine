@@ -1,3 +1,6 @@
+# Enable secondary expansion
+.SECONDEXPANSION:
+
 # Set shell to bash
 SHELL := /bin/bash
 
@@ -8,6 +11,11 @@ MAKE ?= make
 _empty :=
 _space := $(_empty) $(empty)
 _comma := ,
+
+# Joins elements of a space separated list with the given separator.
+#   first arg: separator.
+#   second arg: list.
+join-list = $(subst $(_space),$1,$(strip $2))
 
 # Master branch
 MASTER_BRANCH ?= master
@@ -22,7 +30,7 @@ UPDATE_MK_INCLUDE_AUTO_MERGE ?= true
 # DevprodProd docker registries hostname
 DEVPROD_PROD_AWS_ACCOUNT := 519856050701
 DEVPROD_PROD_ECR := $(DEVPROD_PROD_AWS_ACCOUNT).dkr.ecr.us-west-2.amazonaws.com
-DEVPROD_PROD_ECR_PROFILE := cc-internal-devprod-prod-1/developer-reader
+DEVPROD_PROD_ECR_PROFILE := cc-internal-devprod-prod-1/developer-writer
 DEVPROD_PROD_ECR_PREFIX := docker/prod
 DEVPROD_PROD_ECR_REPO := $(DEVPROD_PROD_ECR)/$(DEVPROD_PROD_ECR_PREFIX)
 DEVPROD_PROD_ECR_HELM_REPO_PREFIX ?= helm/prod/confluentinc/
@@ -34,7 +42,9 @@ ifeq (true, $(UPDATE_MK_INCLUDE))
 INIT_CI_TARGETS += diff-mk-include
 endif
 RELEASE_TARGETS += $(_empty)
+GENERATE_TARGETS += $(_empty)
 BUILD_TARGETS += $(_empty)
+PRE_TEST_TARGETS += $(_empty)
 TEST_TARGETS += $(_empty)
 POST_TEST_TARGETS += $(_empty)
 CLEAN_TARGETS += $(_empty)
@@ -128,14 +138,9 @@ PATH := $(PYTHON_SCRIPT_DIR):$(PATH)
 export PATH
 endif
 
-# Retrieve the aws ec2 instance id which sempahore job is running on
-ifneq ($(findstring s1-, $(SEMAPHORE_AGENT_MACHINE_TYPE)),)
-INSTANCE_ID := $(shell $(MK_INCLUDE_BIN)/get_self_hosted_agent.sh)
-$(info $(INSTANCE_ID))
-endif
-
 # Git stuff
 BRANCH_NAME ?= $(shell git rev-parse --abbrev-ref HEAD || true)
+GIT_COMMIT ?= $(shell git rev-parse HEAD || true)
 # Set RELEASE_BRANCH if we're on master or vN.N.x
 # special case for ce-kafka: v0.NNNN.x-N.N.N-ce-SNAPSHOT, v0.NNNN.x-N.N.N-N-ce
 RELEASE_BRANCH := $(shell echo $(BRANCH_NAME) | grep -E '^($(MASTER_BRANCH)|v[0-9]+\.[0-9]+\.x(-[0-9]+\.[0-9]+\.[0-9](-[0-9])?(-ce)?(-SNAPSHOT)?)?)$$|^release-[0-9]+\.[0-9]+-confluent$$')
@@ -278,7 +283,7 @@ ifeq ($(CI),true)
 # .githubtoken is a file contains github token and loaded form vault
 # gh auth login will fail when there is a GITHUB_TOKEN env variable
 	$(GH) auth login --with-token < $(HOME)/.githubtoken || true
-	rm $(HOME)/.githubtoken
+	rm $(HOME)/.githubtoken || true
 endif
 	@:
 
@@ -353,8 +358,8 @@ endif
 endif
 
 .PHONY: docker-login-local
+## Login to ECR from your local machine
 docker-login-local:
-## an easy command to login to ECR
 	@echo "$(DEVPROD_PROD_ECR)" | docker-credential-cc-ecr-login.sh get >/dev/null
 
 .PHONY: bats

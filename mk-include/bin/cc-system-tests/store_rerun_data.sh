@@ -9,6 +9,9 @@ BUILD_DIR="${BUILD_DIR:-$SEMAPHORE_GIT_DIR/build}"
 [ "$DEBUG" = true ] && set -x
 set -e
 
+# delete old cache key if exists
+cache delete "$RERUN_DATA_KEY"
+
 if [ -d "${BUILD_DIR}/rerun-data" ]; then
     echo "storing data in $RERUN_DATA_KEY"
     cache store "$RERUN_DATA_KEY" "${BUILD_DIR}/rerun-data"

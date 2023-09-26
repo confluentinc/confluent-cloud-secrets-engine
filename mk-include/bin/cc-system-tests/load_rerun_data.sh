@@ -23,7 +23,6 @@ if [ -f "${RERUN_DIR}/failed_test.txt" ]; then
 else
     echo "file '${RERUN_DIR}/failed_test.txt' not found"
 fi
-cache delete "$RERUN_DATA_KEY"
 
 # reset status of rerun_dir to be cleared out to be written to durring test execution
 rm -rf "${RERUN_DIR}"

@@ -11,8 +11,14 @@ include ./cc-begin.mk
 include ./cc-vault.mk
 include ./cc-semver.mk
 include ./cc-ci-metrics.mk
+include ./cc-pact.mk
+include ./cc-sonarqube.mk
 include ./cc-testbreak.mk
 include ./cc-end.mk
+
+.PHONY: copy-mk-include-install-pact-tools-script
+copy-mk-include-install-pact-tools-script:
+	cp ./bin/install-pact-tools.sh ${MK_INCLUDE}bin
 
 .PHONY: copy-mk-include-multiarch-docker-build-test
 copy-mk-include-multiarch-docker-build-test:
@@ -50,6 +56,7 @@ copy-parent-mk-include:
 
 .PHONY: upload-binary
 upload-binary:
+	. assume-iam-role arn:aws:iam::368821881613:role/semaphore-access ;\
 	cd .. ;\
 	tar --exclude='$(CC_MK_INCLUDE)/.git' --exclude='$(CC_MK_INCLUDE)/.semaphore' \
 	--exclude='$(CC_MK_INCLUDE)/tests' --exclude='$(CC_MK_INCLUDE)/.DS_Store' \

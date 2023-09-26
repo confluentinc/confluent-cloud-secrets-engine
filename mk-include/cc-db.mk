@@ -7,7 +7,10 @@ DB_SCHEMA_FILE ?= ./db/schema.sql
 DB_SEED_FILE ?= ./db/seeds.sql
 ADMIN_DB_URL ?= postgres://
 
-INIT_CI_TARGETS += install-migrate db-local-reset
+# Only need to reset db before CI runs tests
+ifeq ($(CI),true)
+PRE_TEST_TARGETS += install-migrate db-local-reset
+endif
 
 .PHONY: install-migrate
 install-migrate:

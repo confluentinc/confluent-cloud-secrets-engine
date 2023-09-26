@@ -10,7 +10,7 @@ HELM_VERSION ?= v3.10.1
 HELM_TGZ := https://get.helm.sh/helm-$(HELM_VERSION)-linux-$(ARCH).tar.gz
 HELM_BINARY := helm
 HELM_ARTIFACTORY_PLUGIN_VERSION ?= 1.0.1
-HELM_LOCAL_CHART_PLUGIN_VERSION ?= 0.0.7
+HELM_LOCAL_CHART_PLUGIN_VERSION ?= 0.1.0
 HELM_REPO := https://confluent.jfrog.io/confluent/helm-cloud
 INCLUDE_HELM_TARGETS ?= true
 # Other services like CPD may use helm but do not build/test helm.
@@ -147,7 +147,7 @@ helm-registry-login:
 ifeq ($(CI),true)
 	@aws ecr get-login-password --region us-west-2 | helm registry login --username AWS --password-stdin ${DEVPROD_PROD_ECR}
 else
-	@aws --profile $(DEVPROD_PROD_ECR_PROFILE) ecr get-login-password --region us-west-2 | helm registry login --username AWS --password-stdin ${DEVPROD_PROD_ECR}
+	@FORCE_NO_ALIAS=true GRANTED_QUIET=true assumego --exec "aws ecr get-login-password --region us-west-2" $(DEVPROD_PROD_ECR_PROFILE) | helm registry login --username AWS --password-stdin ${DEVPROD_PROD_ECR}
 endif
 
 helm-package: helm-registry-login helm-install-deps
@@ -160,6 +160,10 @@ helm-push-ecr:
 	@if aws ecr list-images --repository-name ${DEVPROD_PROD_ECR_HELM_REPO_PREFIX}${CHART_NAME} --registry-id ${DEVPROD_PROD_AWS_ACCOUNT} --region us-west-2| jq '.imageIds[].imageTag | contains("${CHART_VERSION}")' | grep -q "true"; then\
 		echo 💬 chart ${DEVPROD_PROD_ECR_HELM_REPO_PREFIX}$(CHART_NAME) with version $(CHART_VERSION) already exists;\
 	else\
+	    if [[ $(CHART_VERSION) == *"-dirty"* ]]; then\
+			echo "WARNING! pushing a dirty chart version";\
+			git status;\
+	    fi;\
 		echo 💬 pushing $(CHART_NAME)-$(CHART_VERSION) to ECR;\
 		$(HELM_BINARY) push $(CHARTS_ROOT)/package/$(CHART_NAME)-$(CHART_VERSION).tgz oci://${DEVPROD_PROD_ECR}/${DEVPROD_PROD_ECR_HELM_REPO_PREFIX};\
 	fi

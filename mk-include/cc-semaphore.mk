@@ -37,7 +37,7 @@ ci-bin-sem-cache-store:
 .PHONY: ci-bin-sem-cache-restore
 ci-bin-sem-cache-restore:
 	@echo "Restoring semaphore caches"
-	cache restore $(CACHE_KEY),ci-bin_master,ci-bin
+	cache restore $(CACHE_KEY),ci-bin_$(MASTER_BRANCH),ci-bin
 	cache restore gocache
 	cache restore pip3_cache
 	cache restore install_package_cache
@@ -60,7 +60,7 @@ ci-coverage: ci-generate-and-store-coverage-data go-gate-coverage
 store-test-results-to-semaphore:
 ifneq ($(wildcard $(TEST_RESULT_FILE)),)
 ifeq ($(TEST_RESULT_NAME),)
-	test-results publish $(TEST_RESULT_FILE)
+	test-results publish $(TEST_RESULT_FILE) --force
 else
 	test-results publish $(TEST_RESULT_FILE) --name "$(TEST_RESULT_NAME)"
 endif

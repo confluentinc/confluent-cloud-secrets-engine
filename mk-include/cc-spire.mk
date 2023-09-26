@@ -21,7 +21,7 @@ register-spire-entries:
 	# Use 0 because in the docker container this command runs as root, and anything talking to the agent will be seen
 	# as the root because the agent runs in a docker container too
 	${DOCKER_COMPOSE} exec spire-server /opt/spire/bin/spire-server entry create -selector unix:gid:0 \
-		-spiffeID spiffe://example.org/cc-api-key-service-workload -parentID spiffe://example.org/cc-api-key-service
+		-spiffeID spiffe://example.org/test-workload -parentID spiffe://example.org/test-agent
 
 .PHONY: start-spire-agent
 start-spire-agent:
@@ -41,7 +41,7 @@ start-spire-agent:
 		sleep 3; \
 	done
 
-	$(eval token := $(shell ${DOCKER_COMPOSE} exec spire-server /opt/spire/bin/spire-server token generate -spiffeID spiffe://example.org/cc-api-key-service | awk '{print $$NF}'))
+	$(eval token := $(shell ${DOCKER_COMPOSE} exec spire-server /opt/spire/bin/spire-server token generate -spiffeID spiffe://example.org/test-agent | awk '{print $$NF}'))
 	JOIN_TOKEN=$(token) ${DOCKER_COMPOSE} up -d spire-agent
 
 	make --ignore-errors register-spire-entries

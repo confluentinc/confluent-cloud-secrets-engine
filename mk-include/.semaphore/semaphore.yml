@@ -17,7 +17,7 @@ global_job_config:
       value: "20.1.0"
   prologue:
     commands:
-      - sem-version go 1.18.0
+      - sem-version go 1.19.0
       - sem-version python "${PYTHON_VERSION}"
       - export "GOPATH=$(go env GOPATH)"
       - >-
@@ -103,6 +103,14 @@ blocks:
             - make copy-mk-include-sanity-import-test
             - cd tests/sanity-import-test
             - make mk-include-sanity-import-test
+  - name: Install Pact Tools Test
+    dependencies: []
+    task:
+      jobs:
+        - name: install-pact-tools.sh test
+          commands:
+            - make copy-mk-include-install-pact-tools-script
+            - make install-pact-cli
 
   - name: release cc-mk-include
     skip:
@@ -113,6 +121,7 @@ blocks:
       - "Maven Docker Test"
       - "Auto Update Test"
       - "Sanity Import Test"
+      - "Install Pact Tools Test"
     task:
       env_vars:
         - name: PYTEST_LOG_LEVEL
@@ -123,6 +132,21 @@ blocks:
             - make verify-version
             - make upload-binary
             - make release
+            - make prerelease-version-tag
       epilogue:
         commands:
           - make testbreak-after
+after_pipeline:
+  task:
+    agent:
+        machine:
+          type: s1-prod-ubuntu20-04-amd64-1
+    jobs:
+      - name: Run scanner
+        commands:
+          # Make isn't a supported lang, so this is just for static analysis
+          - checkout
+          - make copy-parent-mk-include
+          - make install-vault
+          - . mk-include/bin/vault-setup
+          - make sonar-scan

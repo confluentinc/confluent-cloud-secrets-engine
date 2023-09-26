@@ -71,6 +71,10 @@ def test_make_test():
 
 
 def test_make_release():
+    # make build adds dirty changes to the repo, and $(GIT) is aliased to echo git for tests, so those
+    # dirty changes are never cleaned up. So manually clean it up here
+    run_cmd("git stash")
+    
     output = run_cmd("make release-ci")
     assert_not_in_output(output, [
         "Changes not staged for commit:",

@@ -1,4 +1,5 @@
-SOPS_VERSION ?= v3.7.3
+SOPS_VERSION ?= 3.7.3
+SOPS_ARTIFACT_VERSION := v$(SOPS_VERSION)
 
 INIT_CI_TARGETS += install-sops
 
@@ -14,7 +15,7 @@ show-sops:
 .PHONY: install-sops
 install-sops:
 ifneq ($(SOPS_VERSION),$(SOPS_INSTALLED_VERSION))
-	@echo "Installing sops..."
-	@wget -q -O $(BIN_PATH)/sops https://github.com/mozilla/sops/releases/download/$(SOPS_VERSION)/sops-$(SOPS_VERSION).$(SOPS_OS)
+	@echo "Installing sops $(SOPS_ARTIFACT_VERSION)..."
+	@wget -q -O $(BIN_PATH)/sops https://github.com/mozilla/sops/releases/download/$(SOPS_ARTIFACT_VERSION)/sops-$(SOPS_ARTIFACT_VERSION).$(SOPS_OS)
 	@chmod +x $(BIN_PATH)/sops
 endif
