@@ -33,20 +33,16 @@ blocks:
           - mkdir -vp "${SEMAPHORE_GIT_DIR}" "${GOPATH}/bin"
           - git config --global url."git@github.com:".insteadOf "https://github.com/"
           - checkout
-          - make install-vault
-          - . mk-include/bin/vault-setup
+          - make show-args
+          - . vault-setup
           - . vault-sem-get-secret aws_credentials
-          - . vault-sem-get-secret gitconfig
-          - . vault-sem-get-secret ssh_id_rsa
-          - . vault-sem-get-secret ssh_config
-          - . vault-sem-get-secret netrc
           - . vault-sem-get-secret semaphore-secrets-global
-          - . vault-sem-get-secret maven-settings
           - . vault-sem-get-secret cpd_gcloud
           - . vault-sem-get-secret ci-reporting
           - . vault-sem-get-secret v1/ci/kv/service-foundations/cc-mk-include
           - . vault-sem-get-secret dockerhub-semaphore-cred-ro
           - exec &> >(tee -a build.log)
+          - make init-ci
       jobs:
         - name: Build
           commands:
@@ -80,31 +76,4 @@ after_pipeline:
       - name: Publish Results
         commands:
           - test-results gen-pipeline-report
-global_job_config:
-  secrets:
-    - name: vault_sem2_approle
-  prologue:
-    commands:
-      - chmod 400 ~/.ssh/id_rsa
-      - sem-version go unknown
-      - export "GOPATH=$(go env GOPATH)"
-      - export "SEMAPHORE_GIT_DIR=${GOPATH}/src/github.com/confluentinc/${SEMAPHORE_PROJECT_NAME}"
-      - export "PATH=${GOPATH}/bin:${PATH}"
-      - mkdir -vp "${SEMAPHORE_GIT_DIR}" "${GOPATH}/bin"
-      - git config --global url."git@github.com:".insteadOf "https://github.com/"
-      - checkout
-      - make show-args
-      - . vault-setup
-      - . vault-sem-get-secret aws_credentials
-      - . vault-sem-get-secret semaphore-secrets-global
-      - . vault-sem-get-secret cpd_gcloud
-      - . vault-sem-get-secret ci-reporting
-      - . vault-sem-get-secret v1/ci/kv/service-foundations/cc-mk-include
-      - . vault-sem-get-secret dockerhub-semaphore-cred-ro
-      - exec &> >(tee -a build.log)
-      - make init-ci
-  epilogue:
-    always:
-      commands:
-        - make epilogue-ci
 
