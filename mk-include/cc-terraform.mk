@@ -32,7 +32,7 @@ bump-downstream-tf-consumers: $(DOWNSTREAM_TF_CONSUMERS)
 
 # Only bump down stream consumers on the master branch, too complex to deal with hotfixes in tf automatically
 $(DOWNSTREAM_TF_CONSUMERS):
-ifeq ($(BRANCH_NAME),master)
+ifeq ($(BRANCH_NAME),$(MASTER_BRANCH))
 	$(eval consumer := $(subst ^,:,$@))
 	$(eval split_consumer := $(subst //,$(_space),$(consumer)))
 	$(eval git_uri := $(word 1, $(split_consumer)))
@@ -44,7 +44,7 @@ ifeq ($(BRANCH_NAME),master)
 	git -C "./$(repo_name)" add "$(tf_path)"
 	git -C "./$(repo_name)" diff --exit-code --cached --name-status || \
 		(git -C "./$(repo_name)" commit -m "TF Module Bump: $(tf_path)//$(tf_module) to $(CLEAN_VERSION)" && \
-		 git -C "./$(repo_name)" push origin master)
+		 git -C "./$(repo_name)" push origin $(MASTER_BRANCH))
 	rm -rf $(repo_name)
 else
 	true

@@ -10,7 +10,7 @@ HELM_VERSION ?= v3.10.1
 HELM_TGZ := https://get.helm.sh/helm-$(HELM_VERSION)-linux-$(ARCH).tar.gz
 HELM_BINARY := helm
 HELM_ARTIFACTORY_PLUGIN_VERSION ?= 1.0.1
-HELM_LOCAL_CHART_PLUGIN_VERSION ?= 0.0.7
+HELM_LOCAL_CHART_PLUGIN_VERSION ?= 0.1.0
 HELM_REPO := https://confluent.jfrog.io/confluent/helm-cloud
 INCLUDE_HELM_TARGETS ?= true
 # Other services like CPD may use helm but do not build/test helm.
@@ -110,24 +110,20 @@ $(HELM_REPO_CACHE)/gloo-index.yaml:
 	@echo 💬 helm repo gloo repo missing, adding...
 	@$(HELM_BINARY) repo add gloo https://storage.googleapis.com/solo-public-helm
 
-$(HELM_REPO_CACHE)/gloo-mesh-index.yaml:
-	@echo 💬 helm repo gloo mesh repo missing, adding...
-	@$(HELM_BINARY) repo add gloo-platform https://storage.googleapis.com/gloo-platform/helm-charts
-
 .PHONY: helm-update-repo
-helm-update-repo:  $(HELM_REPO_CACHE)/stable-index.yaml $(HELM_REPO_CACHE)/gloo-index.yaml $(HELM_REPO_CACHE)/gloo-mesh-index.yaml
+helm-update-repo:  $(HELM_REPO_CACHE)/stable-index.yaml $(HELM_REPO_CACHE)/gloo-index.yaml
 	@echo 💬 updating index / cache of helm repos
 	@$(HELM_BINARY) repo update
 
 .PHONY: helm-install-deps
 ## Install subchart files in charts/ based on Chart.lock file
-helm-install-deps: $(HELM_REPO_CACHE)/stable-index.yaml $(HELM_REPO_CACHE)/gloo-index.yaml $(HELM_REPO_CACHE)/gloo-mesh-index.yaml
+helm-install-deps: $(HELM_REPO_CACHE)/stable-index.yaml $(HELM_REPO_CACHE)/gloo-index.yaml
 	@echo 💬 building charts/ directory from Chart.lock
 	$(HELM_BINARY) dep build $(CHART_LOCAL_PATH) $(HELM_DEP_BUILD_EXTRA_ARGS)
 
 .PHONY: helm-update-floating-deps
 ## Update floating subchart versions that match the semantic version ranges in Chart.yaml
-helm-update-floating-deps: $(HELM_REPO_CACHE)/stable-index.yaml $(HELM_REPO_CACHE)/gloo-index.yaml $(HELM_REPO_CACHE)/gloo-mesh-index.yaml
+helm-update-floating-deps: $(HELM_REPO_CACHE)/stable-index.yaml $(HELM_REPO_CACHE)/gloo-index.yaml
 	@echo 💬 updating floating chart dependencies and updating lock file
 	$(HELM_BINARY) dep update $(CHART_LOCAL_PATH)
 	git add $(CHART_LOCK_FILE) || true
@@ -147,7 +143,7 @@ helm-registry-login:
 ifeq ($(CI),true)
 	@aws ecr get-login-password --region us-west-2 | helm registry login --username AWS --password-stdin ${DEVPROD_PROD_ECR}
 else
-	@aws --profile $(DEVPROD_PROD_ECR_PROFILE) ecr get-login-password --region us-west-2 | helm registry login --username AWS --password-stdin ${DEVPROD_PROD_ECR}
+	@FORCE_NO_ALIAS=true GRANTED_QUIET=true assumego --exec "aws ecr get-login-password --region us-west-2" $(DEVPROD_PROD_ECR_PROFILE) | helm registry login --username AWS --password-stdin ${DEVPROD_PROD_ECR}
 endif
 
 helm-package: helm-registry-login helm-install-deps
@@ -160,6 +156,10 @@ helm-push-ecr:
 	@if aws ecr list-images --repository-name ${DEVPROD_PROD_ECR_HELM_REPO_PREFIX}${CHART_NAME} --registry-id ${DEVPROD_PROD_AWS_ACCOUNT} --region us-west-2| jq '.imageIds[].imageTag | contains("${CHART_VERSION}")' | grep -q "true"; then\
 		echo 💬 chart ${DEVPROD_PROD_ECR_HELM_REPO_PREFIX}$(CHART_NAME) with version $(CHART_VERSION) already exists;\
 	else\
+	    if [[ $(CHART_VERSION) == *"-dirty"* ]]; then\
+			echo "WARNING! pushing a dirty chart version";\
+			git status;\
+	    fi;\
 		echo 💬 pushing $(CHART_NAME)-$(CHART_VERSION) to ECR;\
 		$(HELM_BINARY) push $(CHARTS_ROOT)/package/$(CHART_NAME)-$(CHART_VERSION).tgz oci://${DEVPROD_PROD_ECR}/${DEVPROD_PROD_ECR_HELM_REPO_PREFIX};\
 	fi

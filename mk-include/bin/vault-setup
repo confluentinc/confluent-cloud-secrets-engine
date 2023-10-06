@@ -32,10 +32,10 @@ fi
 vault login -no-print token="${token}" && echo "Successfully Logged Into Vault"
 unset token
 
-function renew_vault_token() {
+function renew_vault_token {
     while true
     do
-      sleep 30m
+      sleep 1800
       echo -e "Refreshing vault token..."
       vault token renew -increment=2h > /dev/null
     done

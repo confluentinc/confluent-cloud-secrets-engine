@@ -135,7 +135,79 @@ You must also configure your project's `pom.xml` to skip the `dockerfile-maven-p
   </profiles>
 ```
 
+## Migrating to separated mk-include checkout
+See [Refactor cc-mk-include Deployment](https://confluentinc.atlassian.net/wiki/spaces/TOOLS/pages/3046114540/Refactor+cc-mk-include+deployment)
+wiki for the rationale for this change.
+
+Maintaining individual copies of cc-mk-include inside each client project scales badly and makes rolling out changes to 100's of repos unnecessarily time-consuming, and rolling out co-ordinated roll-backs or reverts in a timely fashion impossible.
+Following the instructions in this section will enable your project to receive all qualified cc-mk-include releases (and reverts!) within a few hours of release.
+
+First, you will need to disable `cc-mk-include` automatic updates by `cc-service-bot` by adding the following to your top-level `service.yml` configuration:
+
+```yaml
+make:
+  enable: true
+  enable_updates: false
+```
+
+`make: enable` will allow service bot to continue to update the managed headers and includes in your `Makefile`, setting it to `false` is fine if you don't want that.  The `make: enable_updates` setting prevents service bot from trying to check in a copy of `cc-mk-include` into the `mk-include/` subdirectory.
+
+Disable `cc-mk-include` self-updates too, by inserting the following before the `Makefile` includes section (usually starts with `### BEGIN INCLUDES ###`, if managed by `cc-service-bot`):
+
+```make
+UPDATE_MK_INCLUDE := false
+UPDATE_MK_INCLUDE_AUTO_MERGE := false
+```
+
+Then, to make sure that any invocation of `make` from CI or engineer laptops keeps the separated `mk-include/` directory updated, add the following to the top-level project `Makefile`:
+
+```make
+CURL = curl
+FIND = find
+SED = sed
+TAR = tar
+
+MK_INCLUDE_DIR = mk-include
+MK_INCLUDE_TIMEOUT_MINS = 240
+MK_INCLUDE_TIMESTAMP_FILE = .mk-include-timestamp
+
+GITHUB_API = https://api.github.com
+GITHUB_API_CC_MK_INCLUDE = $(GITHUB_API)/repos/$(GITHUB_OWNER)/$(GITHUB_REPO)
+GITHUB_API_CC_MK_INCLUDE_LATEST = $(GITHUB_API_CC_MK_INCLUDE)/releases/latest
+GITHUB_OWNER = confluentinc
+GITHUB_REPO = cc-mk-include
+
+# Make sure we always have a copy of the latest cc-mk-include release from
+# less than $(MK_INCLUDE_TIMEOUT_MINS) ago:
+./$(MK_INCLUDE_DIR)/%.mk: .mk-include-check-FORCE
+	@test -z "`$(FIND) $(MK_INCLUDE_TIMESTAMP_FILE) -mmin +$(MK_INCLUDE_TIMEOUT_MINS) 2>&1`" || { \
+	   $(CURL) --silent --netrc --location $(GITHUB_API_CC_MK_INCLUDE_LATEST) \
+	      |$(SED) -n '/"tarball_url"/{s/^.*: *"//;s/",*//;p;q;}' \
+	      |xargs $(CURL) --silent --netrc --location --output $(MK_INCLUDE_TIMESTAMP_FILE) \
+	   && $(TAR) zxf $(MK_INCLUDE_TIMESTAMP_FILE) \
+	   && rm -rf $(MK_INCLUDE_DIR) \
+	   && mv $(GITHUB_OWNER)-$(GITHUB_REPO)-* $(MK_INCLUDE_DIR) \
+	   && echo installed latest $(GITHUB_REPO) release \
+	   ; \
+	} || { \
+	   echo 'unable to access $(GITHUB_REPO) fetch API to check for latest release; next try in $(MK_INCLUDE_TIMEOUT_MINS) minutes'; \
+	   touch $(MK_INCLUDE_TIMESTAMP_FILE); \
+	}
+
+.mk-include-check-FORCE:
+```
+
+The value of `MK_INCLUDE_TIMEOUT_MINS` controls how often GitHub will be checked for a new `cc-mk-include` release and, if necessary, updated.  The 240 minutes value is fairly arbitrary, but it should be at least as long as a worst case build time in CI to avoud refreshing the `mk-include/` subdirectory part-way through a build.  If your project typically takes much less (or more!) than 4 hours, feel free to set this timeout value accordingly.
+
+For the new section above to work correctly from an engineer laptop, you'll have to ensure the secrets are installed correctly in your `~/.netrc` file in order to enable access to the GitHub REST API, which is used to fetch and install `cc-mk-include` releases.  Instructions for setting up your `.netrc` are available in the wiki: [Setting up Accounts](https://confluentinc.atlassian.net/wiki/spaces/Engineering/pages/1085800848/Setting+up+Accounts#SettingupAccounts-Github)
+
+Similarly, for CI to have access to the GitHub REST API before the `mk-include/vault.mk` rules are available, you'll need to add the same snippet from above to `.semaphore/semaphore.yml` before the first invocation of `make`.  Any subsequent `. vault-sem-get-secret netrc` is unnecessary, and can be removed.
+
+Roll all of the above into a PR, test it and merge to complete migration!
+
 ## Updating
+**This entire section is superceded by the section above.  You should not need to do anything from here after migrating.**
+
 Once you have the make targets installed, you can update at any time by running
 
 ```shell
@@ -147,14 +219,14 @@ Add
 ```shell
 MK_INCLUDE_UPDATE_VERSION := v<version>
 ```
-to you Makefile and commit the change. Then run 
+to you Makefile and commit the change. Then run
 ```shell
 make update-mk-include
 ```
 It will update to that specific tag version of mk-include.
 
 ## Auto Update
-The cc-mk-include by default auto-sync your repo with the newest or pinned version of cc-mk-include. It will *auto open* a PR if your master branch is not at the same version with newest or pinned version. And it will *auto merged* if the CI passed. 
+The cc-mk-include by default auto-sync your repo with the newest or pinned version of cc-mk-include. It will *auto open* a PR if your master branch is not at the same version with newest or pinned version. And it will *auto merged* if the CI passed.
 The default sync version will be master branch, you can pin whatever version you want to by enable
 ```shell
 MK_INCLUDE_UPDATE_VERSION := <tag>
@@ -284,17 +356,17 @@ migrations, and seed data in your service repo (instead of cc-dbmigrate and cc-m
 
 4. Now you have access to some great `db` and `db-migrate` make targets:
 
-        % make help | grep -E '\x1b\[36mdb-'                                                              
-        db-dump-schema      Dump the current DB schema and migration version to $(DB_SCHEMA_FILE) 
-        db-local-reset      Reset the local database from the schema, migrations, and seeds 
-        db-migrate-create   Create a new DB migration. Usage: make db-migrate-create NAME=migration_name_here 
-        db-migrate-down     Rollback DB migrations. Usage: make db-migrate-down [N=1, default 1] 
-        db-migrate-force    Force override the DB migration version in the DB to a specific version 
-        db-migrate-goto     Go to a specific DB migration version 
-        db-migrate-up       Apply DB migrations. Usage: make db-migrate-up [N=1, default all] 
-        db-migrate-version  Show current DB migration version 
-        db-seed             Seed the database from $(DB_SEED_FILE) 
-        db-seed-dump        Overwrite the $(DB_SEED_FILE) from the current database 
+        % make help | grep -E '\x1b\[36mdb-'
+        db-dump-schema      Dump the current DB schema and migration version to $(DB_SCHEMA_FILE)
+        db-local-reset      Reset the local database from the schema, migrations, and seeds
+        db-migrate-create   Create a new DB migration. Usage: make db-migrate-create NAME=migration_name_here
+        db-migrate-down     Rollback DB migrations. Usage: make db-migrate-down [N=1, default 1]
+        db-migrate-force    Force override the DB migration version in the DB to a specific version
+        db-migrate-goto     Go to a specific DB migration version
+        db-migrate-up       Apply DB migrations. Usage: make db-migrate-up [N=1, default all]
+        db-migrate-version  Show current DB migration version
+        db-seed             Seed the database from $(DB_SEED_FILE)
+        db-seed-dump        Overwrite the $(DB_SEED_FILE) from the current database
 
 5. Not strictly a requirement, but these make targets are designed primarily for local development.
    While it's possible to build a release strategy using this, the designed approach is to use
@@ -396,10 +468,9 @@ remote debugger.
                          assumed to contain the dlv executable at a certain
                          subpath - `./lib/dlv/mac/dlv`)
 
-For a normal Goland installation, neither of these need to be changed. 
+For a normal Goland installation, neither of these need to be changed.
 For IntelliJ Ultimate with the Go plugin, then `GOLAND_PLUGIN_PATH` will
-need to be set to something 
+need to be set to something
 `~/Library/Application\ Support/JetBrains/IntelliJIdea2021.3/plugins/go`
 
 See [go/goland](https://go/goland) for more information.
-

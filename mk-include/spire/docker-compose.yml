@@ -2,6 +2,8 @@ version: '3'
 services:
   spire-server:
     container_name: spire-server
+    ports:
+      - '31524:8081'
     image: ghcr.io/spiffe/spire-server:1.6.0
     hostname: spire-server
     healthcheck:

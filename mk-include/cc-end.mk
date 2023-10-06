@@ -6,6 +6,9 @@
 init-ci: $$(INIT_CI_TARGETS)
 
 RELEASE_PRECOMMIT ?=
+# First thing to do on pre release is check if the repo is clean according to git
+RELEASE_PRECOMMIT := pre-release-check $(RELEASE_PRECOMMIT)
+
 RELEASE_POSTCOMMIT ?= $(RELEASE_TARGETS) # set to RELEASE_TARGETS for backwards compatibility
 ifeq ($(MAVEN_NANO_VERSION), true)
 RELEASE_TARGETS := $(RELEASE_PRECOMMIT) tag-release $(RELEASE_POSTCOMMIT)
@@ -67,13 +70,17 @@ merge-servicebot-pr:
 		$(GH) pr merge $(SEMAPHORE_GIT_PR_BRANCH) --squash --auto; \
 	fi
 
+.PHONY: generate
+## Generate code for the project. See show-args to see what will run
+generate: $$(GENERATE_TARGETS)
+
 .PHONY: build
 ## Build Project.  See show-args to see what will run
 build: $$(BUILD_TARGETS)
 
 .PHONY: test
 ## Test Project.  See show-args to see what will run
-test: $$(TEST_TARGETS) $$(POST_TEST_TARGETS)
+test: $$(PRE_TEST_TARGETS) $$(TEST_TARGETS) $$(POST_TEST_TARGETS)
 
 .PHONY: test-synthetic
 ## Synthetically Test Project.  See show-args to see what will run
@@ -96,7 +103,9 @@ endif
 show-args:
 	@echo "INIT_CI_TARGETS:        $(INIT_CI_TARGETS)"
 	@echo "CLEAN_TARGETS:          $(CLEAN_TARGETS)"
+	@echo "GENERATE_TARGETS:       $(GENERATE_TARGETS)"
 	@echo "BUILD_TARGETS:          $(BUILD_TARGETS)"
+	@echo "PRE_TEST_TARGETS:       $(PRE_TEST_TARGETS)"
 	@echo "TEST_TARGETS:           $(TEST_TARGETS)"
 	@echo "POST_TEST_TARGETS:      $(POST_TEST_TARGETS)"
 	@echo "SYNTHETIC_TEST_TARGETS: $(SYNTHETIC_TEST_TARGETS)"

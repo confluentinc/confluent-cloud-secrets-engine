@@ -1,12 +1,14 @@
 # Defaults
 GO ?= $(shell which go)# default go bin to whatever's on the path
 GO_VERSION := $(subst go,,$(shell $(GO) env GOVERSION))# the version of the go bin
-GO_ALPINE ?= true# default to alpine images
+GO_ALPINE ?= false# default to not alpine because most people will be building locally on macs
 GO_STATIC ?= true# default to static binaries
 GO_BINS ?= main.go=main# format: space seperated list of source.go=output_bin
 GO_OUTDIR ?= bin# default to output bins to bin/
 GO_LDFLAGS ?= -X main.version=$(VERSION)# Setup LD Flags
+GO_EXTRA_TAGS ?= # space separated list of tags to add when running go build
 GO_EXTRA_FLAGS ?=
+GO_EXTRA_DEPS ?=
 GO_FIPS_ENV_VARS ?=
 GO_FIPS_ENABLE_INPLACE ?= false
 
@@ -53,10 +55,18 @@ GO_TEST_PACKAGE_ARGS ?= ./...
 GO_GENERATE_ARGS ?= ./...
 
 # use golangci-lint
+GOLANGCI_LINT_VERSION ?= 1.52.2
 GOLANGCI_LINT ?= false
 GOLANGCI_LINT_CONFIG ?= $(MK_INCLUDE_RESOURCE)/.golangci.yml
 GOLANGCI_LINT_TESTS ?= false
 GOLANGCI_LINT_TESTS_CONFIG ?= $(MK_INCLUDE_RESOURCE)/.golangci-tests.yml
+
+GOARCH_USE_HOST_ARCH ?= false
+ifeq ($(GOARCH_USE_HOST_ARCH), true)
+GOARCH ?= $(ARCH)
+else
+GOARCH ?= amd64
+endif
 
 # Usage: $(call go-version-at-least,MAJOR,[MINOR,[PATCH]])
 # Test whether the current Go toolchain version satisfies a minimum version.
@@ -72,6 +82,11 @@ go-version-at-least = $(strip $(shell \
 		&& echo $(GO_VERSION) \
 	))
 
+# install golangci-linter
+ifeq ($(GOLANGCI_LINT), true)
+GO_EXTRA_DEPS += install-golangci-lint
+endif
+
 # run the golangci-linter in CI if enabled above
 ifeq ($(CI), true)
 GO_EXTRA_LINT += _go-golangci-lint-ci
@@ -82,14 +97,14 @@ endif
 # FIPS
 ifeq ($(GO_FIPS_ENABLE_INPLACE),true)
 ifneq (,$(call go-version-at-least,1,19))
-GO_FIPS_ENV_VARS = CGO_ENABLED=1 GOOS=linux GOARCH=amd64
+GO_FIPS_ENV_VARS = CGO_ENABLED=1 GOOS=linux GOARCH=$(GOARCH)
 GO_EXPERIMENTS += boringcrypto
 endif
 endif
 
 # flags for confluent-kafka-go-dev / librdkafka on alpine
 ifeq ($(GO_ALPINE),true)
-GO_EXTRA_FLAGS += -tags musl
+GO_EXTRA_TAGS += musl
 endif
 
 # force rebuild of all packages on CI
@@ -99,7 +114,8 @@ endif
 
 # Build the listed main packages and everything they import into executables
 ifeq ($(GO_STATIC),true)
-GO_EXTRA_FLAGS += -tags static_all -buildmode=exe
+GO_EXTRA_FLAGS += -buildmode=exe
+GO_EXTRA_TAGS += static_all
 endif
 
 # Improve reproducability of Go binaries by disabling behaviors that embed
@@ -151,14 +167,25 @@ GO_PREFETCH_DEPS ?= true
 
 GOPATH ?= $(shell $(GO) env GOPATH)
 
+GO_GENERATE_TARGET ?= generate-go
 GO_BUILD_TARGET ?= build-go
 GO_TEST_TARGET ?= lint-go test-go
 GO_SYNTHETIC_TEST_TARGET ?= lint-go test-go-synthetic
 GO_CLEAN_TARGET ?= clean-go
 
+# Project Pyramid - enable local mode testing in CI checks.
+LOCAL_MODE_TEST_BINS ?= $(foreach gobin,$(call FILTER,cmd/server,$(GO_BINS)),$(GO_OUTDIR)/$(word 2,$(subst =, ,$(gobin))))
+# Note: These are set to true for new services in cc-go-template-service
+LOCAL_MODE_TEST_ENABLE ?= false
+LOCAL_MODE_TEST_FAIL_CI ?= false
+ifeq ($(LOCAL_MODE_TEST_ENABLE),true)
+GO_TEST_TARGET += go-test-local-mode
+endif
+
 ifeq ($(GO_PREFETCH_DEPS),true)
 INIT_CI_TARGETS += deps
 endif
+GENERATE_TARGETS += $(GO_GENERATE_TARGET)
 BUILD_TARGETS += $(GO_BUILD_TARGET) gen-cli-docs-go
 TEST_TARGETS += $(GO_TEST_TARGET)
 SYNTHETIC_TEST_TARGETS += $(GO_SYNTHETIC_TEST_TARGET)
@@ -184,7 +211,9 @@ show-go:
 	@echo "GO_BINS: $(GO_BINS)"
 	@echo "GO_OUTDIR: $(GO_OUTDIR)"
 	@echo "GO_LDFLAGS: $(GO_LDFLAGS)"
+	@echo "GO_EXTRA_TAGS: $(GO_EXTRA_TAGS)"
 	@echo "GO_EXTRA_FLAGS: $(GO_EXTRA_FLAGS)"
+	@echo "GO_EXTRA_DEPS: $(GO_EXTRA_DEPS)"
 	@echo "GO_MOD_DOWNLOAD_MODE_FLAG: $(GO_MOD_DOWNLOAD_MODE_FLAG)"
 	@echo "GO_ALPINE: $(GO_ALPINE)"
 	@echo "GO_STATIC: $(GO_STATIC)"
@@ -198,7 +227,7 @@ show-go:
 	@echo "GO_TEST_ARGS: $(GO_TEST_ARGS)"
 	@echo "GO_TEST_PACKAGE_ARGS: $(GO_TEST_PACKAGE_ARGS)"
 	@echo "GO_EXTRA_LINT: $(GO_EXTRA_LINT)"
-
+	@echo "LOCAL_MODE_TEST_BINS: $(LOCAL_MODE_TEST_BINS)"
 
 .PHONY: clean-go
 clean-go:
@@ -212,11 +241,13 @@ endif
 
 .PHONY: vet
 vet:
-	$(GO) list $(GO_MOD_DOWNLOAD_MODE_FLAG) $(GO_TEST_PACKAGE_ARGS) | grep -v vendor | xargs $(GO) vet $(GO_MOD_DOWNLOAD_MODE_FLAG)
+	$(GO) list $(GO_MOD_DOWNLOAD_MODE_FLAG) $(GO_TEST_PACKAGE_ARGS) | grep -v vendor | \
+	$(if $(GO_EXPERIMENTS),GOEXPERIMENT=$(subst $(_space),$(_comma),$(GO_EXPERIMENTS))) \
+	$(GO_FIPS_ENV_VARS) xargs $(GO) vet $(GO_MOD_DOWNLOAD_MODE_FLAG)
 
 .PHONY: deps
 ## fetch any dependencies - go mod download is opt out
-deps: $(HOME)/.hgrc $(GO_EXTRA_DEPS)
+deps: $(HOME)/.hgrc $$(GO_EXTRA_DEPS)
 	$(GO) mod download
 	$(GO) mod verify
 ifeq ($(GO_USE_VENDOR),-mod=vendor)
@@ -243,15 +274,20 @@ fmt:
 ## Build just the go project
 build-go: go-bindata $(GO_BINS)
 $(GO_BINS):
+# Build GO_TAGS based off of GO_EXTRA_TAGS - we define a new var because for services with multiple binaries,
+# this make target will be run multiple times, so we don't want to add -tag -tag -tag $(GO_EXTRA_TAGS)
+	$(if $(GO_EXTRA_TAGS),$(eval GO_TAGS=-tags $(call join-list,$(_comma),$(GO_EXTRA_TAGS))))
 	$(eval split := $(subst =, ,$(@)))
 	$(if $(GO_EXPERIMENTS),GOEXPERIMENT=$(subst $(_space),$(_comma),$(GO_EXPERIMENTS))) \
-	$(GO_FIPS_ENV_VARS) $(GO) build $(GO_USE_VENDOR) $(GO_MOD_DOWNLOAD_MODE_FLAG) -o $(GO_OUTDIR)/$(word 2,$(split)) -ldflags "$(GO_LDFLAGS)" $(GO_EXTRA_FLAGS) $(word 1,$(split))
+	$(GO_FIPS_ENV_VARS) $(GO) build $(GO_USE_VENDOR) $(GO_MOD_DOWNLOAD_MODE_FLAG) -o $(GO_OUTDIR)/$(word 2,$(split)) -ldflags "$(GO_LDFLAGS)" $(GO_TAGS) $(GO_EXTRA_FLAGS) $(word 1,$(split))
 
 .PHONY: test-go
 ## Run Go Tests and Vet code
 test-go: vet
 	test -f $(GO_COVERAGE_PROFILE) && truncate -s 0 $(GO_COVERAGE_PROFILE) || true
-	set -o pipefail && $(GO_TEST_SETUP_CMD) &&  $(GO) test $(GO_MOD_DOWNLOAD_MODE_FLAG) -coverprofile=$(GO_COVERAGE_PROFILE) $(GO_TEST_BUILD_ARGS) $(GO_TEST_ARGS) $(GO_TEST_PACKAGE_ARGS) -json > >($(MK_INCLUDE_BIN)/decode_test2json.py) 2> >($(MK_INCLUDE_BIN)/color_errors.py >&2)
+	set -o pipefail && $(GO_TEST_SETUP_CMD) && \
+	$(if $(GO_EXPERIMENTS),GOEXPERIMENT=$(subst $(_space),$(_comma),$(GO_EXPERIMENTS))) \
+	$(GO_FIPS_ENV_VARS) $(MK_INCLUDE_BIN)/go-test-wrapper.sh $(GO) test $(GO_MOD_DOWNLOAD_MODE_FLAG) -coverprofile=$(GO_COVERAGE_PROFILE) $(GO_TEST_BUILD_ARGS) $(GO_TEST_ARGS) $(GO_TEST_PACKAGE_ARGS)
 
 # by default this is make coverage.html
 $(GO_COVERAGE_HTML): $(GO_COVERAGE_PROFILE)
@@ -293,9 +329,21 @@ endif
 	$(eval goland_dlv_cmd := $(GOLAND_PLUGIN_PATH)/lib/dlv/mac/dlv --listen=0.0.0.0:$(GOLAND_PORT) --headless=true --api-version=2 --check-go-version=false --only-same-user=false)
 	set -o pipefail && go tool test2json -t ${goland_dlv_cmd} exec ${go_test_binary} -- ${prefixed_go_test_args} | $(MK_INCLUDE_BIN)/decode_test2json.py
 
-.PHONY: generate
+FILTER = $(foreach v,$(2),$(if $(findstring $(1),$(v)),$(v),))
+
+.PHONY: go-test-local-mode $(LOCAL_MODE_TEST_BINS:%=%.local-mode)
+## Test that local mode works (Project Pyramid).
+go-test-local-mode: $(LOCAL_MODE_TEST_BINS:%=%.local-mode)
+
+$(LOCAL_MODE_TEST_BINS:%=%.local-mode): $(LOCAL_MODE_TEST_BINS)
+	@echo "Running 'make $@' via 'make go-test-local-mode'; learn more at https://go/local-mode"
+	@LOCAL_MODE_TEST_FAIL_CI=$(LOCAL_MODE_TEST_FAIL_CI) LOCAL_MODE_BINARY_UNDER_TEST=$(@:%.local-mode=%) \
+	$(if $(GO_EXPERIMENTS),GOEXPERIMENT=$(subst $(_space),$(_comma),$(GO_EXPERIMENTS))) \
+	$(GO_FIPS_ENV_VARS) $(MK_INCLUDE_BIN)/local_mode_test.sh $(GO) test $(GO_MOD_DOWNLOAD_MODE_FLAG) $(GO_TEST_BUILD_ARGS)
+
+.PHONY: generate-go
 ## Run go generate
-generate:
+generate-go:
 	$(GO) generate $(GO_MOD_DOWNLOAD_MODE_FLAG) $(GO_GENERATE_ARGS)
 
 SEED_POSTGRES_URL ?= postgres://
@@ -410,6 +458,12 @@ endif
 go-component-tests:
 	$(MK_INCLUDE_BIN)/copy_protos.sh
 	$(MK_INCLUDE_BIN)/run_component_test.sh
+
+.PHONY: install-golangci-lint
+install-golangci-lint:
+	@echo "Installing golangci-lint"
+	$(GO) install github.com/golangci/golangci-lint/cmd/golangci-lint@v$(GOLANGCI_LINT_VERSION)
+	@echo "Done"
 
 .PHONY: go-golangci-lint
 ## Run golangci-lint

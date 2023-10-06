@@ -170,13 +170,17 @@ _load_ssh_keys() {
 }
 
 _export_connect_aws_access_key_id() {
-  CONNECT_AWS_ACCESS_KEY_ID=$(aws configure --profile caas-"${ENV}" get aws_access_key_id)
-  export CONNECT_AWS_ACCESS_KEY_ID
+  [[ $(aws configure --profile caas-"${ENV}" list) && $? -eq 0 ]] \
+  && echo "Exporting access key for $ENV" \
+  && CONNECT_AWS_ACCESS_KEY_ID=$(aws configure --profile caas-"${ENV}" get aws_access_key_id) \
+  && export CONNECT_AWS_ACCESS_KEY_ID || echo "profile $ENV Does not exist"
 }
 
 _export_aws_secret_access_key() {
-  CONNECT_AWS_SECRET_ACCESS_KEY=$(aws configure --profile caas-"${ENV}" get aws_secret_access_key)
-  export CONNECT_AWS_SECRET_ACCESS_KEY
+  [[ $(aws configure --profile caas-"${ENV}" list) && $? -eq 0 ]] \
+  && echo "Exporting secret key for $ENV" \
+  && CONNECT_AWS_SECRET_ACCESS_KEY=$(aws configure --profile caas-"${ENV}" get aws_secret_access_key) \
+  && export CONNECT_AWS_SECRET_ACCESS_KEY || echo "profile $ENV Does not exist"
 }
 
 [ "$DEBUG" = true ] && set -x
@@ -265,7 +269,8 @@ export REGION
 if [ "${CI}" = true ]; then
   # export arn to accordingly AWS_STS_ASSUME_ROLE
   . vault-sem-get-secret AWSCLOUDROLEARN_"${ENV}"
-  eval "$(aws sts assume-role --role-arn "${AWS_STS_ASSUME_ROLE}" --role-session-name cc-system-tests-"${ENV}" --duration-seconds 28800 | jq -r '.Credentials | "export AWS_ACCESS_KEY_ID=\(.AccessKeyId)\nexport AWS_SECRET_ACCESS_KEY=\(.SecretAccessKey)\nexport AWS_SESSION_TOKEN=\(.SessionToken)\n"')"
+  # assume-iam-role is a function from Semaphore agents
+  . assume-iam-role "${AWS_STS_ASSUME_ROLE}"
 
   ${SCRIPT_PATH}/setup_kubeconfig.sh "${ENV}"
 

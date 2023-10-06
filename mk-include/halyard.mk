@@ -467,7 +467,7 @@ endif
 	@if [[ -z "$(localVer)" ]]; then \
 		echo "$(HALYARD_ENV_TO_DEPLOY) has empty InstalledVersion. Nothing to deploy. $(localSvc) $(localEnv) $(localVer)"; \
 	elif [[ "$(localVer)" != "$(masterVer)" ]]; then \
-		echo "Only the latest version of the deployment file can be deployed. This commit's deployed version, $(HALYARD_DEPLOYED_VERSIONS_DIR)/$(HALYARD_ENV_TO_DEPLOY):$(localVer), is different from master's version, $(masterVer). Aborting the Halyard deployment."; \
+		echo "Only the latest version of the deployment file can be deployed. This commit's deployed version, $(HALYARD_DEPLOYED_VERSIONS_DIR)/$(HALYARD_ENV_TO_DEPLOY):$(localVer), is different from $(MASTER_BRANCH)'s version, $(masterVer). Aborting the Halyard deployment."; \
 		exit 1; \
 	elif [[ -z "$(HALYARD_CLUSTER_TO_DEPLOY)" ]]; then \
 		echo "Going to deploy $(localSvc) $(localEnv) $(localVer)"; \

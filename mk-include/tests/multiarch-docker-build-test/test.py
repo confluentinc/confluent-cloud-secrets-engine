@@ -48,7 +48,7 @@ def test_make_init_ci():
 def test_make_build_docker():
     output = run_cmd("make build-docker 2>&1")
     assert_in_output(output, [
-        "Install arm64 emulation", "--platform linux/arm64",
+        "Installing arm64 emulation", "--platform linux/arm64",
         "--platform linux/amd64"
     ])
 

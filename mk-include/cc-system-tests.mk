@@ -9,6 +9,12 @@ ENV_TO_RUN_TESTS_ON_FOR_PR_BRANCH ?= devel
 RUN_TEST_COUNT ?= 1
 GO_COVERAGE_PROFILE ?= coverage.txt
 
+ifeq ($(KEEP_SUBTESTS),Y)
+KEEP_SUBTESTS_FLAG = --keep_subtests
+else
+KEEP_SUBTESTS_FLAG =
+endif
+
 GO_TEST_ARGS = -timeout=$(TESTS_TIMEOUT) -count=$(RUN_TEST_COUNT)
 GO_TEST_BUILD_ARGS ?=
 ifeq ($(ENABLE_PARALLELISM),true)
@@ -76,7 +82,7 @@ test-go: check-not-prod vet
 ifeq ($(ENABLE_PARALLELISM),true)
 	@echo "ENABLE_PARALLELISM set to true, system tests packages running in parallel..."
 endif
-	set -o pipefail && $(GO_TEST_SETUP_CMD) && $(GO) test -v -coverprofile=$(GO_COVERAGE_PROFILE) $(GO_TEST_ARGS) $(GO_TEST_PACKAGE_ARGS) -json | $(MK_INCLUDE_BIN)/decode_test2json.py
+	set -o pipefail && $(GO_TEST_SETUP_CMD) && $(GO) test -v -coverprofile=$(GO_COVERAGE_PROFILE) $(GO_TEST_ARGS) $(GO_TEST_PACKAGE_ARGS) -json | $(MK_INCLUDE_BIN)/decode_test2json.py $(KEEP_SUBTESTS_FLAG)
 
 .PHONY: test-go-synthetic
 # Run Synthetic Go Tests and Vet code
@@ -88,7 +94,7 @@ ifeq (,$(findstring synthetic,$(GO_TEST_REPO_NAME) $(GO_TEST_PACKAGE_ARGS)))
 	properly or that your synthetic test repo/package is named correctly" && exit 1
 endif
 	@echo "Running make test-go-synthetic in $(ENV)"
-	set -o pipefail && $(GO_TEST_SETUP_CMD) && $(GO) test -v -coverprofile=$(GO_COVERAGE_PROFILE) $(GO_TEST_ARGS) $(GO_TEST_PACKAGE_ARGS) -json | $(MK_INCLUDE_BIN)/decode_test2json.py
+	set -o pipefail && $(GO_TEST_SETUP_CMD) && $(GO) test -v -coverprofile=$(GO_COVERAGE_PROFILE) $(GO_TEST_ARGS) $(GO_TEST_PACKAGE_ARGS) -json | $(MK_INCLUDE_BIN)/decode_test2json.py $(KEEP_SUBTESTS_FLAG)
 
 .PHONY: test-go-kafka-synthetic
 # Run Kakfa Synthetic Go Tests and Vet code
