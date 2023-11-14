@@ -1,0 +1,9 @@
+*   @confluentinc/DevProd
+/seed-db/   @confluentinc/ccloud
+/seed-db/sql/cts.sql   @confluentinc/authentication
+/spire/ @confluentinc/authn-s2s
+cc-spire.mk @confluentinc/authn-s2s
+halyard.mk @confluentinc/fleet-mgmt
+cc-pact.mk @confluentinc/pyramid
+/bin/install-pact-tools.sh @confluentinc/pyramid
+/bin/pact-can-i-deploy.sh @confluentinc/pyramid
