@@ -31,6 +31,12 @@ ifeq ($(TESTBREAK_SKIP),true)
 	@echo "Skipping testbreak after, TESTBREAK_SKIP is set to true."
 else ifneq (,$(findstring $(BRANCH_NAME),$(TESTBREAK_REPORTING_BRANCHES)))
 	@echo "Reporting to testbreak at url: https://testbreak.confluent.io/kiosk/branch/$(BRANCH_NAME)/job_result/$(SEMAPHORE_PROJECT_NAME), branch \"$(BRANCH_NAME)\" is whitelisted."
+	# Create build.log in case it doesn't exist.
+	# This option should be treated as deprecated.
+	# The behavior is to append the tail of the log into the Jira tickets created by Testbreak.
+	# This is useful for Jenkins because job history is very limited.
+	# However, for Semaphore, this is not necessary because Job logs are kept forever.
+	touch build.log
 	ci-kafka-event --build-log build.log --test-results "$(BUILD_DIR)/**/*TEST*xml"  # report to testbreak
 else
 	@echo "Not reporting to testbreak, branch \"$(BRANCH_NAME)\" not whitelisted in [$(TESTBREAK_REPORTING_BRANCHES)]."

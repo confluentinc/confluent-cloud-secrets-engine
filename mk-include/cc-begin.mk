@@ -1,3 +1,6 @@
+# Enable secondary expansion
+.SECONDEXPANSION:
+
 # Set shell to bash
 SHELL := /bin/bash
 
@@ -9,15 +12,13 @@ _empty :=
 _space := $(_empty) $(empty)
 _comma := ,
 
+# Joins elements of a space separated list with the given separator.
+#   first arg: separator.
+#   second arg: list.
+join-list = $(subst $(_space),$1,$(strip $2))
+
 # Master branch
 MASTER_BRANCH ?= master
-
-# set default update version to master
-MK_INCLUDE_UPDATE_VERSION ?= master
-
-# enable mk-include update by default, enable auto merge mk-include change by default
-UPDATE_MK_INCLUDE ?= true
-UPDATE_MK_INCLUDE_AUTO_MERGE ?= true
 
 # DevprodProd docker registries hostname
 DEVPROD_PROD_AWS_ACCOUNT := 519856050701
@@ -30,13 +31,11 @@ GCLOUD_CI_AUTH_CRED := $(HOME)/.config/gcloud/application_default_credentials.js
 GCLOUD_US_DOMAIN := us-docker.pkg.dev
 DEVPROD_NONPROD_GAR_REPO := $(GCLOUD_US_DOMAIN)/devprod-nonprod-052022/docker/dev
 
-ifeq (true, $(UPDATE_MK_INCLUDE))
-INIT_CI_TARGETS += diff-mk-include
-endif
 RELEASE_TARGETS += $(_empty)
+GENERATE_TARGETS += $(_empty)
 BUILD_TARGETS += $(_empty)
+PRE_TEST_TARGETS += $(_empty)
 TEST_TARGETS += $(_empty)
-POST_TEST_TARGETS += $(_empty)
 CLEAN_TARGETS += $(_empty)
 
 # If this variable is set, release will run $(MAKE) $(RELEASE_MAKE_TARGETS)
@@ -128,14 +127,9 @@ PATH := $(PYTHON_SCRIPT_DIR):$(PATH)
 export PATH
 endif
 
-# Retrieve the aws ec2 instance id which sempahore job is running on
-ifneq ($(findstring s1-, $(SEMAPHORE_AGENT_MACHINE_TYPE)),)
-INSTANCE_ID := $(shell $(MK_INCLUDE_BIN)/get_self_hosted_agent.sh)
-$(info $(INSTANCE_ID))
-endif
-
 # Git stuff
 BRANCH_NAME ?= $(shell git rev-parse --abbrev-ref HEAD || true)
+GIT_COMMIT ?= $(shell git rev-parse HEAD || true)
 # Set RELEASE_BRANCH if we're on master or vN.N.x
 # special case for ce-kafka: v0.NNNN.x-N.N.N-ce-SNAPSHOT, v0.NNNN.x-N.N.N-N-ce
 RELEASE_BRANCH := $(shell echo $(BRANCH_NAME) | grep -E '^($(MASTER_BRANCH)|v[0-9]+\.[0-9]+\.x(-[0-9]+\.[0-9]+\.[0-9](-[0-9])?(-ce)?(-SNAPSHOT)?)?)$$|^release-[0-9]+\.[0-9]+-confluent$$')
@@ -153,32 +147,14 @@ else
 HOTFIX := true
 endif
 
-# mock GIT command under CI_TEST environemnt
+# mock GIT command under CI_TEST environment
 ifeq ($(CI_TEST),true)
 GIT := echo git
 else
 GIT := git
 endif
 
-ifeq (true, $(UPDATE_MK_INCLUDE))
-MK_INCLUDE_UPDATE_BRANCH := chore-update-mk-include
-endif
-# default mk-include git hash location
-MK_INCLUDE_GIT_HASH_LOCATION := $(MK_INCLUDE_DATA)/mk-include-git-hash
-ifeq ($(MK_INCLUDE_UPDATE_VERSION),master)
-MK_INCLUDE_GIT_HASH = $(shell git ls-remote --tags git@github.com:confluentinc/cc-mk-include.git \
-| sort -t '/' -k 3 -V | tail -n1 | tr -d " \t\n\r" | sed -E -e "s/refs\/(tags|heads)//")
-else
-MK_INCLUDE_GIT_HASH = $(shell git ls-remote --tags git@github.com:confluentinc/cc-mk-include.git $(MK_INCLUDE_UPDATE_VERSION)\
-| tail -n1 | tr -d " \t\n\r" | sed -E -e "s/refs\/(tags|heads)//")
-endif
-MK_INCLUDE_UPDATE_COMMIT_MESSAGE := "chore: update mk-include"
-
 GITHUB_CLI_VERSION ?= 2.13.0
-
-ifneq ($(filter $(MK_INCLUDE_UPDATE_BRANCH),$(SEMAPHORE_GIT_PR_BRANCH) $(SEMAPHORE_GIT_BRANCH)),)
-TRIGGER_PR := false
-endif
 
 ifeq ($(CI_TEST),true)
 GIT := echo git
@@ -219,68 +195,11 @@ else ifeq ($(ARCH),aarch64)
 ARCH := arm64
 endif
 
+ifeq ($(CI), true)
+INIT_CI_TARGETS += download-malware-signatures
+endif
+
 RUN_COVERAGE ?= true
-
-.PHONY: update-mk-include
-update-mk-include:
-	set -e ;\
-	if [[ "" != $$(git status --untracked-files=no --porcelain) ]] ; then \
-	echo "git must be clean to update mk-include" ;\
-	exit 1 ;\
-	fi ;
-	@echo "update mk-include"
-	$(REMOVE) -rf mk-include
-	$(GIT) commit -a -m 'chore: reset mk-include'
-	$(GIT) subtree add --prefix mk-include git@github.com:confluentinc/cc-mk-include.git $(MK_INCLUDE_UPDATE_VERSION) --squash
-	mkdir -p $(MK_INCLUDE_DATA)
-	@echo $(MK_INCLUDE_GIT_HASH) > $(MK_INCLUDE_GIT_HASH_LOCATION)
-	$(GIT) add -f $(MK_INCLUDE_GIT_HASH_LOCATION)
-	$(GIT) commit -m "chore: add mk-include-git-hash"
-
-.PHONY: diff-mk-include
-diff-mk-include:
-ifeq ($(CI),true)
-ifeq (true, $(UPDATE_MK_INCLUDE))
-ifneq (false, $(TRIGGER_PR))
-	@$(MAKE) install-github-cli
-	export MASTER_BRANCH=$(MASTER_BRANCH) ;\
-	export GIT=$(GIT) ;\
-	export MK_INCLUDE_UPDATE_COMMIT_MESSAGE=$(MK_INCLUDE_UPDATE_COMMIT_MESSAGE) ;\
-	export MK_INCLUDE_UPDATE_BRANCH=$(MK_INCLUDE_UPDATE_BRANCH) ;\
-	export GIT_REMOTE_NAME=$(GIT_REMOTE_NAME) ;\
-	export MAKE=$(MAKE) ;\
-	export MK_INCLUDE_GIT_HASH=$(MK_INCLUDE_GIT_HASH) ;\
-	export MK_INCLUDE_GIT_HASH_LOCATION=$(MK_INCLUDE_GIT_HASH_LOCATION) ;\
-	$(MK_INCLUDE_BIN)/diff-mk-include.sh ;
-else
-	@echo "$(MK_INCLUDE_UPDATE_BRANCH) is already trying to update the mk-include directory, will not update and file PR"
-endif
-else
-	@echo "auto update mk-include is disabled"
-endif
-else
-	@echo "This command is supposed to only run in CI"
-endif
-	@:
-
-.PHONY: install-github-cli
-## install github cli if not installed
-install-github-cli:
-	export GITHUB_CLI_VERSION=$(GITHUB_CLI_VERSION) ;\
-	$(MK_INCLUDE_BIN)/install-github-cli.sh
-	$(GH) config set prompt disabled
-
-.PHONY: github-cli-auth
-github-cli-auth:
-## login to gh cli with semaphore ci token
-ifeq ($(CI),true)
-	$(MK_INCLUDE_BIN)/vault-sem-get-secret semaphore_bot_github_token_file
-# .githubtoken is a file contains github token and loaded form vault
-# gh auth login will fail when there is a GITHUB_TOKEN env variable
-	$(GH) auth login --with-token < $(HOME)/.githubtoken || true
-	rm $(HOME)/.githubtoken
-endif
-	@:
 
 .PHONY: add-github-templates
 add-github-templates:
@@ -290,28 +209,7 @@ add-github-templates:
 	$(if $(filter $(BRANCH_NAME),$(MASTER_BRANCH)),$(error "You must run this command from a branch: 'git checkout -b add-github-pr-template'"),)
 
 	@mkdir -p $(project_root)/.github
-	@ln -s $(mk_include_relative_path)/.github/pull_request_template.md $(project_root)/.github
-	@git add $(project_root)/.github/pull_request_template.md
-	@git commit \
-		-m "Add .github template for PRs $(CI_SKIP)" \
-		-m "Adds the .github/pull_request_template.md as described in [1]" \
-		-m "linking to the shared template in \`mk-include\`." \
-		-m "" \
-		-m "[1] https://github.com/confluentinc/cc-mk-include/pull/113"
-
-	@git show
-	@echo "Template added."
-	@echo "Create PR with 'git push && git log --format=%B -n 1 | hub pull-request -F -'"
-
-.PHONY: add-paas-github-templates
-add-paas-github-templates:
-	$(eval project_root := $(shell git rev-parse --show-toplevel))
-	$(eval mk_include_relative_path := ../mk-include)
-	$(if $(wildcard $(project_root)/.github/pull_request_template.md),$(an error ".github/pull_request_template.md already exists, try deleting it"),)
-	$(if $(filter $(BRANCH_NAME),$(MASTER_BRANCH)),$(error "You must run this command from a branch: 'git checkout -b add-github-pr-template'"),)
-
-	@mkdir -p $(project_root)/.github
-	@ln -s $(mk_include_relative_path)/.github/paas_pull_request_template.md $(project_root)/.github/pull_request_template.md
+	@cp $(mk_include_relative_path)/.github/pull_request_template.md $(project_root)/.github
 	@git add $(project_root)/.github/pull_request_template.md
 	@git commit \
 		-m "Add .github template for PRs $(CI_SKIP)" \
@@ -353,8 +251,8 @@ endif
 endif
 
 .PHONY: docker-login-local
+## Login to ECR from your local machine
 docker-login-local:
-## an easy command to login to ECR
 	@echo "$(DEVPROD_PROD_ECR)" | docker-credential-cc-ecr-login.sh get >/dev/null
 
 .PHONY: bats
@@ -398,4 +296,14 @@ else
 .gitconfig: $(HOME)/.gitconfig
 	cp $(HOME)/.gitconfig .gitconfig
 
+endif
+
+# download clamav signatures
+.PHONY: download-malware-signatures
+download-malware-signatures:
+ifeq ($(CI),true)
+	@echo "Downloading ClamAV signatures"
+	mkdir -p /tmp/clamav-db
+	curl https://cfltavupdates.s3.us-west-2.amazonaws.com/downloads/signatures.tgz -o /tmp/clamav-db/signatures.tgz
+	tar -xzf /tmp/clamav-db/signatures.tgz -C /tmp/clamav-db
 endif

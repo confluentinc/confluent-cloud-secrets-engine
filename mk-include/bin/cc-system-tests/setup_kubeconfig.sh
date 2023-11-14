@@ -34,7 +34,8 @@ if [ "${CI}" = true ]; then
     echo "Current AWS role is OK: ${expected_role}=${current_role}" 1>&2
   else
     echo "Assuming AWS role: ${current_role}=>${expected_role}" 1>&2
-    eval "$(aws sts assume-role --role-arn "${AWS_STS_ASSUME_ROLE}" --role-session-name cc-system-tests-"${ENV}" --duration-seconds 28800 | jq -r '.Credentials | "export AWS_ACCESS_KEY_ID=\(.AccessKeyId)\nexport AWS_SECRET_ACCESS_KEY=\(.SecretAccessKey)\nexport AWS_SESSION_TOKEN=\(.SessionToken)\n"')"
+    # assume-iam-role is a function from Semaphore agents
+    . assume-iam-role "${AWS_STS_ASSUME_ROLE}"
   fi
 fi
 

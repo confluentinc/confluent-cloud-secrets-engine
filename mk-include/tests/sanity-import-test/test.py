@@ -14,8 +14,8 @@ from tests.test_utils import *
 
 
 def test_args():
-    output = run_cmd("make show-args")
+    output, stderr = run_cmd("make show-args")
 
-    assert_in_output(output, [
+    assert_in_output(output, stderr, [
         "INIT_CI_TARGETS: "
     ])

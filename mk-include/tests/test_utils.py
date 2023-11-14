@@ -23,10 +23,10 @@ def run_cmd(cmd, env=os.environ):
                              env=env)
     logger.info("exited", cmd=process.args, exit_status=process.returncode)
     logger.debug("stdout", cmd=process.args, output=process.stdout)
-    return process.stdout
+    return process.stdout, process.stderr
 
 
-def assert_in_output(output, assert_strings):
+def assert_in_output(output, stderr, assert_strings):
     """
     output: String console output
     assert_strings: Strings need to assert with output
@@ -34,18 +34,18 @@ def assert_in_output(output, assert_strings):
     assert in console output with certain strings
     """
     for assert_string in assert_strings:
-        assert assert_string in output
+        assert assert_string in output, "Specified string should be in output. stderr: " + stderr
     return
 
 
-def assert_not_in_output(output, assert_strings):
+def assert_not_in_output(output, stderr, assert_strings):
     """
     output: String console output
 
     assert not in console output with certain strings
     """
     for assert_string in assert_strings:
-        assert assert_string not in output
+        assert assert_string not in output, "Specified string should not be in output. stderr: " + stderr
 
 
 def assert_file(file_locations):
@@ -77,7 +77,7 @@ def assert_version():
     """
     assert repo version integrity
     """
-    output = run_cmd("make show-version")
+    output, stderr = run_cmd("make show-version")
     (clean_version, bumped_clean_version) = extract_version(output)
     assert (version.parse(clean_version) < version.parse(bumped_clean_version))
     return
@@ -87,7 +87,7 @@ def assert_filtered_version():
     """
     assert repo version integrity given a version filter
     """
-    output = run_cmd(
+    output, stderr = run_cmd(
         "VERSION_REFS='v0.1.*' BRANCH_NAME=master make show-version")
     (clean_version, bumped_clean_version) = extract_version(output)
     assert (version.parse(clean_version) == version.parse("v0.1.0"))

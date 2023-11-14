@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1.0.0-experimental
-FROM golang:1.18.0 AS builder
+FROM golang:1.19.0 AS builder
 
 WORKDIR /root
 RUN mkdir -p -m 0600 .ssh && ssh-keyscan -t rsa github.com >> .ssh/known_hosts

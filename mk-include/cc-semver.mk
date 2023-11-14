@@ -145,6 +145,10 @@ tag-release:
 	$(GIT) push $(GIT_REMOTE_NAME) $(RELEASE_BRANCH) || true
 endif
 
+.PHONY: prerelease-version-tag
+prerelease-version-tag:
+	gh release create v$(CLEAN_VERSION) --title "v$(CLEAN_VERSION) (prerelease)" --notes "this is a prerelease" --prerelease
+
 .PHONY: get-release-image
 get-release-image:
 	echo '$(RELEASE_SVG)' > release.svg

@@ -502,7 +502,7 @@ __configure_kubecfg_get_file_age_in_minutes() {
 __configure_kubecfg_get_from_ccdot_files() {
   local filename="$1"
   local env="$2"
-  vault kv get --field=json v1/ci/kv/semaphore2/GCP_LOGIN_CREDENTIALS_DEVEL > ${env}.json
+  vault kv get --field=json v1/ci/kv/semaphore2/GCP_LOGIN_CREDENTIALS_${env^^} > ${env}.json
   export GCP_LOGIN_CREDENTIALS=${env}.json
   gcloud auth activate-service-account --key-file "${GCP_LOGIN_CREDENTIALS}"
   echo "Downloading the latest kubeconfig."

@@ -6,7 +6,7 @@ CLEAN_TARGETS += api-clean
 REDOC_VERSION ?= v2.0.0-rc.77
 REDOC_CLI_VERSION ?= v0.24.0
 PRISM_VERSION ?= 3.1.1
-OPENAPI_LINTER_VERSION ?= v0.86.0
+OPENAPI_LINTER_VERSION ?= v0.103.0
 SPECCY_VERSION ?= 0.11.0
 YAMLLINT_VERSION ?= 1.20
  # no tags in dockerhub for this one, but latest in github is v0.2.8
@@ -68,7 +68,7 @@ API_NAME ?= $(shell basename $(CURDIR))
 
 PRISM = docker run $(_docker_opts) stoplight/prism:$(PRISM_VERSION)
 
-OPENAPI_GENERATOR = docker run $(_docker_opts) $(DEVPROD_NONPROD_GAR_REPO)/confluentinc/openapi-generator:$(OPENAPI_GENERATOR_VERSION)
+OPENAPI_GENERATOR = docker run $(_docker_opts) $(DEVPROD_PROD_ECR_REPO)/confluentinc/openapi-generator:$(OPENAPI_GENERATOR_VERSION)
 
 .SECONDEXPANSION:
 
@@ -206,7 +206,7 @@ endif
 .PHONY: linter-metrics-deps
 linter-metrics-deps:
 	pip3 install datadog==0.42.0
-	pip3 install pyyaml==5.4.1
+	pip3 install pyyaml==6.0.1
 
 .PHONY: post-openapi-linter-warnings
 post-openapi-linter-warnings:

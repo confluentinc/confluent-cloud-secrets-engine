@@ -10,7 +10,6 @@ MVN := ./mvnw
 CI_TEST := true
 PUSH_DOCKER_OVERRIDE := $(shell echo skipping docker push)
 GOPATH=$(go env GOPATH)
-CI_BIN_OVERRIDE := ${GOPATH}/src/github.com/confluentinc/cc-mk-include/ci-bin
 
 include ./mk-include/cc-begin.mk
 include ./mk-include/cc-vault.mk

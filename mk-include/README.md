@@ -135,51 +135,6 @@ You must also configure your project's `pom.xml` to skip the `dockerfile-maven-p
   </profiles>
 ```
 
-## Updating
-Once you have the make targets installed, you can update at any time by running
-
-```shell
-make update-mk-include
-```
-### Update to a specific version
-
-Add
-```shell
-MK_INCLUDE_UPDATE_VERSION := v<version>
-```
-to you Makefile and commit the change. Then run 
-```shell
-make update-mk-include
-```
-It will update to that specific tag version of mk-include.
-
-## Auto Update
-The cc-mk-include by default auto-sync your repo with the newest or pinned version of cc-mk-include. It will *auto open* a PR if your master branch is not at the same version with newest or pinned version. And it will *auto merged* if the CI passed. 
-The default sync version will be master branch, you can pin whatever version you want to by enable
-```shell
-MK_INCLUDE_UPDATE_VERSION := <tag>
-```
-if you do not want to auto merge the change once CI passed, and get hand on reviews. In your toplevel Makefile, you can set
-```shell
-UPDATE_MK_INCLUDE_AUTO_MERGE := false
-```
-If you want to turn off auto update competely
-```shell
-UPDATE_MK_INCLUDE := false
-```
-
-GITHUB token is required for gh cli, so you might need to get the right credentials to export github token.
-```
-. vault-sem-get-secret semaphore-secrets-global
-```
-
-### Auto Merge
-Leverage gh cli, cc-mk-include now support auto merge, add
-```shell
-make auto-merge
-```
-in the end semaphore.yml, once all CI passed
-
 ## Passing Credentials Into A Docker Build
 
 If your docker build requires ssh, aws, netrc, or other credentials to be passed into the
@@ -284,17 +239,17 @@ migrations, and seed data in your service repo (instead of cc-dbmigrate and cc-m
 
 4. Now you have access to some great `db` and `db-migrate` make targets:
 
-        % make help | grep -E '\x1b\[36mdb-'                                                              
-        db-dump-schema      Dump the current DB schema and migration version to $(DB_SCHEMA_FILE) 
-        db-local-reset      Reset the local database from the schema, migrations, and seeds 
-        db-migrate-create   Create a new DB migration. Usage: make db-migrate-create NAME=migration_name_here 
-        db-migrate-down     Rollback DB migrations. Usage: make db-migrate-down [N=1, default 1] 
-        db-migrate-force    Force override the DB migration version in the DB to a specific version 
-        db-migrate-goto     Go to a specific DB migration version 
-        db-migrate-up       Apply DB migrations. Usage: make db-migrate-up [N=1, default all] 
-        db-migrate-version  Show current DB migration version 
-        db-seed             Seed the database from $(DB_SEED_FILE) 
-        db-seed-dump        Overwrite the $(DB_SEED_FILE) from the current database 
+        % make help | grep -E '\x1b\[36mdb-'
+        db-dump-schema      Dump the current DB schema and migration version to $(DB_SCHEMA_FILE)
+        db-local-reset      Reset the local database from the schema, migrations, and seeds
+        db-migrate-create   Create a new DB migration. Usage: make db-migrate-create NAME=migration_name_here
+        db-migrate-down     Rollback DB migrations. Usage: make db-migrate-down [N=1, default 1]
+        db-migrate-force    Force override the DB migration version in the DB to a specific version
+        db-migrate-goto     Go to a specific DB migration version
+        db-migrate-up       Apply DB migrations. Usage: make db-migrate-up [N=1, default all]
+        db-migrate-version  Show current DB migration version
+        db-seed             Seed the database from $(DB_SEED_FILE)
+        db-seed-dump        Overwrite the $(DB_SEED_FILE) from the current database
 
 5. Not strictly a requirement, but these make targets are designed primarily for local development.
    While it's possible to build a release strategy using this, the designed approach is to use
@@ -396,10 +351,9 @@ remote debugger.
                          assumed to contain the dlv executable at a certain
                          subpath - `./lib/dlv/mac/dlv`)
 
-For a normal Goland installation, neither of these need to be changed. 
+For a normal Goland installation, neither of these need to be changed.
 For IntelliJ Ultimate with the Go plugin, then `GOLAND_PLUGIN_PATH` will
-need to be set to something 
+need to be set to something
 `~/Library/Application\ Support/JetBrains/IntelliJIdea2021.3/plugins/go`
 
 See [go/goland](https://go/goland) for more information.
-

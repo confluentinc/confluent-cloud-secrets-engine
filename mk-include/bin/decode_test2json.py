@@ -20,6 +20,7 @@ from collections import Counter, defaultdict
 from dataclasses import dataclass
 from typing import Collection, List, Optional
 from xml.dom.minidom import Document
+import argparse
 
 # The different testcase statuses.
 PASS, FAIL, SKIP, TIMEOUT, PANIC, FLAKY = 'PASS', 'FAIL', 'SKIP', 'TIMEOUT', 'PANIC', 'FLAKY'
@@ -486,17 +487,22 @@ def write_junit_report_xml(doc):
     print('Successfully wrote {}\n'.format(TEST_REPORT_FILE))
 
 
-def write_failed_tests_file():
+def write_failed_tests_file(args):
     failed_tests = set()
     for _package, suite in sorted(TESTSUITES.items(), key=lambda i: i[0]):
         tests = suite.build_tests()
-        failed_tests.update(
-            # only include whole tests, not subtests as they do not work
-            # with go regex
-            t.name[:t.name.index('/')] if '/' in t.name else t.name
-            for t in tests
-            if t.status != PASS and t.status != SKIP
-        )
+
+        for t in tests:
+            if t.status == SKIP or t.status == PASS:
+                continue
+            if args.keep_subtests:
+                if '/' in t.name:
+                    failed_tests.add(t.name)
+                # else it's a top level test, we don't need to add it, there will never be a case where a top level-
+                # -fails but no subtests fails a top level test can only fail if at least one of the subtest
+                # fails, and we just want to capture that
+            else:
+                failed_tests.add(t.name[:t.name.index('/')] if '/' in t.name else t.name)
     failed_tests_str = "|".join(failed_tests)
     if CI:
         print(f"writing '{failed_tests_str}' to file '{FAILED_TESTS}'")
@@ -511,9 +517,14 @@ def write_failed_tests_file():
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-k", "--keep_subtests", default=False, action="store_true",
+                        help="keep subtests in failed tests file")
+    parser.add_argument('files', metavar='FILE', nargs='*', help='files to read, if empty, stdin is used')
+    args = parser.parse_args()
 
-    for line in fileinput.input():
+    for line in fileinput.input(files=args.files):
         collect_results_and_print_formatted_line(line)
 
     print_summary_and_write_junit_report()
-    write_failed_tests_file()
+    write_failed_tests_file(args)

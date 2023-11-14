@@ -25,58 +25,59 @@ def test_version_filter():
 
 
 def test_make_show_args():
-    output = run_cmd("make show-args")
-    assert_in_output(output, [
+    output, stderr = run_cmd("make show-args")
+    assert_in_output(output, stderr, [
         "cache-docker-base-images",
         "deps",
         "docker-login-ci",
         "gcloud-install",
-        "helm-setup-ci",
-        "install-vault",
-        "vault-bash-functions",
     ])
 
 
 def test_make_init_ci():
-    output = run_cmd("make init-ci")
-    assert_in_output(output, [
+    output, stderr = run_cmd("make init-ci")
+    assert_in_output(output, stderr, [
         "cache restore 519856050701.dkr.ecr.us-west-2.amazonaws.com/docker/prod/confluentinc/cc-base:v18.6.0",
     ])
     assert_file(["/home/semaphore/.docker/config.json"])
 
 
 def test_make_build():
-    output = run_cmd("make build")
-    assert_in_output(output, ["mvnw", "BUILD SUCCESS", "docker image save"])
+    output, stderr = run_cmd("make build")
+    assert_in_output(output, stderr, ["mvnw", "BUILD SUCCESS", "docker image save"])
 
 
 def test_build_docker_override_one():
-    output = run_cmd("make -f Makefile_test_mvn_docker_package build")
-    assert_not_in_output(output, ["mvnw"])
-    assert_in_output(output, ["BUILD SUCCESS", "docker image save"])
+    output, stderr = run_cmd("make -f Makefile_test_mvn_docker_package build")
+    assert_not_in_output(output, stderr, ["mvnw"])
+    assert_in_output(output, stderr, ["BUILD SUCCESS", "docker image save"])
 
 
 def test_build_docker_override_two():
-    output = run_cmd("make -f Makefile_test_BUILD_DOCKER_OVERRIDE build")
-    assert_not_in_output(output, ["mvnw"])
-    assert_in_output(output, [
+    output, stderr = run_cmd("make -f Makefile_test_BUILD_DOCKER_OVERRIDE build")
+    assert_not_in_output(output, stderr, ["mvnw"])
+    assert_in_output(output, stderr, [
         "mvn --no-transfer-progress  --batch-mode", "BUILD SUCCESS",
         "docker image save"
     ])
 
 
 def test_make_test():
-    output = run_cmd("make test")
-    assert_in_output(output, ["T E S T S", "BUILD SUCCESS"])
+    output, stderr = run_cmd("make test")
+    assert_in_output(output, stderr, ["T E S T S", "BUILD SUCCESS"])
 
 
 def test_make_release():
-    output = run_cmd("make release-ci")
-    assert_not_in_output(output, [
+    # make build adds dirty changes to the repo, and $(GIT) is aliased to echo git for tests, so those
+    # dirty changes are never cleaned up. So manually clean it up here
+    run_cmd("git stash")
+
+    output, stderr = run_cmd("make release-ci")
+    assert_not_in_output(output, stderr, [
         "Changes not staged for commit:",
         "recipe for target 'pre-release-check' failed"
     ])
-    assert_in_output(output, [
+    assert_in_output(output, stderr, [
         "git add --verbose ./pom.xml", "git add release.svg",
     ])
 

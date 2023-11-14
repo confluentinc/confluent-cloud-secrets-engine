@@ -1,6 +1,6 @@
-BUILD_TARGETS += mvn-install
+BUILD_TARGETS += mvn-install build-mvn-sbom
 CLEAN_TARGETS += mvn-clean
-TEST_TARGETS += mvn-verify
+TEST_TARGETS +=  test-mvn-malware mvn-verify
 RELEASE_PRECOMMIT += mvn-set-bumped-version
 RELEASE_POSTCOMMIT += mvn-deploy
 
@@ -11,11 +11,11 @@ MAVEN_ADDITIONAL_ARGS ?=
 MAVEN_ARGS += $(MAVEN_ADDITIONAL_ARGS)
 MAVEN_NANO_VERSION ?= false
 ifeq ($(CI),true)
-MAVEN_LOCAL_CACHE ?= $(CI_BIN)/m2
 MAVEN_ARGS += --batch-mode
-# Put local maven repo inside CI_BIN to leverage caching done in cc-semaphore.mk
-MAVEN_ARGS += -Dmaven.repo.local=$(MAVEN_LOCAL_CACHE) -Dmaven.artifact.threads=10
+MAVEN_ARGS += -Dmaven.artifact.threads=10
 MAVEN_ARGS += $(MAVEN_RETRY_OPTS)
+#disable OWASP dependency checks ~2 minutes shaved, no one looks at them anyways
+MAVEN_ARGS += -Ddependency-check.skip=true
 # enable CI profile for spotbugs, test-coverage, and dependency analysis
 MAVEN_PROFILES += jenkins
 endif
@@ -43,6 +43,9 @@ MAVEN_DEPLOY_REPO_ID ?= confluent-codeartifact-internal
 MAVEN_DEPLOY_REPO_NAME ?= maven-releases
 MAVEN_DEPLOY_REPO_URL ?= https://confluent-519856050701.d.codeartifact.us-west-2.amazonaws.com/maven/$(MAVEN_DEPLOY_REPO_NAME)/
 
+BUILD_FULLNAME = $(IMAGE_NAME)-$(HOST_OS)-$(ARCH)
+JIRA_TOKEN =$(shell echo $(JIRA_B64_TOKEN) |tr -d '[:space:]')
+
 .PHONY: mvn-install
 mvn-install:
 ifneq ($(MAVEN_INSTALL_PROFILES),)
@@ -55,9 +58,40 @@ ifeq ($(CI),true)
 mvn-install: mvn-set-bumped-version
 endif
 
+.PHONY: build-mvn-sbom
+build-mvn-sbom:
+ifeq ($(CI),true)
+	echo "Building the SBOM in ./target directory of $(BUILD_FULLNAME)"
+	mvn -Daether.dependencyCollector.impl=bf -Dmaven.artifact.threads=8  org.cyclonedx:cyclonedx-maven-plugin:2.7.9:makeAggregateBom -DskipTests --no-transfer-progress
+	cp target/bom.json $(BUILD_FULLNAME)-maven.json
+	trivy fs --skip-dirs mk-include . --format cyclonedx -o $(BUILD_FULLNAME)-trivy-sbom.json
+	. assume-iam-role arn:aws:iam::368821881613:role/semaphore-access ;\
+	aws s3 cp $(BUILD_FULLNAME)-maven.json s3://confluent-buildtime-sboms/$(IMAGE_NAME)/$(BUMPED_VERSION)/$(BUILD_FULLNAME)-maven.json ;\
+	aws s3 cp $(BUILD_FULLNAME)-trivy-sbom.json s3://confluent-buildtime-sboms/$(IMAGE_NAME)/$(BUMPED_VERSION)/$(BUILD_FULLNAME)-trivy-sbom.json
+else
+	@echo "SBOM generation is only invoked in CI builds"
+endif
+
 .PHONY: mvn-verify
 mvn-verify:
-	$(MVN) $(MAVEN_VERIFY_OPTS) verify 
+	$(MVN) $(MAVEN_VERIFY_OPTS) verify
+
+.PHONY: test-mvn-malware
+test-mvn-malware:
+ifeq ($(CI),true)
+	echo "Malware scan for $(BUILD_FULLNAME)"
+	@clamscan -d /tmp/clamav-db --max-scansize=1024M --max-filesize=1024M -ir .  > $(BUILD_FULLNAME)-malware-scan.txt \
+	|| ( . assume-iam-role arn:aws:iam::368821881613:role/semaphore-access ;\
+	aws s3 cp $(BUILD_FULLNAME)-malware-scan.txt s3://malware-scan-results/$(IMAGE_NAME)/$(BUMPED_VERSION)/$(BUILD_FULLNAME)-malware-scan.txt ;\
+	echo '{"fields":{"project":{"key":"APPSEC"},"summary":"Malware scan failed for: $(BUILD_FULLNAME)-$(BUMPED_VERSION).","description":"Check the build $(BUILD_FULLNAME)-$(BUMPED_VERSION)","issuetype":{"name":"Task"}}}' > data.json ;\
+	curl  -H "Authorization: Basic $(JIRA_TOKEN)"  -H "Content-Type: application/json"  -X POST --data "@data.json" https://confluentinc.atlassian.net/rest/api/2/issue/ &> /dev/null ;\
+	echo "Job has failed due to the malware scan failure please notify #appsec"; false)
+## we always need to upload the malware scan results
+	. assume-iam-role arn:aws:iam::368821881613:role/semaphore-access ;\
+	aws s3 cp $(BUILD_FULLNAME)-malware-scan.txt s3://malware-scan-results/$(IMAGE_NAME)/$(BUMPED_VERSION)/$(BUILD_FULLNAME)-malware-scan.txt
+else
+	@echo "Malware scan is only invoked in CI builds"
+endif
 
 .PHONY: mvn-clean
 mvn-clean:

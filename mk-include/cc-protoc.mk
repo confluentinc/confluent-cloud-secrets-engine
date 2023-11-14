@@ -39,7 +39,6 @@ ifneq ($(PROTOC_VERSION),$(PROTOC_INSTALLED_VERSION))
 	rm -rf /tmp/protoc
 endif
 
-
 .PHONY: clean-protoc
 clean-protoc:
 	rm -rf $(BIN_PATH)/protoc

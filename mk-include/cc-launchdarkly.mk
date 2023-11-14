@@ -7,9 +7,19 @@
 BUILD_TARGETS += run-ld-find-code-ref
 
 ifeq ($(SEMAPHORE_GIT_PR_BRANCH),)
-	GIT_BRANCH_NAME_LD = $(SEMAPHORE_GIT_BRANCH)
+GIT_BRANCH_NAME_LD = $(SEMAPHORE_GIT_BRANCH)
 else
-	GIT_BRANCH_NAME_LD = $(SEMAPHORE_GIT_PR_BRANCH)
+GIT_BRANCH_NAME_LD = $(SEMAPHORE_GIT_PR_BRANCH)
+endif
+
+# (TODO) [SVCF-4416] Change to latest after
+# https://github.com/launchdarkly/ld-find-code-refs/issues/378 is fixed
+LD_FIND_CODE_REFS_VERSION ?= v2.10.0
+
+ifeq ($(LD_FIND_CODE_REFS_VERSION),latest)
+LD_FIND_CODE_REFS_RELEASE_URL := https://api.github.com/repos/launchdarkly/ld-find-code-refs/releases/latest
+else
+LD_FIND_CODE_REFS_RELEASE_URL := https://api.github.com/repos/launchdarkly/ld-find-code-refs/releases/tags/$(LD_FIND_CODE_REFS_VERSION)
 endif
 
 .PHONY: show-launchdarkly
@@ -17,12 +27,14 @@ show-launchdarkly:
 	@echo "GIT_BRANCH_NAME_LD: $(GIT_BRANCH_NAME_LD)"
 	@echo "SEMAPHORE_PROJECT_NAME: $(SEMAPHORE_PROJECT_NAME)"
 	@echo "SEMAPHORE_GIT_REPO_SLUG: $(SEMAPHORE_GIT_REPO_SLUG)"
+	@echo "LD_FIND_CODE_REFS_VERSION: $(LD_FIND_CODE_REFS_VERSION)"
+	@echo "LD_FIND_CODE_REFS_RELEASE_URL: $(LD_FIND_CODE_REFS_RELEASE_URL)"
 
 # Download and install the 'ld-find-code-refs' CLI
 .PHONY: install-ld-find-code-refs
 install-ld-find-code-refs:
 ifeq ($(CI),true)
-	wget -qO- https://api.github.com/repos/launchdarkly/ld-find-code-refs/releases/latest \
+	wget -qO- $(LD_FIND_CODE_REFS_RELEASE_URL) \
 	| grep "browser_download_url" \
 	| grep "amd64.deb" \
 	| cut -d'"' -f4 \

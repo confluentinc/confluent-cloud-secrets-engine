@@ -26,17 +26,13 @@ CREATE SCHEMA deployment;
 CREATE SCHEMA cc_capacity_service;
 
 CREATE DOMAIN cc_capacity_service.k8s_cluster_id AS text NOT NULL;
+CREATE DOMAIN cc_capacity_service.cloud_id AS text NOT NULL;
+CREATE DOMAIN cc_capacity_service.region_id AS text NOT NULL;
 CREATE DOMAIN cc_capacity_service.logical_cluster_id AS text NOT NULL;
 CREATE DOMAIN cc_capacity_service.physical_cluster_id AS text NOT NULL;
 CREATE DOMAIN cc_capacity_service.network_region_id AS text NOT NULL;
 CREATE TYPE cc_capacity_service.cc_resource_type AS ENUM ('REALM', 'NETWORK',
-            'KUBERNETES', 'PHYSICAL_CLUSTER');
-
-ALTER DOMAIN cc_capacity_service.k8s_cluster_id OWNER TO caas;
-ALTER DOMAIN cc_capacity_service.logical_cluster_id OWNER TO caas;
-ALTER DOMAIN cc_capacity_service.physical_cluster_id OWNER TO caas;
-ALTER DOMAIN cc_capacity_service.network_region_id OWNER TO caas;
-ALTER TYPE cc_capacity_service.cc_resource_type OWNER TO caas;
+            'KUBERNETES', 'PHYSICAL_CLUSTER', 'AVAILABILITY_ZONE');
 
 ALTER SCHEMA deployment OWNER TO caas;
 ALTER SCHEMA cc_capacity_service OWNER to caas;
@@ -275,6 +271,95 @@ CREATE TABLE IF NOT EXISTS cc_capacity_service.constraints (
     PRIMARY KEY (resource_id, cc_resource_type)
 );
 
+CREATE TABLE IF NOT EXISTS cc_capacity_service.region (
+    id cc_capacity_service.region_id PRIMARY KEY NOT NULL,
+    cloud cc_capacity_service.cloud_id,
+    config jsonb,
+    byoc_config jsonb,
+    created timestamp without time zone DEFAULT now() NOT NULL,
+    modified timestamp without time zone DEFAULT now() NOT NULL,
+    name text NOT NULL
+);
+
+INSERT INTO cc_capacity_service.region (id, cloud, config, created, modified, name, byoc_config) VALUES
+('us-west-2','aws',	'{"docker": {"repo": "037803949979.dkr.ecr.us-west-2.amazonaws.com", "image_prefix": "confluentinc"}}',	'2017-06-22 13:50:24.567898', '2017-06-22 13:50:24.567898',	'US West (Oregon)', '{"docker": {"repo": "188758853379.dkr.ecr.us-west-2.amazonaws.com", "image_prefix": "confluentinc"}}'),
+('us-west-1', 	'aws', '{"docker": {"repo": "037803949979.dkr.ecr.us-west-2.amazonaws.com", "image_prefix": "confluentinc"}}',	'2017-06-22 13:50:24.567898',	'2017-06-22 13:50:24.567898',	'US West (N. California)',	'{"docker": {"repo": "188758853379.dkr.ecr.us-west-1.amazonaws.com", "image_prefix": "confluentinc"}}'),
+('us-central1',	'gcp',	'{"docker": {"repo": "us.gcr.io", "image_prefix": "cc-devel"}}', '2017-06-22 13:50:24.567898',	'2017-06-22 13:50:24.567898',	'US Central',	'{}'),
+('centralus', 'azure', '{"docker": {"repo": "cclouddevel.azurecr.io", "image_prefix": "confluentinc"}}',	'2017-06-22 13:50:24.567898',	'2017-06-22 13:50:24.567898', 'Central US',	'{}'),
+('eastus2', 'azure', '{"docker": {"repo": "cclouddevel.azurecr.io", "image_prefix": "confluentinc"}}',	'2017-06-22 13:50:24.567898',	'2017-06-22 13:50:24.567898', 'East US 2',	'{}');
+
+CREATE TABLE IF NOT EXISTS cc_capacity_service.zone (
+    id text PRIMARY KEY NOT NULL,
+    zone_id text NOT NULL,
+    name text NOT NULL,
+    region_id text NOT NULL,
+    sni_enabled boolean DEFAULT true NOT NULL,
+    schedulable boolean DEFAULT true NOT NULL,
+    realm text NOT NULL,
+    schedulable_feature jsonb,
+    deactivated timestamp without time zone,
+    created timestamp without time zone DEFAULT now() NOT NULL,
+    modified timestamp without time zone DEFAULT now() NOT NULL
+);
+
+INSERT INTO cc_capacity_service.zone (id, zone_id, name, region_id, sni_enabled, schedulable, created, modified, realm)
+VALUES
+    -- aws
+    ('zone-1', 'usw2-az1', 'us-west-2a', 'us-west-2', true, true, '2020-01-01 00:00:00', '2020-01-01 00:00:00', '123'),
+    ('zone-2', 'usw2-az2', 'us-west-2b', 'us-west-2', true, true, '2020-01-01 00:00:00', '2020-01-01 00:00:00', '123'),
+    ('zone-3', 'usw2-az3', 'us-west-2c', 'us-west-2', true, true, '2020-01-01 00:00:00', '2020-01-01 00:00:00', '123'),
+    ('zone-4', 'usw1-az1', 'us-west-1a', 'us-west-1', true, true, '2020-01-01 00:00:00', '2020-01-01 00:00:00', '123'),
+    ('zone-5', 'usw1-az2', 'us-west-1b', 'us-west-1', true, true, '2020-01-01 00:00:00', '2020-01-01 00:00:00', '123'),
+    ('zone-6', 'usw1-az3', 'us-west-1c', 'us-west-1', true, true, '2020-01-01 00:00:00', '2020-01-01 00:00:00', '123'),
+    -- gcp
+    ('zone-7', 'us-central1-b', 'us-central1-b', 'us-central1', true, true, '2020-01-01 00:00:00', '2020-01-01 00:00:00', ''),
+    ('zone-19', 'us-central1-a', 'us-central1-a', 'us-central1', true, true, '2020-01-01 00:00:00', '2020-01-01 00:00:00', ''),
+    ('zone-20', 'us-central1-c', 'us-central1-c', 'us-central1', true, true, '2020-01-01 00:00:00', '2020-01-01 00:00:00', ''),
+    ('zone-21', 'us-central1-f', 'us-central1-f', 'us-central1', true, true, '2020-01-01 00:00:00', '2020-01-01 00:00:00', ''),
+    -- azure
+    ('zone-8', 'centralus', 'centralus', 'centralus', false, false, '2020-01-01 00:00:00', '2020-01-01 00:00:00', ''),
+    ('zone-9', 'eastus2', 'eastus2', 'eastus2', false, false, '2020-01-01 00:00:00', '2020-01-01 00:00:00', ''),
+    ('zone-10', '1', 'centralus-1', 'centralus', true, true, '2020-01-01 00:00:00', '2020-01-01 00:00:00', ''),
+    ('zone-11', '2', 'centralus-2', 'centralus', true, true, '2020-01-01 00:00:00', '2020-01-01 00:00:00', ''),
+    ('zone-12', '3', 'centralus-3', 'centralus', true, true, '2020-01-01 00:00:00', '2020-01-01 00:00:00', ''),
+    ('zone-13', '1', 'eastus2-3', 'eastus2', true, true, '2020-01-01 00:00:00', '2020-01-01 00:00:00', ''),
+    ('zone-14', '2', 'eastus2-3', 'eastus2', true, true, '2020-01-01 00:00:00', '2020-01-01 00:00:00', ''),
+    ('zone-15', '3', 'eastus2-3', 'eastus2', true, true, '2020-01-01 00:00:00', '2020-01-01 00:00:00', ''),
+    -- aws 2
+    ('zone-16', 'usw2-az2', 'us-west-2a', 'us-west-2', true, true, '2020-01-01 00:00:00', '2020-01-01 00:00:00', '321'),
+    ('zone-17', 'usw2-az3', 'us-west-2b', 'us-west-2', true, true, '2020-01-01 00:00:00', '2020-01-01 00:00:00', '321'),
+    ('zone-18', 'usw2-az4', 'us-west-2c', 'us-west-2', true, true, '2020-01-01 00:00:00', '2020-01-01 00:00:00', '321');
+
+CREATE TABLE IF NOT EXISTS cc_capacity_service.realm (
+    id text PRIMARY KEY NOT NULL,
+    cloud_id text NOT NULL,
+    name text NOT NULL,
+    is_schedulable boolean NOT NULL,
+    created timestamp without time zone DEFAULT now() NOT NULL,
+    modified timestamp without time zone DEFAULT now() NOT NULL
+);
+
+INSERT INTO cc_capacity_service.realm (id, cloud_id, name, is_schedulable, created, modified)
+VALUES
+    -- aws
+    ('123', 'aws', 'cc-production-1', true, '2020-01-01 00:00:00', '2020-01-01 00:00:00'),
+    ('realm-2', 'aws', 'cc-production-2', true, '2020-01-01 00:00:00', '2020-01-01 00:00:00'),
+    ('321', 'aws', 'cc-production-3', true, '2020-01-01 00:00:00', '2020-01-01 00:00:00'),
+    ('realm-4', 'aws', 'cc-production-4', true, '2020-01-01 00:00:00', '2020-01-01 00:00:00'),
+    ('realm-5', 'aws', 'cc-production-5', false, '2020-01-01 00:00:00', '2020-01-01 00:00:00'),
+    -- gcp
+    ('realm-6', 'gcp', 'cc-prod-1', true, '2020-01-01 00:00:00', '2020-01-01 00:00:00'),
+    ('realm-7', 'gcp', 'cc-prod-2', true, '2020-01-01 00:00:00', '2020-01-01 00:00:00'),
+    ('realm-8', 'gcp', 'cc-prod-3', true, '2020-01-01 00:00:00', '2020-01-01 00:00:00'),
+    ('realm-9', 'gcp', 'cc-prod-4', true, '2020-01-01 00:00:00', '2020-01-01 00:00:00'),
+    ('realm-10', 'gcp', 'cc-prod-5', false, '2020-01-01 00:00:00', '2020-01-01 00:00:00'),
+    -- azure
+    ('realm-11', 'azure', 'cc-prod-1', true, '2020-01-01 00:00:00', '2020-01-01 00:00:00'),
+    ('realm-12', 'azure', 'cc-prod-2', true, '2020-01-01 00:00:00', '2020-01-01 00:00:00'),
+    ('realm-13', 'azure', 'cc-prod-3', true, '2020-01-01 00:00:00', '2020-01-01 00:00:00'),
+    ('realm-14', 'azure', 'cc-prod-4', true, '2020-01-01 00:00:00', '2020-01-01 00:00:00'),
+    ('realm-15', 'azure', 'cc-prod-5', false, '2020-01-01 00:00:00', '2020-01-01 00:00:00');
+
 -- setup indexes and keys
 
 CREATE INDEX IF NOT EXISTS index_k8s_cluster_provider ON cc_capacity_service.k8s_cluster USING gin (provider);
@@ -301,12 +386,14 @@ CREATE INDEX IF NOT EXISTS index_constraints_deactivated ON
     cc_capacity_service.constraints(deactivated);
 CREATE INDEX IF NOT EXISTS environment_id_idx ON cc_capacity_service.network_info USING btree (environment_id);
 
-ALTER TABLE cc_capacity_service.k8s_cluster OWNER TO caas;
-ALTER TABLE cc_capacity_service.physical_cluster OWNER TO caas;
-ALTER TABLE cc_capacity_service.logical_cluster OWNER TO caas;
-ALTER TABLE cc_capacity_service.network_info OWNER TO caas;
-ALTER TABLE cc_capacity_service.constraints OWNER TO caas;
+CREATE INDEX IF NOT EXISTS index_zone_region_id_idx ON cc_capacity_service.zone USING btree (region_id);
+CREATE INDEX IF NOT EXISTS index_zone_schedulable_feature_idx ON cc_capacity_service.zone USING gin (schedulable_feature);
+CREATE INDEX IF NOT EXISTS index_zone_schedulable_idx ON cc_capacity_service.zone USING btree (schedulable);
 
+CREATE INDEX IF NOT EXISTS index_region_cloud_id_idx ON cc_capacity_service.region USING btree (cloud);
+
+CREATE INDEX IF NOT EXISTS index_realm_cloud_id_idx ON cc_capacity_service.realm USING btree (cloud_id);
+CREATE INDEX IF NOT EXISTS index_realm_schedulale_idx ON cc_capacity_service.realm USING btree (is_schedulable);
 
 SET search_path = deployment, pg_catalog;
 
@@ -340,6 +427,7 @@ CREATE TABLE account (
     modified timestamp without time zone DEFAULT now() NOT NULL,
     deactivated boolean DEFAULT false NOT NULL,
     organization_id integer NOT NULL,
+    org_resource_id text,
     internal boolean DEFAULT false NOT NULL,
     deactivated_at timestamp without time zone
 );
@@ -408,10 +496,10 @@ CREATE TABLE IF NOT EXISTS deployment (
     deactivated         timestamp without time zone DEFAULT NULL,
     account_id          varchar(140) NOT NULL,
     network_access      jsonb,
-    network_region_id   text DEFAULT NULL,
+    network_region_id   text NOT NULL,
     sku                 varchar(140) NOT NULL,
     provider            jsonb DEFAULT '{}'::jsonb,
-    dedicated           boolean
+    dedicated           boolean DEFAULT FALSE NOT NULL
 );
 
 ALTER TABLE deployment OWNER TO caas;
@@ -460,7 +548,6 @@ CREATE TABLE physical_cluster (
     multitenant_oauth_superuser_disabled bool DEFAULT false NOT NULL,
     provider jsonb DEFAULT '{}'::jsonb,
     resource_profile jsonb,
-    routing_scheme character varying(32) DEFAULT 'V3' NOT NULL,
     -- V2 physical cluster API support below -- 
     config_metadata jsonb DEFAULT '{}'::jsonb,
     custom_resource_type text DEFAULT '' not null,
@@ -519,13 +606,17 @@ CREATE TABLE logical_cluster (
     physical_cluster_id public.physical_cluster_id,
     type character varying(32) NOT NULL,
     account_id public.account_id,
-    config jsonb,
+    config jsonb NOT NULL,
     deactivated timestamp without time zone,
     created timestamp without time zone DEFAULT now() NOT NULL,
     modified timestamp without time zone DEFAULT now() NOT NULL,
     deployment_id text,
     organization_id integer,
-    org_resource_id text
+    org_resource_id text,
+    region text DEFAULT ''::text NOT NULL,
+    cloud text DEFAULT ''::text NOT NULL,
+    network_id text DEFAULT ''::text NOT NULL,
+    sku text DEFAULT NULL
 );
 
 ALTER TABLE logical_cluster OWNER TO caas;
@@ -604,6 +695,17 @@ CREATE TABLE k8s_cluster (
 ALTER TABLE k8s_cluster OWNER TO caas;
 
 --
+-- Name: parent_organization; Type: TABLE; Schema: deployment; Owner: Identity
+--
+
+CREATE TABLE parent_organization (
+    resource_id TEXT NOT NULL PRIMARY KEY,
+    deactivated_at timestamp without time zone,
+    created timestamp without time zone DEFAULT now() NOT NULL,
+    modified timestamp without time zone DEFAULT now() NOT NULL
+);
+
+--
 -- Name: organization; Type: TABLE; Schema: deployment; Owner: caas
 --
 
@@ -620,7 +722,9 @@ CREATE TABLE organization (
     modified timestamp without time zone DEFAULT now() NOT NULL,
     deactivated_at timestamp without time zone,
     country_code character varying(2) DEFAULT ''::character varying NOT NULL,
-    suspension_status jsonb DEFAULT '{}'::jsonb NOT NULL
+    suspension_status jsonb DEFAULT '{}'::jsonb NOT NULL,
+    parent_organization_resource_id TEXT,
+    FOREIGN KEY (parent_organization_resource_id) REFERENCES parent_organization(resource_id)
 );
 
 CREATE INDEX IF NOT EXISTS idx_organization_created ON organization (created);
@@ -631,11 +735,7 @@ ALTER TABLE organization
 
 ALTER TABLE organization OWNER TO caas;
 
-COPY organization (id, resource_id, name, plan) FROM stdin;
-0	00000000-0000-0000-0000-000000000000	Internal	{"billing": {"email": "caas-team@confluent.io", "method": "MANUAL", "interval": "MONTHLY", "accrued_this_cycle": "0", "stripe_customer_id": ""}, "tax_address": {"zip": "", "city": "", "state": "", "country": "", "street1": "", "street2": ""}, "product_level": "TEAM", "referral_code": ""}
-\.
-
-
+INSERT INTO organization (id, resource_id, name, plan) VALUES(0, '00000000-0000-0000-0000-000000000000', 'Internal', '{"billing": {"email": "caas-team@confluent.io", "method": "MANUAL", "interval": "MONTHLY", "accrued_this_cycle": "0", "stripe_customer_id": ""}, "tax_address": {"zip": "", "city": "", "state": "", "country": "", "street1": "", "street2": ""}, "product_level": "TEAM", "referral_code": ""}');
 --
 -- Name: organization_id_seq; Type: SEQUENCE; Schema: deployment; Owner: caas
 --
@@ -655,6 +755,30 @@ ALTER TABLE organization_id_seq OWNER TO caas;
 --
 
 ALTER SEQUENCE organization_id_seq OWNED BY organization.id;
+
+--
+-- Name: domain; Type: TABLE; Schema: deployment; Owner: Identity
+--
+
+CREATE TABLE domain (
+    domain_name VARCHAR NOT NULL,
+    verification_status VARCHAR NOT NULL,
+    verification_token VARCHAR NOT NULL,
+    verification_type VARCHAR NOT NULL,
+    parent_organization_resource_id TEXT,
+    last_verified_at timestamp without time zone,
+    resource_id TEXT NOT NULL PRIMARY KEY,
+    created timestamp without time zone DEFAULT now() NOT NULL,
+    FOREIGN KEY (parent_organization_resource_id) REFERENCES parent_organization(resource_id)
+);
+
+ALTER TABLE domain
+    ADD CONSTRAINT unique_domain 
+    UNIQUE (domain_name, parent_organization_resource_id);
+
+CREATE UNIQUE INDEX unique_verified_domain
+ON domain (domain_name)
+WHERE verification_status = 'VERIFIED';
 
 --
 -- Name: physical_cluster_status; Type: TABLE; Schema: deployment; Owner: -
@@ -2566,6 +2690,21 @@ ALTER TABLE ONLY deployment.usage_metrics_errors
     ADD CONSTRAINT usage_metrics_errors_pkey PRIMARY KEY (id);
 
 --
+-- Name: connect_oauth_session
+--
+
+CREATE TABLE IF NOT EXISTS deployment.connect_oauth_session (
+    oauth_session_id text NOT NULL PRIMARY KEY,
+    user_id text NOT NULL,
+    connector_class text NOT NULL,
+    deactivated_at TIMESTAMP without TIME ZONE NULL,
+    created_at TIMESTAMP without TIME ZONE NOT NULL DEFAULT now(),
+    oauth_metadata jsonb NOT NULL DEFAULT '{}'::jsonb,
+    non_sensitive_caller_state text NULL
+);
+ALTER TABLE deployment.connect_oauth_session OWNER TO caas;
+
+--
 -- Name: marketplace_usage_feedback; Type: TABLE; Schema: deployment; Owner: -
 --
 
@@ -2781,31 +2920,20 @@ CREATE TRIGGER marketplace_registration_dml_trigger BEFORE INSERT OR DELETE OR U
 CREATE TRIGGER usage_metrics_dml_trigger BEFORE INSERT OR DELETE OR UPDATE ON deployment.usage_metrics_errors FOR EACH ROW EXECUTE PROCEDURE cps_dml_trigger();
 
 --
--- Data for Name: account; Type: TABLE DATA; Schema: deployment; Owner: caas
---
-
-COPY account (id, name, config, created, modified, deactivated, organization_id) FROM stdin;
-\.
-
---
 -- Data for Name: cp_component; Type: TABLE DATA; Schema: deployment; Owner: caas
 --
 
-COPY cp_component (id, default_version, created, modified) FROM stdin;
-kafka	0.3.0	2017-06-22 13:50:24.580803	2017-06-22 13:50:24.580803
-zookeeper	0.3.0	2017-06-22 13:50:24.580803	2017-06-22 13:50:24.580803
-\.
-
+INSERT INTO cp_component (id, default_version, created, modified) VALUES 
+('kafka', '0.3.0', '2017-06-22 13:50:24.580803', '2017-06-22 13:50:24.580803'),
+('zookeeper', '0.3.0', '2017-06-22 13:50:24.580803',	'2017-06-22 13:50:24.580803');
 
 --
 -- Data for Name: environment; Type: TABLE DATA; Schema: deployment; Owner: caas
 --
 
-COPY environment (id, config, created, modified) FROM stdin;
-devel	{}	2017-06-08 23:18:32.009539	2017-08-19 01:23:42.349148
-\.
-
-INSERT INTO environment (id, config, created, modified) VALUES ('private', '{}', now(), now());
+INSERT INTO environment (id, config, created, modified) VALUES
+('devel', '{}', '2017-06-08 23:18:32.009539', '2017-08-19 01:23:42.349148'),
+('private', '{}', now(), now());
 
 --
 -- Name: k8s_cluster_num; Type: SEQUENCE SET; Schema: deployment; Owner: caas
@@ -2829,14 +2957,12 @@ VALUES
 -- Data for Name: region; Type: TABLE DATA; Schema: deployment; Owner: caas
 --
 
-COPY region (id, cloud, config, created, modified, name, byoc_config) FROM stdin;
-us-west-2	aws	{"docker": {"repo": "037803949979.dkr.ecr.us-west-2.amazonaws.com", "image_prefix": "confluentinc"}}	2017-06-22 13:50:24.567898	2017-06-22 13:50:24.567898	US West (Oregon)	{"docker": {"repo": "188758853379.dkr.ecr.us-west-2.amazonaws.com", "image_prefix": "confluentinc"}}
-us-west-1	aws	{"docker": {"repo": "037803949979.dkr.ecr.us-west-2.amazonaws.com", "image_prefix": "confluentinc"}}	2017-06-22 13:50:24.567898	2017-06-22 13:50:24.567898	US West (N. California)	{"docker": {"repo": "188758853379.dkr.ecr.us-west-1.amazonaws.com", "image_prefix": "confluentinc"}}
-us-central1	gcp	{"docker": {"repo": "us.gcr.io", "image_prefix": "cc-devel"}}	2017-06-22 13:50:24.567898	2017-06-22 13:50:24.567898	US Central	{}
-centralus	azure	{"docker": {"repo": "cclouddevel.azurecr.io", "image_prefix": "confluentinc"}}	2017-06-22 13:50:24.567898	2017-06-22 13:50:24.567898	Central US	{}
-eastus2	azure	{"docker": {"repo": "cclouddevel.azurecr.io", "image_prefix": "confluentinc"}}	2017-06-22 13:50:24.567898	2017-06-22 13:50:24.567898	East US 2	{}
-\.
-
+INSERT INTO region (id, cloud, config, created, modified, name, byoc_config) VALUES
+('us-west-2','aws',	'{"docker": {"repo": "037803949979.dkr.ecr.us-west-2.amazonaws.com", "image_prefix": "confluentinc"}}',	'2017-06-22 13:50:24.567898', '2017-06-22 13:50:24.567898',	'US West (Oregon)', '{"docker": {"repo": "188758853379.dkr.ecr.us-west-2.amazonaws.com", "image_prefix": "confluentinc"}}'),
+('us-west-1', 	'aws', '{"docker": {"repo": "037803949979.dkr.ecr.us-west-2.amazonaws.com", "image_prefix": "confluentinc"}}',	'2017-06-22 13:50:24.567898',	'2017-06-22 13:50:24.567898',	'US West (N. California)',	'{"docker": {"repo": "188758853379.dkr.ecr.us-west-1.amazonaws.com", "image_prefix": "confluentinc"}}'),
+('us-central1',	'gcp',	'{"docker": {"repo": "us.gcr.io", "image_prefix": "cc-devel"}}', '2017-06-22 13:50:24.567898',	'2017-06-22 13:50:24.567898',	'US Central',	'{}'),
+('centralus', 'azure', '{"docker": {"repo": "cclouddevel.azurecr.io", "image_prefix": "confluentinc"}}',	'2017-06-22 13:50:24.567898',	'2017-06-22 13:50:24.567898', 'Central US',	'{}'),
+('eastus2', 'azure', '{"docker": {"repo": "cclouddevel.azurecr.io", "image_prefix": "confluentinc"}}',	'2017-06-22 13:50:24.567898',	'2017-06-22 13:50:24.567898', 'East US 2',	'{}');
 
 --
 -- Name: account_num; Type: SEQUENCE SET; Schema: deployment; Owner: caas
@@ -3439,8 +3565,8 @@ CREATE TABLE IF NOT EXISTS deployment.storage_class (
 );
 
 ALTER TABLE deployment.storage_class OWNER TO caas;
-CREATE INDEX CONCURRENTLY IF NOT EXISTS storage_class_account_id_idx ON deployment.storage_class (account_id);
-CREATE INDEX CONCURRENTLY IF NOT EXISTS storage_class_physical_cluster_id_idx ON deployment.storage_class (physical_cluster_id);
+CREATE INDEX IF NOT EXISTS storage_class_account_id_idx ON deployment.storage_class (account_id);
+CREATE INDEX IF NOT EXISTS storage_class_physical_cluster_id_idx ON deployment.storage_class (physical_cluster_id);
 
 --
 -- Cloud Service Accounts.
@@ -3452,7 +3578,7 @@ CREATE TABLE IF NOT EXISTS deployment.cloud_service_account (
 );
 
 ALTER TABLE deployment.cloud_service_account OWNER TO caas;
-CREATE INDEX CONCURRENTLY IF NOT EXISTS cloud_service_account_cloud_id_idx ON deployment.cloud_service_account (cloud_id);
+CREATE INDEX IF NOT EXISTS cloud_service_account_cloud_id_idx ON deployment.cloud_service_account (cloud_id);
 
 --
 -- NetworkRegion
@@ -3488,8 +3614,8 @@ ALTER TABLE ONLY deployment.network_region VALIDATE CONSTRAINT network_region_ac
 ALTER TABLE ONLY deployment.network_region ADD CONSTRAINT network_region_region_id_fkey FOREIGN KEY (region_id) REFERENCES deployment.region(id) NOT VALID;
 ALTER TABLE ONLY deployment.network_region VALIDATE CONSTRAINT network_region_region_id_fkey;
 
-CREATE INDEX CONCURRENTLY IF NOT EXISTS network_region_account_id_idx ON deployment.network_region (account_id);
-CREATE INDEX CONCURRENTLY IF NOT EXISTS network_region_region_id_idx ON deployment.network_region (region_id);
+CREATE INDEX IF NOT EXISTS network_region_account_id_idx ON deployment.network_region (account_id);
+CREATE INDEX IF NOT EXISTS network_region_region_id_idx ON deployment.network_region (region_id);
 
 --
 -- NetworkConfig
@@ -3519,8 +3645,8 @@ ALTER TABLE ONLY deployment.network_config VALIDATE CONSTRAINT network_config_ne
 ALTER TABLE ONLY deployment.network_config ADD CONSTRAINT network_config_account_id_fkey FOREIGN KEY (account_id) REFERENCES deployment.account(id) NOT VALID;
 ALTER TABLE ONLY deployment.network_config VALIDATE CONSTRAINT network_config_account_id_fkey;
 
-CREATE INDEX CONCURRENTLY IF NOT EXISTS network_config_account_id_idx ON deployment.network_config (account_id);
-CREATE INDEX CONCURRENTLY IF NOT EXISTS network_config_network_region_id_idx ON deployment.network_config (network_region_id);
+CREATE INDEX IF NOT EXISTS network_config_account_id_idx ON deployment.network_config (account_id);
+CREATE INDEX IF NOT EXISTS network_config_network_region_id_idx ON deployment.network_config (network_region_id);
 --
 -- K8sCluster
 --
@@ -3553,7 +3679,7 @@ ALTER TABLE ONLY deployment.zone ADD CONSTRAINT zone_region_id_fkey FOREIGN KEY 
 ALTER TABLE ONLY deployment.zone VALIDATE CONSTRAINT zone_region_id_fkey;
 ALTER TABLE ONLY deployment.zone ADD CONSTRAINT unique_realm_region_id_zone_id UNIQUE (realm, region_id, zone_id);
 
-CREATE INDEX CONCURRENTLY IF NOT EXISTS zone_region_id_idx ON deployment.zone (region_id);
+CREATE INDEX IF NOT EXISTS zone_region_id_idx ON deployment.zone (region_id);
 
 INSERT INTO deployment.zone (id, zone_id, name, region_id, sni_enabled, schedulable, created, modified, realm)
 VALUES
@@ -3658,6 +3784,57 @@ INSERT INTO cc_capacity_service.network_info (id, nid, cloud, realm, region, zon
 VALUES (4, 's-klm78', 'GCP', 'cc-devel', 'us-central1', '{"us-central1-b"}', False, null, False, '{"PUBLIC"}', 'ACTIVE', 'ACTIVE', 't0');
 INSERT INTO cc_capacity_service.network_info (id, nid, cloud, realm, region, zone_ids, dedicated, deactivated, enable_sni, desired_connection_types, desired_state, actual_state, environment_id)
 VALUES (5, 's-xyz09', 'AZURE', 'a1-b2-c3-d4-e5', 'centralus', '{1}', False, null, False, '{"PUBLIC"}', 'ACTIVE', 'ACTIVE', 't0');
+
+INSERT INTO cc_capacity_service.constraints (resource_id, cc_resource_type, constraint_types)
+VALUES
+    -- realms
+    -- aws
+    ('123', 'REALM', '{"DEFAULT"}'),
+    ('realm-2', 'REALM', '{"DEFAULT"}'),
+    ('321', 'REALM', '{"DEFAULT"}'),
+    ('realm-4', 'REALM', '{"DEFAULT"}'),
+    ('realm-5', 'REALM', '{"DEFAULT"}'),
+    -- gcp
+    ('realm-6', 'REALM', '{"DEFAULT"}'),
+    ('realm-7', 'REALM', '{"DEFAULT"}'),
+    ('realm-8', 'REALM', '{"DEFAULT"}'),
+    ('realm-9', 'REALM', '{"DEFAULT"}'),
+    ('realm-10', 'REALM', '{"DEFAULT"}'),
+    -- azure
+    ('realm-11', 'REALM', '{"DEFAULT"}'),
+    ('realm-12', 'REALM', '{"DEFAULT"}'),
+    ('realm-13', 'REALM', '{"DEFAULT"}'),
+    ('realm-14', 'REALM', '{"DEFAULT"}'),
+    ('realm-15', 'REALM', '{"DEFAULT"}'),
+
+    -- zones (1-18)
+    ('zone-1','AVAILABILITY_ZONE','{"PRIVATE_SHARED","PUBLIC_SHARED","FLINK"}'),
+    ('zone-2','AVAILABILITY_ZONE','{"PRIVATE_SHARED","PUBLIC_SHARED","FLINK"}'),
+    ('zone-3','AVAILABILITY_ZONE','{"PRIVATE_SHARED","PUBLIC_SHARED","FLINK"}'),
+    ('zone-4','AVAILABILITY_ZONE','{"PRIVATE_SHARED","PUBLIC_SHARED","FLINK"}'),
+    ('zone-5','AVAILABILITY_ZONE','{"PRIVATE_SHARED","PUBLIC_SHARED","FLINK"}'),
+    ('zone-6','AVAILABILITY_ZONE','{"PRIVATE_SHARED","PUBLIC_SHARED","FLINK"}'),
+    ('zone-7','AVAILABILITY_ZONE','{"PRIVATE_SHARED","PUBLIC_SHARED","FLINK"}'),
+    ('zone-8','AVAILABILITY_ZONE','{"PRIVATE_SHARED","PUBLIC_SHARED","FLINK"}'),
+    ('zone-9','AVAILABILITY_ZONE','{"PRIVATE_SHARED","PUBLIC_SHARED","FLINK"}'),
+    ('zone-10','AVAILABILITY_ZONE','{"PRIVATE_SHARED","PUBLIC_SHARED","FLINK"}'),
+    ('zone-11','AVAILABILITY_ZONE','{"PRIVATE_SHARED","PUBLIC_SHARED","FLINK"}'),
+    ('zone-12','AVAILABILITY_ZONE','{"PRIVATE_SHARED","PUBLIC_SHARED","FLINK"}'),
+    ('zone-13','AVAILABILITY_ZONE','{"PRIVATE_SHARED","PUBLIC_SHARED","FLINK"}'),
+    ('zone-14','AVAILABILITY_ZONE','{"PRIVATE_SHARED","PUBLIC_SHARED","FLINK"}'),
+    ('zone-15','AVAILABILITY_ZONE','{"PRIVATE_SHARED","PUBLIC_SHARED","FLINK"}'),
+    ('zone-16','AVAILABILITY_ZONE','{"PRIVATE_SHARED","PUBLIC_SHARED","FLINK"}'),
+    ('zone-17','AVAILABILITY_ZONE','{"PRIVATE_SHARED","PUBLIC_SHARED","FLINK"}'),
+    ('zone-18','AVAILABILITY_ZONE','{"PRIVATE_SHARED","PUBLIC_SHARED","FLINK"}'),
+
+
+    -- networks
+    ('nr-4','NETWORK','{"PUBLIC_SHARED"}'),
+    ('nr-5','NETWORK','{"PUBLIC_SHARED"}'),
+
+    -- k8s
+    ('k8s4','KUBERNETES','{"PUBLIC_SHARED"}'),
+    ('k8s6','KUBERNETES','{"PUBLIC_SHARED"}');
 --
 -- Stream Governance Region
 --
@@ -3836,7 +4013,7 @@ INSERT INTO rbac.role_binding (id, user_id, role_name, created_by, modified_by) 
 INSERT INTO rbac.role_binding (id, user_id, role_name, created_by, modified_by) VALUES ('rb-s-000027', 'kafkaqueuesadmin', 'CCloudTopicRoleBindingAdmin', 'seed', 'seed');
 INSERT INTO rbac.role_binding (id, user_id, role_name, created_by, modified_by) VALUES ('rb-s-000028', 'kafkaqueuesadmin', 'CCloudGroupRoleBindingAdmin', 'seed', 'seed');
 
--- The CDX tables are maintained here:https://github.com/confluentinc/cc-cdx-operations/blob/master/infra/db-operations/resources/schema.sql
+-- The CDX tables are maintained here: https://github.com/confluentinc/cc-cdx-operations/blob/master/infra/cdx-db-operations/resources/schema.sql
 --
 -- Name: cdx; Type: SCHEMA; Schema: -; Owner: cc_cdx_api
 --
@@ -3913,6 +4090,7 @@ CREATE TABLE cdx.shared_resource
     resource_metadata   jsonb DEFAULT '{}',
     created             timestamp without time zone DEFAULT now() NOT NULL,
     modified            timestamp without time zone DEFAULT now() NOT NULL,
+    deactivated_at      timestamp without time zone,
     CONSTRAINT cdx_shared_resource_pkey PRIMARY KEY (id)
 );
 
@@ -3920,7 +4098,7 @@ ALTER TABLE IF EXISTS cdx.shared_resource OWNER to cc_cdx_api;
 
 CREATE INDEX IF NOT EXISTS shared_resource_created_idx ON cdx.shared_resource (created);
 CREATE INDEX IF NOT EXISTS shared_resource_org_id_idx ON cdx.shared_resource (org_resource_id);
-CREATE UNIQUE INDEX IF NOT EXISTS shared_resource_unique_idx ON cdx.shared_resource(org_resource_id, environment_id, logical_cluster_id, resource_type, resource_name);
+CREATE UNIQUE INDEX IF NOT EXISTS shared_resource_unique_idx ON cdx.shared_resource(org_resource_id, environment_id, logical_cluster_id, resource_type, resource_name) WHERE deactivated_at IS NULL;
 
 -- This sequence is used by the hashid generator that supplies the id
 CREATE SEQUENCE cdx.shared_resource_id_seq
@@ -3994,10 +4172,75 @@ CREATE SEQUENCE cdx.feature_flag_id_seq
 
 ALTER SEQUENCE cdx.feature_flag_id_seq OWNER TO cc_cdx_api;
 
+-- The ARMS tables are maintained here: https://github.com/confluentinc/cc-cdx-operations/blob/master/infra/arms-db-operations/resources/schema.sql
+--
+-- Name: arms; Type: SCHEMA; Schema: -; Owner: cc_arms_api
+--
+
+DO $$
+    BEGIN
+        CREATE USER cc_arms_api;
+    EXCEPTION WHEN DUPLICATE_OBJECT THEN
+        RAISE NOTICE 'user cc_arms_api already exists -- skip create';
+    END
+$$;
+
+CREATE SCHEMA arms;
+
+ALTER SCHEMA arms OWNER TO cc_arms_api;
+
+CREATE TYPE arms.request_status AS ENUM ('Pending', 'Approved', 'Rejected', 'Expired');
+ALTER TYPE arms.request_status OWNER TO cc_arms_api;
+
+CREATE SEQUENCE arms.request_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+ALTER SEQUENCE arms.request_id_seq OWNER TO cc_arms_api;
+
+CREATE TABLE arms.request (
+    id text PRIMARY KEY,
+    org_resource_id text NOT NULL,
+    status arms.request_status NOT NULL DEFAULT 'Pending',
+    message text,
+    created timestamp without time zone DEFAULT now() NOT NULL,
+    created_by text NOT NULL,
+    modified timestamp without time zone DEFAULT now() NOT NULL,
+    modified_by text NOT NULL,
+    expire timestamp without time zone NOT NULL,
+    resources_to_roles jsonb NOT NULL check (resources_to_roles <> '{}'::jsonb)
+);
+
+ALTER TABLE arms.request OWNER TO cc_arms_api;
+
+CREATE INDEX IF NOT EXISTS request_created_idx ON arms.request (created);
+CREATE INDEX IF NOT EXISTS request_expire_idx ON arms.request (expire);
+CREATE INDEX IF NOT EXISTS request_org_id_idx ON arms.request (org_resource_id);
+CREATE INDEX IF NOT EXISTS resources_to_roles_idx ON arms.request USING gin (resources_to_roles);
+
+-- Function to enforce that modified are updated
+CREATE FUNCTION arms.update_request() RETURNS trigger
+    LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    NEW.modified = NOW();
+    RETURN NEW;
+END
+$$;
+
+-- Trigger to enforce that modified is updated
+CREATE TRIGGER arms_request_update_trigger
+    BEFORE INSERT OR UPDATE ON arms.request
+    FOR EACH ROW
+    -- there are currently no other triggers on this table, but this depth check
+    -- prevents recursive loops if some are later added.
+    WHEN (pg_trigger_depth() < 1)
+EXECUTE PROCEDURE arms.update_request();
+
 -- The cloud growth tables are maintained here:https://github.com/confluentinc/cloud-growth-operations/blob/master/infra/db-operations/seed/cloudgrowthdb-seed.sql
---
--- Name: cloud_growth; Type: SCHEMA; Schema: -; Owner: caas
---
 DO $$
     BEGIN
         CREATE USER cc_activation_status;
@@ -4008,17 +4251,19 @@ $$;
 
 DO $$
     BEGIN
-        CREATE USER cc_growth_service;
+        CREATE USER cc_growth_service_iam;
     EXCEPTION WHEN DUPLICATE_OBJECT THEN
-        RAISE NOTICE 'user cc_growth_service already exists -- skip create';
+        RAISE NOTICE 'user cc_growth_service_iam already exists -- skip create';
     END
 $$;
 
+--
+-- Name: cloud_growth; Type: SCHEMA; Schema: -; Owner: caas
+--
 CREATE SCHEMA cloud_growth;
-
 ALTER SCHEMA cloud_growth OWNER TO caas;
 GRANT USAGE ON SCHEMA cloud_growth TO cc_activation_status;
-GRANT USAGE ON SCHEMA cloud_growth TO cc_growth_service;
+GRANT USAGE ON SCHEMA cloud_growth TO cc_growth_service_iam;
 
 --
 -- Name: activation_status_organization; Type: TABLE; Schema: cloud_growth; Owner: cc_activation_status
@@ -4093,7 +4338,7 @@ CREATE INDEX IF NOT EXISTS activation_status_cluster_compute_date_org_id_cluster
 ALTER TABLE cloud_growth.activation_status_cluster OWNER TO cc_activation_status;
 
 --
--- Name: campaign_promo_code; Type: TABLE; Schema: cloud_growth; Owner: cc_growth_service
+-- Name: campaign_promo_code; Type: TABLE; Schema: cloud_growth; Owner: cc_growth_service_iam
 --
 CREATE TABLE cloud_growth.campaign_promo_code
 (
@@ -4114,11 +4359,11 @@ CREATE INDEX IF NOT EXISTS campaign_promo_code_org_id_campaign_type_idx ON cloud
 CREATE INDEX IF NOT EXISTS campaign_promo_code_org_resource_id_campaign_type_user_id_idx ON cloud_growth.campaign_promo_code USING btree (org_resource_id, campaign_type, created_by_user_id);
 CREATE INDEX IF NOT EXISTS campaign_promo_code_org_id_campaign_type_user_id_idx ON cloud_growth.campaign_promo_code USING btree (org_id, campaign_type, created_by_user_id);
 CREATE INDEX IF NOT EXISTS campaign_promo_code_promo_code_idx ON cloud_growth.campaign_promo_code USING btree (promo_code);
-ALTER TABLE cloud_growth.campaign_promo_code OWNER TO cc_growth_service;
+ALTER TABLE cloud_growth.campaign_promo_code OWNER TO cc_growth_service_iam;
 ALTER TABLE cloud_growth.campaign_promo_code ADD CONSTRAINT unique_campaign_promo_code UNIQUE (promo_code);
 
 --
--- Name: campaign_flow; Type: TABLE; Schema: cloud_growth; Owner: cc_growth_service
+-- Name: campaign_flow; Type: TABLE; Schema: cloud_growth; Owner: cc_growth_service_iam
 --
 CREATE TABLE cloud_growth.campaign_flow
 (
@@ -4140,12 +4385,82 @@ CREATE INDEX IF NOT EXISTS campaign_flow_org_id_campaign_type_idx ON cloud_growt
 CREATE INDEX IF NOT EXISTS campaign_flow_org_resource_id_campaign_type_user_id_idx ON cloud_growth.campaign_flow USING btree (org_resource_id, campaign_type, user_id);
 CREATE INDEX IF NOT EXISTS campaign_flow_org_id_campaign_type_user_id_idx ON cloud_growth.campaign_flow USING btree (org_id, campaign_type, user_id);
 CREATE INDEX IF NOT EXISTS campaign_flow_promo_code_idx ON cloud_growth.campaign_flow USING btree (flow_resource_id);
-ALTER TABLE cloud_growth.campaign_flow OWNER TO cc_growth_service;
+ALTER TABLE cloud_growth.campaign_flow OWNER TO cc_growth_service_iam;
 ALTER TABLE cloud_growth.campaign_flow ADD CONSTRAINT unique_campaign_flow_flow_record_with_org_resource_id UNIQUE (org_resource_id, campaign_type, user_id, flow_resource_id);
 ALTER TABLE cloud_growth.campaign_flow ADD CONSTRAINT unique_campaign_flow_flow_record_with_org_id UNIQUE (org_id, campaign_type, user_id, flow_resource_id);
-
 CREATE SEQUENCE IF NOT EXISTS cloud_growth.promo_code_id_seq START WITH 1 INCREMENT BY 1 NO MINVALUE NO MAXVALUE CACHE 1;
-ALTER SEQUENCE cloud_growth.promo_code_id_seq OWNER TO cc_growth_service;
+ALTER SEQUENCE cloud_growth.promo_code_id_seq OWNER TO cc_growth_service_iam;
+
+--
+-- Name: growth_platform; Type: SCHEMA; Schema: -; Owner: caas
+--
+CREATE SCHEMA growth_platform;
+ALTER SCHEMA growth_platform OWNER TO caas;
+GRANT USAGE ON SCHEMA growth_platform TO cc_growth_service_iam;
+
+--
+-- Name: raw_organization; Type: TABLE; Schema: growth_platform; Owner: cc_growth_service_iam
+--
+CREATE TABLE growth_platform.raw_organization
+(
+    id                integer                                         NOT NUll,
+    name              character varying(64)                           NOT NULL,
+    resource_id       TEXT                                            NOT NULL,
+    created           timestamp without time zone                     NOT NULL,
+    modified          timestamp without time zone                     NOT NULL,
+    deactivated       timestamp without time zone                     NOT NULL,
+    suspension_status jsonb DEFAULT '{}'::jsonb                       NOT NULL
+);
+CREATE INDEX IF NOT EXISTS organization_id_idx ON growth_platform.raw_organization USING btree (id);
+CREATE INDEX IF NOT EXISTS organization_resource_id_idx ON growth_platform.raw_organization USING btree (resource_id);
+ALTER TABLE growth_platform.raw_organization OWNER TO cc_growth_service_iam;
+ALTER TABLE growth_platform.raw_organization ADD CONSTRAINT unique_organization_resource_id UNIQUE (resource_id);
+
+--
+-- Name: signal; Type: TABLE; Schema: growth_platform; Owner: cc_growth_service_iam
+--
+CREATE TABLE growth_platform.signal
+(
+    id               BIGSERIAL PRIMARY KEY,
+    org_resource_id  TEXT                                            NOT NULL,
+    org_id           integer                                         NOT NUll,
+    signal_type      VARCHAR(50)                                     NOT NULL,
+    payload          jsonb                       DEFAULT '{}'::jsonb NOT NULL,
+    created          timestamp without time zone DEFAULT now()       NOT NULL,
+    modified         timestamp without time zone DEFAULT now()       NOT NULL
+);
+CREATE INDEX IF NOT EXISTS signal_org_resource_id_idx ON growth_platform.signal USING btree (org_resource_id);
+CREATE INDEX IF NOT EXISTS signal_org_id_idx ON growth_platform.signal USING btree (org_id);
+CREATE INDEX IF NOT EXISTS signal_org_resource_id_org_id_signal_type_idx ON growth_platform.signal USING btree (org_resource_id, org_id, signal_type);
+CREATE INDEX IF NOT EXISTS signal_org_resource_id_signal_type_idx ON growth_platform.signal USING btree (org_resource_id, signal_type);
+CREATE INDEX IF NOT EXISTS signal_org_id_signal_type_idx ON growth_platform.signal USING btree (org_id, signal_type);
+ALTER TABLE growth_platform.signal OWNER TO cc_growth_service_iam;
+ALTER TABLE growth_platform.signal ADD CONSTRAINT unique_signal_with_org_resource_id_org_id UNIQUE (org_resource_id, org_id, signal_type);
+ALTER TABLE growth_platform.signal ADD CONSTRAINT unique_signal_with_org_resource_id UNIQUE (org_resource_id, signal_type);
+ALTER TABLE growth_platform.signal ADD CONSTRAINT unique_signal_with_org_id UNIQUE (org_id, signal_type);
+
+--
+-- Name: opportunity; Type: TABLE; Schema: growth_platform; Owner: cc_growth_service_iam
+--
+CREATE TABLE growth_platform.opportunity
+(
+    id               BIGSERIAL PRIMARY KEY,
+    org_resource_id  TEXT                                            NOT NULL,
+    org_id           integer                                         NOT NUll,
+    opportunity_type VARCHAR(50)                                     NOT NULL,
+    valid_until      timestamp without time zone                     NOT NULL,
+    created          timestamp without time zone DEFAULT now()       NOT NULL,
+    modified         timestamp without time zone DEFAULT now()       NOT NULL
+);
+CREATE INDEX IF NOT EXISTS opportunity_org_resource_id_idx ON growth_platform.opportunity USING btree (org_resource_id);
+CREATE INDEX IF NOT EXISTS opportunity_org_id_idx ON growth_platform.opportunity USING btree (org_id);
+CREATE INDEX IF NOT EXISTS opportunity_org_resource_id_org_id_opportunity_type_idx ON growth_platform.opportunity USING btree (org_resource_id, org_id, opportunity_type);
+CREATE INDEX IF NOT EXISTS opportunity_org_resource_id_opportunity_type_idx ON growth_platform.opportunity USING btree (org_resource_id, opportunity_type);
+CREATE INDEX IF NOT EXISTS signal_org_id_opportunity_type_idx ON growth_platform.opportunity USING btree (org_id, opportunity_type);
+ALTER TABLE growth_platform.opportunity OWNER TO cc_growth_service_iam;
+ALTER TABLE growth_platform.opportunity ADD CONSTRAINT unique_opportunity_with_org_resource_id_org_id UNIQUE (org_resource_id, org_id, opportunity_type);
+ALTER TABLE growth_platform.opportunity ADD CONSTRAINT unique_opportunity_with_org_resource_id UNIQUE (org_resource_id, opportunity_type);
+ALTER TABLE growth_platform.opportunity ADD CONSTRAINT unique_opportunity_with_org_id UNIQUE (org_id, opportunity_type);
 
 --
 -- Start Atlas tables --
@@ -4226,6 +4541,14 @@ insert into atlas.certificate_scheme (id, name, created, modified, enable_preall
 VALUES
 ('cs-1', 'network_scoped_certificate_scheme', now(), now(), 'REGION', false, '[["WILDCARD", "DOMAIN_ID", "REGION", "CLOUD", "TOP_LEVEL_DOMAIN"], ["WILDCARD", "ZONE", "DOMAIN_ID", "REGION", "CLOUD", "TOP_LEVEL_DOMAIN"]]');
 
+insert into atlas.certificate (id, certificate_scheme_id, created, modified, start, expiry, cloud, region, issuer_id, issuer_account_id, storage_type, storage_location, domain_list)
+VALUES
+('cert-1', 'cs-1', now(), now(), now(), now() + interval '90 days', 'gcp', 'us-central1', 'letsencrypt', '123@example.xyz', 'S3', 'kafka_cluster_cert_037bbc50f12fa5ae3e2cffaae67994e4392087f0', '{"*.gcp.priv.cpdev.cloud", "*.us-central1.gcp.priv.cpdev.cloud"}');
+
+insert into atlas.certificate_owner (certificate_id, owner_id, created)
+VALUES
+('cert-1', 'nr-100', now());
+
 --
 -- End seed Atlas tables --
 --
@@ -4253,17 +4576,17 @@ VALUES
 
 INSERT INTO deployment.physical_cluster_status(id, status, status_detail, status_modified, status_received, last_initialized, last_deleted)
 VALUES ('pkc-mothership', 'UP', '{"PSCStatus": {"phase": "RUNNING", "summary": "UP"}, "IsExpansionInitiated": false}', null, null, null, null),
-VALUES ('pcc-mothership', 'UP', '{"PSCStatus": {"phase": "RUNNING", "summary": "UP"}, "IsExpansionInitiated": false}', null, null, null, null);
+       ('pcc-mothership', 'UP', '{"PSCStatus": {"phase": "RUNNING", "summary": "UP"}, "IsExpansionInitiated": false}', null, null, null, null);
 
 /* create logical cluster record */
-INSERT INTO deployment.logical_cluster(id, name, physical_cluster_id, type, account_id, config, created, modified, deactivated, deployment_id, organization_id, org_resource_id)
+INSERT INTO deployment.logical_cluster(id, name, physical_cluster_id, type, account_id, config, created, modified, deactivated, deployment_id, organization_id, org_resource_id, region, cloud, network_id, sku)
 VALUES
-( 'lkc-mothership','mothership','pkc-mothership','kafka','t0','{"kafka": {"durability": "HIGH", "enterprise": true, "network_egress": 1, "network_ingress": 1, "storage_capacity": 1000}, "connector": {"user_configs": null, "connector_name": "", "connector_type": ""}, "price_per_hour": 7904, "schema_registry": {"MaxSchemas": 0, "kafka_cluster_id": ""}, "accrued_this_cycle": 0}','2018-10-22 16:14:22.576176','2021-01-12 06:47:23.415694',null,'deployment-mothership', 0, '00000000-0000-0000-0000-000000000000'),
-( 'lcc-mothership','mothership','pcc-mothership','connect','t0','{"kafka": {"durability": "HIGH", "enterprise": true, "network_egress": 1, "network_ingress": 1, "storage_capacity": 1000}, "connector": {"user_configs": null, "connector_name": "", "connector_type": ""}, "price_per_hour": 7904, "schema_registry": {"MaxSchemas": 0, "kafka_cluster_id": ""}, "accrued_this_cycle": 0}','2018-10-22 16:14:22.576176','2021-01-12 06:47:23.415694',null,'deployment-mothership', 0, '00000000-0000-0000-0000-000000000000'),
-( 'lkc-caas','lkc-caas','pkc-mothership','kafka','t0','{"kafka": {"durability": "HIGH", "enterprise": true, "network_egress": 1, "network_ingress": 1, "storage_capacity": 1000}, "connector": {"user_configs": null, "connector_name": "", "connector_type": ""}, "price_per_hour": 7904, "schema_registry": {"MaxSchemas": 0, "kafka_cluster_id": ""}, "accrued_this_cycle": 0}','2018-10-22 16:14:22.576176','2021-01-12 06:47:23.415694',null,'deployment-caas', 0, '00000000-0000-0000-0000-000000000000'),
-( 'lkc-logs','lkc-logs','pkc-mothership','kafka','t0','{"kafka": {"durability": "HIGH", "enterprise": true, "network_egress": 1, "network_ingress": 1, "storage_capacity": 1000}, "connector": {"user_configs": null, "connector_name": "", "connector_type": ""}, "price_per_hour": 7904, "schema_registry": {"MaxSchemas": 0, "kafka_cluster_id": ""}, "accrued_this_cycle": 0}','2018-10-22 16:14:22.576176','2021-01-12 06:47:23.415694',null,'deployment-logs', 0, '00000000-0000-0000-0000-000000000000'),
-( 'lkc-scraper','lkc-scraper','pkc-mothership','kafka','t0','{"kafka": {"durability": "HIGH", "enterprise": true, "network_egress": 1, "network_ingress": 1, "storage_capacity": 1000}, "connector": {"user_configs": null, "connector_name": "", "connector_type": ""}, "price_per_hour": 7904, "schema_registry": {"MaxSchemas": 0, "kafka_cluster_id": ""}, "accrued_this_cycle": 0}','2018-10-22 16:14:22.576176','2021-01-12 06:47:23.415694',null,'deployment-scraper', 0, '00000000-0000-0000-0000-000000000000'),
-( 'lkc-router','lkc-router','pkc-mothership','kafka','t0','{"kafka": {"durability": "HIGH", "enterprise": true, "network_egress": 1, "network_ingress": 1, "storage_capacity": 1000}, "connector": {"user_configs": null, "connector_name": "", "connector_type": ""}, "price_per_hour": 7904, "schema_registry": {"MaxSchemas": 0, "kafka_cluster_id": ""}, "accrued_this_cycle": 0}','2018-10-22 16:14:22.576176','2021-01-12 06:47:23.415694',null,'deployment-router', 0, '00000000-0000-0000-0000-000000000000');
+( 'lkc-mothership','mothership','pkc-mothership','kafka','t0','{"kafka": {"durability": "HIGH", "enterprise": true, "network_egress": 1, "network_ingress": 1, "storage_capacity": 1000}, "connector": {"user_configs": null, "connector_name": "", "connector_type": ""}, "price_per_hour": 7904, "schema_registry": {"MaxSchemas": 0, "kafka_cluster_id": ""}, "accrued_this_cycle": 0}','2018-10-22 16:14:22.576176','2021-01-12 06:47:23.415694',null,'deployment-mothership', 0, '00000000-0000-0000-0000-000000000000', 'us-central1', 'gcp', 'nr-1', 'DEDICATED_LEGACY'),
+( 'lcc-mothership','mothership','pcc-mothership','connect','t0','{"kafka": {"durability": "HIGH", "enterprise": true, "network_egress": 1, "network_ingress": 1, "storage_capacity": 1000}, "connector": {"user_configs": null, "connector_name": "", "connector_type": ""}, "price_per_hour": 7904, "schema_registry": {"MaxSchemas": 0, "kafka_cluster_id": ""}, "accrued_this_cycle": 0}','2018-10-22 16:14:22.576176','2021-01-12 06:47:23.415694',null,'deployment-mothership', 0, '00000000-0000-0000-0000-000000000000', 'us-central1', 'gcp', 'nr-1', 'DEDICATED_LEGACY'),
+( 'lkc-caas','lkc-caas','pkc-mothership','kafka','t0','{"kafka": {"durability": "HIGH", "enterprise": true, "network_egress": 1, "network_ingress": 1, "storage_capacity": 1000}, "connector": {"user_configs": null, "connector_name": "", "connector_type": ""}, "price_per_hour": 7904, "schema_registry": {"MaxSchemas": 0, "kafka_cluster_id": ""}, "accrued_this_cycle": 0}','2018-10-22 16:14:22.576176','2021-01-12 06:47:23.415694',null,'deployment-caas', 0, '00000000-0000-0000-0000-000000000000', 'us-central1', 'gcp', 'nr-1', 'DEDICATED_LEGACY'),
+( 'lkc-logs','lkc-logs','pkc-mothership','kafka','t0','{"kafka": {"durability": "HIGH", "enterprise": true, "network_egress": 1, "network_ingress": 1, "storage_capacity": 1000}, "connector": {"user_configs": null, "connector_name": "", "connector_type": ""}, "price_per_hour": 7904, "schema_registry": {"MaxSchemas": 0, "kafka_cluster_id": ""}, "accrued_this_cycle": 0}','2018-10-22 16:14:22.576176','2021-01-12 06:47:23.415694',null,'deployment-logs', 0, '00000000-0000-0000-0000-000000000000', 'us-central1', 'gcp', 'nr-1', 'DEDICATED_LEGACY'),
+( 'lkc-scraper','lkc-scraper','pkc-mothership','kafka','t0','{"kafka": {"durability": "HIGH", "enterprise": true, "network_egress": 1, "network_ingress": 1, "storage_capacity": 1000}, "connector": {"user_configs": null, "connector_name": "", "connector_type": ""}, "price_per_hour": 7904, "schema_registry": {"MaxSchemas": 0, "kafka_cluster_id": ""}, "accrued_this_cycle": 0}','2018-10-22 16:14:22.576176','2021-01-12 06:47:23.415694',null,'deployment-scraper', 0, '00000000-0000-0000-0000-000000000000', 'us-central1', 'gcp', 'nr-1', 'DEDICATED_LEGACY'),
+( 'lkc-router','lkc-router','pkc-mothership','kafka','t0','{"kafka": {"durability": "HIGH", "enterprise": true, "network_egress": 1, "network_ingress": 1, "storage_capacity": 1000}, "connector": {"user_configs": null, "connector_name": "", "connector_type": ""}, "price_per_hour": 7904, "schema_registry": {"MaxSchemas": 0, "kafka_cluster_id": ""}, "accrued_this_cycle": 0}','2018-10-22 16:14:22.576176','2021-01-12 06:47:23.415694',null,'deployment-router', 0, '00000000-0000-0000-0000-000000000000', 'us-central1', 'gcp', 'nr-1', 'DEDICATED_LEGACY');
 
 INSERT INTO deployment.logical_cluster_status(id, status_detail, status_modified)
 VALUES
@@ -4322,7 +4645,7 @@ ALTER TABLE deployment.cert_registry OWNER TO caas;
 --
 
 CREATE TABLE public.sites (
-    id integer NOT NULL,
+    id integer NOT NULL PRIMARY KEY,
     name character varying(63),
     nid text NOT NULL,
     cloud text NOT NULL,
@@ -4433,6 +4756,16 @@ CREATE SEQUENCE cc_control_plane_kafka.kafka_quotas_resource_id_seq
     NO MINVALUE
     NO MAXVALUE
     CACHE 1;
+
+/* Begin Secrets service seeding */
+
+--
+-- Name: cc_secrets; Type: SCHEMA; Schema: -; Owner: cc_scheduler_service
+--
+
+CREATE SCHEMA cc_secrets;
+
+/* End Secrets service seeding */
 
 --
 -- Name: kafka_quota; Type: TABLE; Schema: cc_kafka_api_service; Owner: cc_kafka_api_service
@@ -4654,14 +4987,38 @@ BEGIN
 END
 $$;
 
+GRANT USAGE ON SCHEMA cc_secrets TO GROUP cc_scheduler_service;
+GRANT ALL PRIVILEGES ON SCHEMA cc_secrets TO cc_scheduler_service;
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA cc_secrets TO cc_scheduler_service;
+
 GRANT USAGE ON SCHEMA deployment TO GROUP cc_scheduler_service;
 GRANT USAGE ON SCHEMA cc_capacity_service TO GROUP cc_scheduler_service;
 GRANT ALL PRIVILEGES ON SCHEMA cc_capacity_service TO cc_scheduler_service;
 GRANT ALL PRIVILEGES ON TABLE cc_capacity_service.k8s_cluster TO cc_scheduler_service;
 GRANT ALL PRIVILEGES ON TABLE cc_capacity_service.physical_cluster TO cc_scheduler_service;
 GRANT ALL PRIVILEGES ON TABLE cc_capacity_service.logical_cluster TO cc_scheduler_service;
-GRANT ALL PRIVILEGES ON TABLE cc_capacity_service.constraint TO cc_scheduler_service;
+GRANT ALL PRIVILEGES ON TABLE cc_capacity_service.constraints TO cc_scheduler_service;
 GRANT ALL PRIVILEGES ON TABLE cc_capacity_service.network_info TO cc_scheduler_service;
+GRANT ALL PRIVILEGES ON TABLE cc_capacity_service.region TO cc_scheduler_service;
+GRANT ALL PRIVILEGES ON TABLE cc_capacity_service.zone TO cc_scheduler_service;
+GRANT ALL PRIVILEGES ON TABLE cc_capacity_service.realm TO cc_scheduler_service;
+
+ALTER DOMAIN cc_capacity_service.k8s_cluster_id OWNER TO cc_scheduler_service;
+ALTER DOMAIN cc_capacity_service.cloud_id OWNER TO cc_scheduler_service;
+ALTER DOMAIN cc_capacity_service.region_id OWNER TO cc_scheduler_service;
+ALTER DOMAIN cc_capacity_service.logical_cluster_id OWNER TO cc_scheduler_service;
+ALTER DOMAIN cc_capacity_service.physical_cluster_id OWNER TO cc_scheduler_service;
+ALTER DOMAIN cc_capacity_service.network_region_id OWNER TO cc_scheduler_service;
+ALTER TYPE cc_capacity_service.cc_resource_type OWNER TO cc_scheduler_service;
+ALTER TABLE cc_capacity_service.k8s_cluster OWNER TO cc_scheduler_service;
+ALTER TABLE cc_capacity_service.logical_cluster OWNER TO cc_scheduler_service;
+ALTER TABLE cc_capacity_service.physical_cluster OWNER TO cc_scheduler_service;
+ALTER TABLE cc_capacity_service.network_info OWNER TO cc_scheduler_service;
+ALTER TABLE cc_capacity_service.constraints OWNER TO cc_scheduler_service;
+ALTER TABLE cc_capacity_service.region OWNER TO cc_scheduler_service;
+ALTER TABLE cc_capacity_service.zone OWNER TO cc_scheduler_service;
+ALTER TABLE cc_capacity_service.realm OWNER TO cc_scheduler_service;
+
 GRANT ALL PRIVILEGES ON TABLE deployment.connect_error_message_mappings TO cc_scheduler_service;
 GRANT ALL PRIVILEGES ON TABLE deployment.connect_plugin TO cc_scheduler_service;
 GRANT ALL PRIVILEGES ON TABLE deployment.connect_task_usage TO cc_scheduler_service;
@@ -4716,6 +5073,8 @@ GRANT ALL PRIVILEGES ON TABLE deployment.organization_id_seq TO cc_scheduler_ser
 GRANT ALL PRIVILEGES ON TABLE deployment.account_num TO cc_scheduler_service;
 GRANT ALL PRIVILEGES ON TABLE deployment.cdmum_dml_history TO cc_scheduler_service;
 GRANT ALL PRIVILEGES ON TABLE deployment.cdmum_dml_history_id_seq TO cc_scheduler_service;
+
+GRANT ALL PRIVILEGES ON TABLE deployment.connect_oauth_session TO cc_scheduler_service;
 ------------------------------------------------------------
 ------------------------------------------------------------
 --

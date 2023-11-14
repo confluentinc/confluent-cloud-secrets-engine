@@ -1,4 +1,4 @@
-TEST_RESULT_FILE_NAME ?= $(SEMAPHORE_PIPELINE_ID)-TEST-result.xml
+TEST_RESULT_FILE_NAME ?= *TEST-result.xml
 TEST_RESULT_FILE ?= $(BUILD_DIR)/$(TEST_RESULT_FILE_NAME)
 
 GO_COVERAGE_HTML ?= coverage.html
@@ -14,38 +14,36 @@ INIT_CI_TARGETS += ci-bin-sem-cache-restore
 EPILOGUE_TARGETS += ci-bin-sem-cache-store store-test-results-to-semaphore
 DEB_CACHE_DIR ?= $(SEMAPHORE_CACHE_DIR)/.deb-cache
 PIP_CACHE_DIR ?= $(shell pip3 cache dir)
-CI_BIN_OVERRIDE ?= ci-bin
-
-ifeq ($(SEMAPHORE_GIT_PR_BRANCH),)
-    CACHE_KEY = ci-bin_$(SEMAPHORE_GIT_BRANCH)
-else
-    CACHE_KEY = ci-bin_$(SEMAPHORE_GIT_PR_BRANCH)
-endif
+CI_BIN_CACHE_KEY = $(CI_BIN)
+current_time := $(shell date +"%s")
 
 .PHONY: ci-bin-sem-cache-store
 ci-bin-sem-cache-store:
+ifneq ($(SEMAPHORE_GIT_REF_TYPE),pull-request)
 	@echo "Storing semaphore caches"
-	cache delete $(CACHE_KEY) \
-		&& cache store $(CACHE_KEY) $(CI_BIN_OVERRIDE)
-	# For most repos, these caches are very large, so don't delete
-	# and restore them. In the (rare) case that the caches are corrupted 
-	# we should just clear them manually in semaphore 
-	cache store gocache $(GOPATH)/pkg/mod
-	cache store pip3_cache $(PIP_CACHE_DIR)
-	cache store install_package_cache $(DEB_CACHE_DIR)
+	# cache restore allows fuzzy matching. When it finds multiple matches, it will select the most recent cache archive.
+	# Additionally, it will not overwrite an existing cache archive with the same key.
+	# Therefore, we store the cache with a timestamp in the key to avoid collisions.
+	cache store $(CI_BIN_CACHE_KEY)_$(current_time) $(CI_BIN)
+	cache store gocache_$(current_time) $(GOPATH)/pkg/mod
+	cache store pip3_cache_$(current_time) $(PIP_CACHE_DIR)
+	cache store install_package_cache_$(current_time) $(DEB_CACHE_DIR)
+	cache store maven_cache_$(current_time) $(HOME)/.m2/repository
+endif
 
 .PHONY: ci-bin-sem-cache-restore
 ci-bin-sem-cache-restore:
 	@echo "Restoring semaphore caches"
-	cache restore $(CACHE_KEY),ci-bin_master,ci-bin
+	cache restore $(CI_BIN_CACHE_KEY)
 	cache restore gocache
 	cache restore pip3_cache
 	cache restore install_package_cache
+	cache restore maven_cache
 
 .PHONY: ci-bin-sem-cache-delete
 ci-bin-sem-cache-delete:
 	@echo "Deleting semaphore caches"
-	cache delete $(CACHE_KEY)
+	cache delete $(CI_BIN_CACHE_KEY)
 endif
 
 .PHONY: ci-generate-and-store-coverage-data
@@ -60,7 +58,7 @@ ci-coverage: ci-generate-and-store-coverage-data go-gate-coverage
 store-test-results-to-semaphore:
 ifneq ($(wildcard $(TEST_RESULT_FILE)),)
 ifeq ($(TEST_RESULT_NAME),)
-	test-results publish $(TEST_RESULT_FILE)
+	test-results publish $(TEST_RESULT_FILE) --force
 else
 	test-results publish $(TEST_RESULT_FILE) --name "$(TEST_RESULT_NAME)"
 endif
