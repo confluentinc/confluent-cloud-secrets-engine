@@ -1,0 +1,168 @@
+version: v1.0
+name: cc-mk-include
+agent:
+  machine:
+    type: s1-prod-ubuntu20-04-amd64-1
+global_job_config:
+  env_vars:
+    - name: PYTHON_VERSION
+      value: "3.10"
+    - name: PYTEST_LOG_LEVEL
+      value: "DEBUG"
+    - name: PYTEST_VERSION
+      value: "6.2.5"
+    - name: STRUCTLOG_VERSION
+      value: "23.2.0"
+  prologue:
+    commands:
+      - sem-version go 1.21.0
+      - sem-version python "${PYTHON_VERSION}"
+      - export "GOPATH=$(go env GOPATH)"
+      - >-
+        export
+        "SEMAPHORE_GIT_DIR=${GOPATH}/src/github.com/confluentinc/${SEMAPHORE_PROJECT_NAME}"
+      - 'export "PATH=${GOPATH}/bin:${PATH}"'
+      - 'mkdir -vp "${SEMAPHORE_GIT_DIR}" "${GOPATH}/bin"'
+      - export SEMAPHORE_CACHE_DIR=/home/semaphore
+      - checkout
+      - make copy-parent-mk-include
+      - . vault-setup
+      # Set up secrets
+      - . vault-sem-get-secret cpd_gcloud
+      - . vault-sem-get-secret ci-reporting
+      - make testbreak-setup
+  epilogue:
+    on_fail:
+      commands:
+        - make testbreak-after
+blocks:
+  - name: Go Docker Test
+    dependencies: []
+    task:
+      jobs:
+        - name: Go build, test, push docker
+          commands:
+            - make copy-mk-include-go-docker-build-test
+            - cd tests/go-docker-build-test
+            - make go-docker-build-test
+
+  - name: Multi-arch Docker Test
+    dependencies: []
+    task:
+      jobs:
+        - name: Multi-arch build, test, push docker
+          commands:
+            - make copy-mk-include-multiarch-docker-build-test
+            - cd tests/multiarch-docker-build-test
+            - make multiarch-docker-build-test
+
+  - name: Maven Docker Test
+    dependencies: []
+    task:
+      jobs:
+        - name: Maven build, test, push docker
+          commands:
+            - make copy-mk-include-maven-docker-build-test
+            - cd tests/maven-docker-build-test
+            - make maven-docker-build-test
+
+  - name: Sanity Import Test
+    dependencies: []
+    task:
+      jobs:
+        - name: sanity import test
+          commands:
+            - make copy-mk-include-sanity-import-test
+            - cd tests/sanity-import-test
+            - make mk-include-sanity-import-test
+  - name: Install Pact Tools Test
+    dependencies: []
+    task:
+      jobs:
+        - name: install-pact-tools.sh test
+          commands:
+            - make copy-mk-include-install-pact-tools-script
+            - make pact-install
+
+  - name: release cc-mk-include
+    skip:
+      when: "branch != 'master'"
+    dependencies:
+      - "Multi-arch Docker Test"
+      - "Go Docker Test"
+      - "Maven Docker Test"
+      - "Sanity Import Test"
+      - "Install Pact Tools Test"
+    task:
+      env_vars:
+        - name: PYTEST_LOG_LEVEL
+          value: "WARN"
+      jobs:
+        - name: release cc-mk-include
+          commands:
+            - make verify-version
+            - make upload-binary
+            - make release
+            - make prerelease-version-tag
+      epilogue:
+        commands:
+          - make testbreak-after
+  - name: canary project builds
+    dependencies:
+      - "release cc-mk-include"
+    task:
+      jobs:
+        # TODO: uncomment when cc-useless-service deployment is fixed
+        # - name: cc-useless-service-halyard-deploy-stag
+        #   commands:
+        #    - . vault-sem-get-secret v1/ci/kv/service-foundations/cc-mk-include
+        #    - . vault-sem-get-secret halyard-secrets
+        #    - make canary-prerelease-install CANARY_REPO_NAME=cc-useless-service
+        #    - cd ../cc-useless-service && make pact-install
+        #    - cd ../cc-useless-service && make docker-login-ci halyard-cache-image
+        #    - cd ../cc-useless-service && HALYARD_AUTO_DEPLOY_ENV=cc-useless-service=stag make halyard-auto-deploy-service
+        - name: cc-security-decisions
+          commands:
+            - make canary-prerelease-install CANARY_REPO_NAME=cc-security-decisions
+            - cd ../cc-security-decisions && make init-ci
+            - cd ../cc-security-decisions && make build
+            - cd ../cc-security-decisions && make test
+        - name: cc-druid
+          commands:
+            - make canary-prerelease-install CANARY_REPO_NAME=cc-druid
+            - cd ../cc-druid && make init-ci
+            - cd ../cc-druid && make helm-install-deps
+            - cd ../cc-druid && make helmfile-test
+        - name: cc-spec-custom-connect
+          commands:
+            - make canary-prerelease-install CANARY_REPO_NAME=cc-spec-custom-connect
+            - cd ../cc-spec-custom-connect && make templates
+        - name: cc-organization-json-udf
+          commands:
+            - make canary-prerelease-install CANARY_REPO_NAME=cc-organization-json-udf
+            - cd ../cc-organization-json-udf && make init-ci
+            - cd ../cc-organization-json-udf && make build
+            - cd ../cc-organization-json-udf && make test
+  - name: promote cc-mk-include prerelease
+    skip:
+      when: "branch != 'master'"
+    dependencies:
+      - "canary project builds"
+    task:
+      jobs:
+        - name: 'promote cc-mk-include prerelease'
+          commands:
+            - make promote-prerelease-version-tag
+after_pipeline:
+  task:
+    agent:
+        machine:
+          type: s1-prod-ubuntu20-04-amd64-1
+    jobs:
+      - name: Run scanner
+        commands:
+          # Make isn't a supported lang, so this is just for static analysis
+          - checkout
+          - make copy-parent-mk-include
+          - . vault-setup
+          - make sonar-scan
