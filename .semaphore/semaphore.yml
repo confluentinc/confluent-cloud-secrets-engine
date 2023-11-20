@@ -19,11 +19,8 @@ blocks:
   - name: Build
     dependencies: []
     task:
-      secrets:
-        - name: vault_sem2_approle
       prologue:
         commands:
-          - chmod 400 ~/.ssh/id_rsa
           - sem-version go 1.19
           - sem-version python 3.9
           - go version
@@ -36,12 +33,9 @@ blocks:
           - make show-args
           - . vault-setup
           - . vault-sem-get-secret aws_credentials
-          - . vault-sem-get-secret semaphore-secrets-global
           - . vault-sem-get-secret cpd_gcloud
           - . vault-sem-get-secret ci-reporting
           - . vault-sem-get-secret v1/ci/kv/service-foundations/cc-mk-include
-          - . vault-sem-get-secret dockerhub-semaphore-cred-ro
-          - exec &> >(tee -a build.log)
           - make init-ci
       jobs:
         - name: Build
@@ -53,12 +47,9 @@ blocks:
   - name: Test
     dependencies: [Build]
     task:
-      secrets:
-        - name: vault_sem2_approle
       prologue:
         commands:
           - checkout
-          - . vault-sem-get-secret dockerhub-semaphore-cred-ro
           - . vault-sem-get-secret gradle_properties
           - make docker-login-ci
           - sem-version java 8
