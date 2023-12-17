@@ -67,3 +67,27 @@ after_pipeline:
       - name: Publish Results
         commands:
           - test-results gen-pipeline-report
+queue:
+  - when: "branch != 'master'"
+    processing: parallel
+
+global_job_config:
+  prologue:
+    commands:
+      - sem-version go ${.go-version}
+      - export "GOPATH=$(go env GOPATH)"
+      - export "SEMAPHORE_GIT_DIR=${GOPATH}/src/github.com/confluentinc/${SEMAPHORE_PROJECT_NAME}"
+      - export "PATH=${GOPATH}/bin:${PATH}"
+      - mkdir -vp "${SEMAPHORE_GIT_DIR}" "${GOPATH}/bin"
+      - checkout
+      - make show-args
+      - . vault-setup
+      - . vault-sem-get-secret cpd_gcloud
+      - . vault-sem-get-secret ci-reporting
+      - . vault-sem-get-secret v1/ci/kv/service-foundations/cc-mk-include
+      - make init-ci
+  epilogue:
+    always:
+      commands:
+        - make epilogue-ci
+
