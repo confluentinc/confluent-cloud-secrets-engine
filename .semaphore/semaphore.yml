@@ -32,8 +32,6 @@ blocks:
           - checkout
           - make show-args
           - . vault-setup
-          - . vault-sem-get-secret aws_credentials
-          - . vault-sem-get-secret cpd_gcloud
           - . vault-sem-get-secret ci-reporting
           - . vault-sem-get-secret v1/ci/kv/service-foundations/cc-mk-include
           - make init-ci
@@ -50,7 +48,6 @@ blocks:
       prologue:
         commands:
           - checkout
-          - . vault-sem-get-secret gradle_properties
           - make docker-login-ci
           - sem-version java 8
       jobs:
