@@ -7,7 +7,7 @@ ConfluentCloud-> backend: Return credentials
 backend-> vault: store credentials as part of the role
 note left of backend:storage is handled by us in the backend
 vault-> vault: renewal for confluent cloud token
-note left of vault#00b300:investiagte how renewal is handled with the ttl expiring
+note left of vault#00b300:investigate how renewal is handled with the ttl expiring
 vault-> confluent cloud: renewal for confluent cloud token
 vault-> confluent cloud: revoke of confluent cloud token
-note left of vault#00b300:investiagte how revoke is handled by vault
+note left of vault#00b300:investigate how revoke is handled by vault
