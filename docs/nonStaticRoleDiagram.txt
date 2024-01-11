@@ -1,0 +1,6 @@
+title Non Static Create Credentials
+
+Terminal->backend: vault write to create role
+backend->vault:create role command creates a role in vault
+vault-->ConfluentCloud: Create one off credentials
+ConfluentCloud-> Terminal: One off Credentials 
