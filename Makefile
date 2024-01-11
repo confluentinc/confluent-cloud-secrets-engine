@@ -36,7 +36,6 @@ include ./mk-include/cc-cpd.mk
 include ./mk-include/halyard.mk
 include ./mk-include/cc-api.mk
 include ./mk-include/cc-ci-metrics.mk
-include ./mk-include/cc-sonarqube.mk
 
 # Disable CGO by default, to allow static binaries
 export CGO_ENABLED := 0
