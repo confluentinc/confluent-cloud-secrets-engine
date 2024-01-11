@@ -9,6 +9,24 @@ BASE_IMAGE := golang
 
 GO_BINS = github.com/confluentinc/pie-cc-hashicorp-vault-plugin/cmd/plugin=vault-ccloud-secrets-engine
 
+GITHUB_API = api.github.com
+GITHUB_MK_INCLUDE_OWNER := confluentinc
+GITHUB_MK_INCLUDE_REPO := cc-mk-include
+GITHUB_API_CC_MK_INCLUDE := https://$(GITHUB_API)/repos/$(GITHUB_MK_INCLUDE_OWNER)/$(GITHUB_MK_INCLUDE_REPO)
+GITHUB_API_CC_MK_INCLUDE_TARBALL := $(GITHUB_API_CC_MK_INCLUDE)/tarball
+GITHUB_API_CC_MK_INCLUDE_VERSION ?= $(GITHUB_API_CC_MK_INCLUDE_TARBALL)/$(MK_INCLUDE_VERSION)
+
+MK_INCLUDE_DIR := mk-include
+MK_INCLUDE_LOCKFILE := .mk-include-lockfile
+MK_INCLUDE_TIMESTAMP_FILE := .mk-include-timestamp
+# For optimum performance, you should override MK_INCLUDE_TIMEOUT_MINS above the managed section headers to be
+# a little longer than the worst case cold build time for this repo.
+MK_INCLUDE_TIMEOUT_MINS ?= 240
+# If this latest validated release is breaking you, please file a ticket with DevProd describing the issue, and
+# if necessary you can temporarily override MK_INCLUDE_VERSION above the managed section headers until the bad
+# release is yanked.
+MK_INCLUDE_VERSION ?= v0.971.0
+
 include ./mk-include/cc-begin.mk
 include ./mk-include/cc-vault.mk
 include ./mk-include/cc-semaphore.mk
@@ -19,7 +37,6 @@ include ./mk-include/halyard.mk
 include ./mk-include/cc-api.mk
 include ./mk-include/cc-ci-metrics.mk
 include ./mk-include/cc-sonarqube.mk
-include ./mk-include/cc-end.mk
 
 # Disable CGO by default, to allow static binaries
 export CGO_ENABLED := 0
