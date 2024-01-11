@@ -32,7 +32,6 @@ blocks:
           - checkout
           - make install-vault
           - . mk-include/bin/vault-setup
-          - make show-args
           - . vault-setup
           - . vault-sem-get-secret ci-reporting
           - . vault-sem-get-secret v1/ci/kv/service-foundations/cc-mk-include
