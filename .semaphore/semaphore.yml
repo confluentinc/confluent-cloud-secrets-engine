@@ -30,11 +30,11 @@ blocks:
           - mkdir -vp "${SEMAPHORE_GIT_DIR}" "${GOPATH}/bin"
           - git config --global url."git@github.com:".insteadOf "https://github.com/"
           - checkout
-          - make show-args
+          - make install-vault
+          - . mk-include/bin/vault-setup
           - . vault-setup
           - . vault-sem-get-secret ci-reporting
           - . vault-sem-get-secret v1/ci/kv/service-foundations/cc-mk-include
-          - make init-ci
       jobs:
         - name: Build
           commands:
