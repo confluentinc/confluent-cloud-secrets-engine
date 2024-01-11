@@ -15,8 +15,6 @@ TAR ?= tar
 # Mount netrc so curl can work from inside a container
 DOCKER_NETRC_MOUNT ?= 1
 
-GO_BINS = github.com/confluentinc/pie-cc-hashicorp-vault-plugin/cmd/plugin=vault-ccloud-secrets-engine
-
 GITHUB_API = api.github.com
 GITHUB_MK_INCLUDE_OWNER := confluentinc
 GITHUB_MK_INCLUDE_REPO := cc-mk-include
