@@ -30,6 +30,8 @@ blocks:
           - mkdir -vp "${SEMAPHORE_GIT_DIR}" "${GOPATH}/bin"
           - git config --global url."git@github.com:".insteadOf "https://github.com/"
           - checkout
+          - make install-vault
+          - . mk-include/bin/vault-setup
           - make show-args
           - . vault-setup
           - . vault-sem-get-secret ci-reporting
