@@ -1,6 +1,6 @@
 name: pie-cc-hashicorp-vault-plugin
 lang: go
-lang_version: ${.go-version}
+lang_version: 1.19.0
 git:
   enable: true
 github:
