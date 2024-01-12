@@ -19,22 +19,6 @@ blocks:
   - name: Build
     dependencies: []
     task:
-      prologue:
-        commands:
-          - sem-version go 1.19
-          - sem-version python 3.9
-          - go version
-          - export "GOPATH=$(go env GOPATH)"
-          - export "SEMAPHORE_GIT_DIR=${GOPATH}/src/github.com/confluentinc/${SEMAPHORE_PROJECT_NAME}"
-          - export "PATH=${GOPATH}/bin:${PATH}"
-          - mkdir -vp "${SEMAPHORE_GIT_DIR}" "${GOPATH}/bin"
-          - git config --global url."git@github.com:".insteadOf "https://github.com/"
-          - checkout
-          - make show-args
-          - . vault-setup
-          - . vault-sem-get-secret ci-reporting
-          - . vault-sem-get-secret v1/ci/kv/service-foundations/cc-mk-include
-          - make init-ci
       jobs:
         - name: Build
           commands:
