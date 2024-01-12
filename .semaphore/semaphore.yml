@@ -15,39 +15,6 @@ auto_cancel:
     when: "branch != 'main'"
 execution_time_limit:
   hours: 1
-blocks:
-  - name: Build
-    dependencies: []
-    task:
-      jobs:
-        - name: Build
-          commands:
-            - cd pkg/plugin
-            - go build
-            - cd ../..
-            - GOOS=linux GOARCH=amd64  make build
-  - name: Test
-    dependencies: [Build]
-    task:
-      prologue:
-        commands:
-          - checkout
-          - make docker-login-ci
-          - sem-version java 8
-      jobs:
-        - name: Unit Tests
-          commands:
-            - go test -v ./... -json | ./mk-include/bin/decode_test2json.py
-      epilogue:
-        always:
-          commands:
-            - test-results publish build/*.xml
-after_pipeline:
-  task:
-    jobs:
-      - name: Publish Results
-        commands:
-          - test-results gen-pipeline-report
 queue:
   - when: "branch != 'master'"
     processing: parallel
@@ -70,4 +37,36 @@ global_job_config:
     always:
       commands:
         - make epilogue-ci
+blocks:
+  - name: Build
+    dependencies: []
+    task:
+      jobs:
+        - name: Build
+          commands:
+            - cd pkg/plugin
+            - go build
+            - cd ../..
+            - GOOS=linux GOARCH=amd64  make build
+  - name: Test
+    dependencies: [Build]
+    task:
+      prologue:
+        commands:
+          - make docker-login-ci
+          - sem-version java 8
+      jobs:
+        - name: Unit Tests
+          commands:
+            - go test -v ./... -json | ./mk-include/bin/decode_test2json.py
+      epilogue:
+        always:
+          commands:
+            - test-results publish build/*.xml
+after_pipeline:
+  task:
+    jobs:
+      - name: Publish Results
+        commands:
+          - test-results gen-pipeline-report
 
