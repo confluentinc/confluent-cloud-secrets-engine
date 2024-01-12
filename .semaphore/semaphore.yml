@@ -15,26 +15,32 @@ auto_cancel:
     when: "branch != 'main'"
 execution_time_limit:
   hours: 1
+queue:
+  - when: "branch != 'master'"
+    processing: parallel
+
+global_job_config:
+  prologue:
+    commands:
+      - sem-version go 1.19.0
+      - export "GOPATH=$(go env GOPATH)"
+      - export "SEMAPHORE_GIT_DIR=${GOPATH}/src/github.com/confluentinc/${SEMAPHORE_PROJECT_NAME}"
+      - export "PATH=${GOPATH}/bin:${PATH}"
+      - mkdir -vp "${SEMAPHORE_GIT_DIR}" "${GOPATH}/bin"
+      - checkout
+      - make show-args
+      - . vault-setup
+      - . vault-sem-get-secret ci-reporting
+      - . vault-sem-get-secret v1/ci/kv/service-foundations/cc-mk-include
+      - make init-ci
+  epilogue:
+    always:
+      commands:
+        - make epilogue-ci
 blocks:
   - name: Build
     dependencies: []
     task:
-      prologue:
-        commands:
-          - sem-version go 1.19
-          - sem-version python 3.9
-          - go version
-          - export "GOPATH=$(go env GOPATH)"
-          - export "SEMAPHORE_GIT_DIR=${GOPATH}/src/github.com/confluentinc/${SEMAPHORE_PROJECT_NAME}"
-          - export "PATH=${GOPATH}/bin:${PATH}"
-          - mkdir -vp "${SEMAPHORE_GIT_DIR}" "${GOPATH}/bin"
-          - git config --global url."git@github.com:".insteadOf "https://github.com/"
-          - checkout
-          - make show-args
-          - . vault-setup
-          - . vault-sem-get-secret ci-reporting
-          - . vault-sem-get-secret v1/ci/kv/service-foundations/cc-mk-include
-          - make init-ci
       jobs:
         - name: Build
           commands:
@@ -47,7 +53,6 @@ blocks:
     task:
       prologue:
         commands:
-          - checkout
           - make docker-login-ci
           - sem-version java 8
       jobs:
@@ -64,3 +69,4 @@ after_pipeline:
       - name: Publish Results
         commands:
           - test-results gen-pipeline-report
+
