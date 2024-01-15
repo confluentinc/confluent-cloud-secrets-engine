@@ -107,6 +107,7 @@ func pathRole(b *ccloudBackend) []*framework.Path {
 			},
 			HelpSynopsis:    pathRoleHelpSynopsis,
 			HelpDescription: pathRoleHelpDescription,
+			ExistenceCheck:  b.pathRoleExistenceCheck,
 		},
 		{
 			Pattern: "role/?$",
@@ -222,6 +223,16 @@ func (confluentCloudBackend *ccloudBackend) pathRolesWrite(ctx context.Context, 
 	}
 
 	return nil, nil
+}
+
+// pathRoleExistenceCheck verifies if the role exists.
+func (b *ccloudBackend) pathRoleExistenceCheck(ctx context.Context, req *logical.Request, data *framework.FieldData) (bool, error) {
+	out, err := req.Storage.Get(ctx, req.Path)
+	if err != nil {
+		return false, fmt.Errorf("existence check failed: %w", err)
+	}
+
+	return out != nil, nil
 }
 
 // pathRolesDelete makes a request to Vault storage to delete a role

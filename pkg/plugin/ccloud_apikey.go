@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-
 	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/logical"
 )
@@ -54,6 +53,7 @@ func (b *ccloudBackend) tokenRevoke(ctx context.Context, req *logical.Request, d
 		}
 	}
 
+	//delete from cc
 	if err := client.DeleteApiKey(ctx, keyId); err != nil {
 		return nil, fmt.Errorf("error revoking user token: %w", err)
 	}
@@ -83,6 +83,7 @@ func (b *ccloudBackend) tokenRenew(ctx context.Context, req *logical.Request, d 
 	if roleEntry.TTL > 0 {
 		resp.Secret.TTL = roleEntry.TTL
 	}
+
 	if roleEntry.MaxTTL > 0 {
 		resp.Secret.MaxTTL = roleEntry.MaxTTL
 	}
