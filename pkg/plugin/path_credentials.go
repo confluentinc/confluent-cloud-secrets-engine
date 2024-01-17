@@ -66,7 +66,7 @@ func (b *ccloudBackend) createCredential(ctx context.Context, req *logical.Reque
 		// Data
 		map[string]interface{}{
 			"key_id": token.KeyId,
-			"secret": redact.String(token.Secret),
+			"secret": token.Secret,
 		},
 		// Internal
 		map[string]interface{}{
