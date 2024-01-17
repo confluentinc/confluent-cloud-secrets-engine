@@ -3,8 +3,9 @@
 1. Install Go https://go.dev/doc/install
 2. Install vault CLI https://developer.hashicorp.com/vault/tutorials/getting-started/getting-started-install
 3. Docker installed and running.
-4. Confluent Cloud Account
-5. Confluent Cloud API key - This can be created under Cloud Api keys which is found within the top right hamburger within Confluent Cloud. If you don't already have one associated with your account go ahead and create one.
+4. Ensure you have created a [Personal Access Token ](https://confluentinc.atlassian.net/wiki/spaces/Engineering/pages/1085800848/Setting+up+Accounts)in github. Please remember once the PAT is created to enable sso for confluent. 
+5. Confluent Cloud Account
+6. Confluent Cloud API key - This can be created under Cloud Api keys which is found within the top right hamburger within Confluent Cloud. If you don't already have one associated with your account go ahead and create one.
    After cloning this repo, to install all the necessary dependencies run
 
 # Quick Start
