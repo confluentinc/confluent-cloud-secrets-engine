@@ -14,7 +14,7 @@ Once you've finished reading the present document, if you are a developer lookin
 
 The Hashicorp Vault Confluent Cloud plugin is a Vault [**secret** plugin](https://developer.hashicorp.com/vault/docs/plugins). It interacts with Confluent Cloud to generate and remove CC API keys and provides them to the Vault clients (either an admin using the CLI `vault secret` command or an application using the Vault SDK).
 
-![](img/vault-plugin.png)
+![](./img/vault-plugin.png)
 
 In its initial steps, a Kafka producer or consumer needs to connect to Vault and query for the secret containing the Confluent Cloud Cluster API key. The secret received will contain a valid CC Cluster API key (in the Vault secret's `data` property) and it will use it to authenticate to Confluent Cloud and produce or consumer Kafka messages. 
 
