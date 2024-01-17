@@ -1,3 +1,14 @@
+GOARCH = amd64
+MASTER_BRANCH ?= main
+
+UPDATE_MK_INCLUDE := true
+UPDATE_MK_INCLUDE_AUTO_MERGE := true
+SERVICE_NAME := pie-cc-hashicorp-vault-plugin
+IMAGE_NAME := $(SERVICE_NAME)
+BASE_IMAGE := golang
+
+GO_BINS = github.com/confluentinc/pie-cc-hashicorp-vault-plugin/cmd/plugin=vault-ccloud-secrets-engine
+
 ### BEGIN MK-INCLUDE UPDATE ###
 CURL ?= curl
 FIND ?= find
@@ -64,16 +75,6 @@ MK_INCLUDE_VERSION ?= v0.974.0
 		exit 1; \
 	}
 ### END MK-INCLUDE UPDATE ###
-GOARCH = amd64
-MASTER_BRANCH ?= main
-
-UPDATE_MK_INCLUDE := true
-UPDATE_MK_INCLUDE_AUTO_MERGE := true
-SERVICE_NAME := pie-cc-hashicorp-vault-plugin
-IMAGE_NAME := $(SERVICE_NAME)
-BASE_IMAGE := golang
-
-GO_BINS = github.com/confluentinc/pie-cc-hashicorp-vault-plugin/cmd/plugin=vault-ccloud-secrets-engine
 
 include ./mk-include/cc-begin.mk
 include ./mk-include/cc-vault.mk
@@ -84,7 +85,6 @@ include ./mk-include/cc-cpd.mk
 include ./mk-include/halyard.mk
 include ./mk-include/cc-api.mk
 include ./mk-include/cc-ci-metrics.mk
-include ./mk-include/cc-sonarqube.mk
 include ./mk-include/cc-end.mk
 
 # Disable CGO by default, to allow static binaries
@@ -126,3 +126,4 @@ enable:
 setup:
 	vault write ccloud/config ccloud_api_key_id=${CONFLUENT_KEY} ccloud_api_key_secret=${CONFLUENT_SECRET} url="https://api.confluent.cloud"
 	vault write ccloud/role/test name="test" owner=${CONFLUENT_OWNER_ID} owner_env=${CONFLUENT_ENVIRONMENT_ID} resource=${CONFLUENT_RESOURCE_ID} resource_env=${CONFLUENT_ENVIRONMENT_ID}
+
