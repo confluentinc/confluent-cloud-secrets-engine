@@ -113,8 +113,8 @@ func (testEnv *testEnv) ReadToken(testing *testing.T) {
 	}
 }
 
-// CleanupTokens removes the tokens
-// when the test completes.
+//// CleanupTokens removes the tokens
+//// when the test completes.
 //func (e *testEnv) CleanupTokens(t *testing.T) {
 //	if len(e.Keys) == 0 {
 //		t.Fatalf("expected 2 tokens, got: %d", len(e.Keys))

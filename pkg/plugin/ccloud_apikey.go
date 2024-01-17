@@ -54,7 +54,6 @@ func (b *ccloudBackend) tokenRevoke(ctx context.Context, req *logical.Request, d
 		}
 	}
 
-	//delete from cc
 	if err := client.DeleteApiKey(ctx, keyId); err != nil {
 		return nil, fmt.Errorf("error revoking user token: %w", err)
 	}

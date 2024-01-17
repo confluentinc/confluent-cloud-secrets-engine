@@ -13,7 +13,6 @@ import (
 // endpoint for a role. You can choose whether
 // or not certain attributes should be displayed,
 // required, and named.
-// redact secret
 func pathCredentials(b *ccloudBackend) *framework.Path {
 	return &framework.Path{
 		Pattern: "creds/" + framework.GenericNameRegex("name"),

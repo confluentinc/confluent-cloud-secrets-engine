@@ -121,6 +121,7 @@ func (b *ccloudBackend) pathConfigWrite(ctx context.Context, req *logical.Reques
 	} else if !ok && createOperation {
 		return nil, fmt.Errorf("missing ccloud_api_key_id in configuration")
 	}
+
 	if secret, ok := data.GetOk("ccloud_api_key_secret"); ok {
 		config.ApiKeySecret = secret.(string)
 	} else if !ok && createOperation {
