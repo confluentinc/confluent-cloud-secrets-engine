@@ -24,7 +24,7 @@ sha256sum bin/vault-ccloud-secrets-engine | cut -d' ' -f1
 vault plugin register -sha256="<SHA256>" -command="vault-ccloud-secrets-engine" secret ccloud-secrets-engine
 ```
 In the above command, replace `<SHA256>` with the result from step 2.
-3. Enable it: 
+4. Enable it: 
 ```shell
 vault secrets enable -path="ccloud" -plugin-name="ccloud-secrets-engine" plugin
 ```
@@ -101,18 +101,32 @@ vault lease renew -increment=<VALUE> <LEASE-ID>
 
 ## Key Management Strategies
 
-Things to consider:
-- Lease Expiry
-- App restart planned
-- App able to react to (or crashing)
-- Environment restarting stopped apps automatically
+### Lease Expiry
 
-Strategies
-- App launched with no planned restart
--- long to quasi-infinite key expiry 
--- short key expiry
-- App restarted periodically
--- key expiry = app restart frequency
+When you enable the plugin, a default and maximum lease values are either derived from the global Vault config or from the options you pass when calling the `vault secrets enable` command. 
 
-## Notes
+Let's take an example: if the default lease after the enablement of the plugin is 1 day, when a secret is requested by a client, the lease will have a Time-to-live (TTL) of 1 day. When that 1 day has elapsed, then the lease is revoked and the plugin will **delete the Confluent Cloud API key**. At this point, any application using that key will not be able to get/send data to the CC Kafka cluster anymore.
 
+This means: **The lease expiry is the No 1 thing to think about when deploying an app that is going to use the CC Vault secrets** 
+
+If your model is to restart application every day, then it is fine.
+
+Another possibility is to make the application exit with a specific error number when it loses its Confluent Cloud connection and let the orchestration service restart the app automatically (for example when using Kubernetes). During its initialisation phase, the app will read the secret and a new CC API key will be generated. 
+
+You can of course extend a lease, but that's a manual operation, and it should be avoided. 
+
+Conclusion: **Lease expiry, app deployment model and connection failure code (in the app) must match.**
+
+👉 Our recommendation:
+1. A reasonably short TTL, 1 or 2 weeks, for the leases.
+2. Write some code inside the app to request a new secret (and CC API key) to the Vault server when the connection fails because the key has been removed. This allows a graceful change of keys and removes the need to adapt the deployment method or orchestration to the lease TTL.  
+
+### Key Quotas
+
+There is a limit of 10 keys per cluster (which can be extended after talking to CC Support), so this behaviour may be a problem for your use-case.
+
+For more details about Confluent Cloud quotas, please read: https://docs.confluent.io/cloud/current/quotas/overview.html
+
+If you have 1 application that you spawn over 5 instance, then each instance will receive its own API key, and you will stay under the 10-key limit. 
+
+However, if you want to use a single key over all the launched instances of an app, then you have to use the upcoming shared keys. This is an option that you can set when calling the `vault write ccloud/???` command above. 
