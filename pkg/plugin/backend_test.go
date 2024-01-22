@@ -10,11 +10,13 @@ import (
 )
 
 const (
-	envVarRunAccTests  = "VAULT_ACC"
-	envVarCCloudKeyId  = "TEST_CCLOUD_KEY_ID"
-	envVarCCloudSecret = "TEST_CCLOUD_SECRET"
-	envVarCCloudURL    = "TEST_CCLOUD_URL"
-	envVarCCloudOwner  = "TEST_CCLOUD_OWNER"
+	envVarRunAccTests      = "VAULT_ACC"
+	envVarCCloudKeyId      = "TEST_CCLOUD_KEY_ID"
+	envVarCCloudSecret     = "TEST_CCLOUD_SECRET"
+	envVarCCloudURL        = "TEST_CCLOUD_URL"
+	envVarCCloudOwner      = "TEST_CCLOUD_OWNER"
+	envVarCCloudEnv        = "TEST_CCLOUD_ENV_ID"
+	envVarCCloudResourceId = "TEST_CCLOUD_RESOURCE_ID"
 )
 
 // getTestBackend will help you construct a test backend object. Update this function with your target backend.
@@ -33,15 +35,21 @@ func getTestBackend(testingBackground testing.TB) (*ccloudBackend, logical.Stora
 	return factoryBackground.(*ccloudBackend), config.StorageView
 }
 
-// runAcceptanceTests will separate unit tests from acceptance tests, which will make active requests to your target API.
+// runAcceptanceTests will separate unit tests from
+// acceptance tests, which will make active requests
+// to your target API.
 var runAcceptanceTests = os.Getenv(envVarRunAccTests) == "1"
 
-// testEnv creates an object to store and track testing environment resources
+// testEnv creates an object to store and track testing environment
+// resources
 type testEnv struct {
-	KeyId  string
-	Secret string
-	URL    string
-	Owner  string
+	KeyId       string
+	Secret      string
+	URL         string
+	Owner       string
+	OwnerEnv    string
+	Resource    string
+	ResourceEnv string
 
 	Backend logical.Backend
 	Context context.Context
@@ -67,7 +75,7 @@ func (testEnv *testEnv) AddConfig(testing *testing.T) {
 		},
 	}
 	resp, err := testEnv.Backend.HandleRequest(testEnv.Context, req)
-	require.NotNil(testing, resp)
+	require.Nil(testing, resp)
 	require.Nil(testing, err)
 }
 
@@ -75,10 +83,31 @@ func (testEnv *testEnv) AddConfig(testing *testing.T) {
 func (testEnv *testEnv) AddRole(testing *testing.T) {
 	request := &logical.Request{
 		Operation: logical.UpdateOperation,
-		Path:      "role/test-cluster-role",
+		Path:      "role/testing",
 		Storage:   testEnv.Storage,
 		Data: map[string]interface{}{
-			"owner": testEnv.Owner,
+			"owner":        testEnv.Owner,
+			"owner_env":    testEnv.OwnerEnv,
+			"resource":     testEnv.Resource,
+			"resource_env": testEnv.ResourceEnv,
+		},
+	}
+	response, err := testEnv.Backend.HandleRequest(testEnv.Context, request)
+	require.Nil(testing, response)
+	require.Nil(testing, err)
+}
+
+// ListRole lists the roles within the testing vault instance
+func (testEnv *testEnv) ListRole(testing *testing.T) {
+	request := &logical.Request{
+		Operation: logical.ListOperation,
+		Path:      "role",
+		Storage:   testEnv.Storage,
+		Data: map[string]interface{}{
+			"owner":        testEnv.Owner,
+			"owner_env":    testEnv.OwnerEnv,
+			"resource":     testEnv.Resource,
+			"resource_env": testEnv.ResourceEnv,
 		},
 	}
 	response, err := testEnv.Backend.HandleRequest(testEnv.Context, request)
@@ -86,49 +115,19 @@ func (testEnv *testEnv) AddRole(testing *testing.T) {
 	require.Nil(testing, err)
 }
 
-// ReadKey retrieves the Cluster API key based on a Vault role.
-func (testEnv *testEnv) ReadToken(testing *testing.T) {
+// ReadRole retrieves the Cluster API key based on a Vault role.
+func (testEnv *testEnv) ReadRole(testing *testing.T) {
 	request := &logical.Request{
 		Operation: logical.ReadOperation,
-		Path:      "creds/test-cluster-token",
+		Path:      "role/testing",
 		Storage:   testEnv.Storage,
 	}
 	response, err := testEnv.Backend.HandleRequest(testEnv.Context, request)
 	require.Nil(testing, err)
 	require.NotNil(testing, response)
 
-	if t, ok := response.Data["token"]; ok {
-		testEnv.Keys = append(testEnv.Keys, t.(string))
-	}
-	require.NotEmpty(testing, response.Data["token"])
-
-	if testEnv.SecretToken != "" {
-		require.NotEqual(testing, testEnv.SecretToken, response.Data["token"])
-	}
-
-	// collect secret IDs to revoke at end of test
-	require.NotNil(testing, response.Secret)
-	if testToken, ok := response.Secret.InternalData["token"]; ok {
-		testEnv.SecretToken = testToken.(string)
-	}
+	require.Equal(testing, testEnv.Owner, response.Data["owner"].(string), "equals")
+	require.Equal(testing, testEnv.OwnerEnv, response.Data["owner_env"].(string), "equals")
+	require.Equal(testing, testEnv.Resource, response.Data["resource"].(string), "equals")
+	require.Equal(testing, testEnv.ResourceEnv, response.Data["resource_env"].(string), "equals")
 }
-
-//// CleanupTokens removes the tokens
-//// when the test completes.
-//func (e *testEnv) CleanupTokens(t *testing.T) {
-//	if len(e.Keys) == 0 {
-//		t.Fatalf("expected 2 tokens, got: %d", len(e.Keys))
-//	}
-//
-//	for _, token := range e.Keys {
-//		b := e.Backend.(*ccloudBackend)
-//		client, err := b.getClient(e.Context, e.Storage)
-//		if err != nil {
-//			t.Fatal("fatal getting client")
-//		}
-//		client.Client.Token = string(token)
-//		if err := client.SignOut(); err != nil {
-//			t.Fatalf("unexpected error deleting token: %s", err)
-//		}
-//	}
-//}
