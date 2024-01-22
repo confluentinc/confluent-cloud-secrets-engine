@@ -32,13 +32,16 @@ func newAcceptanceTestEnv() (*testEnv, error) {
 		return nil, err
 	}
 	return &testEnv{
-		KeyId:   os.Getenv(envVarCCloudKeyId),
-		Secret:  os.Getenv(envVarCCloudSecret),
-		URL:     os.Getenv(envVarCCloudURL),
-		Owner:   os.Getenv(envVarCCloudOwner),
-		Backend: b,
-		Context: ctx,
-		Storage: &logical.InmemStorage{},
+		KeyId:       os.Getenv(envVarCCloudKeyId),
+		Secret:      os.Getenv(envVarCCloudSecret),
+		URL:         os.Getenv(envVarCCloudURL),
+		Owner:       os.Getenv(envVarCCloudOwner),
+		OwnerEnv:    os.Getenv(envVarCCloudEnv),
+		Resource:    os.Getenv(envVarCCloudResourceId),
+		ResourceEnv: os.Getenv(envVarCCloudEnv),
+		Backend:     b,
+		Context:     ctx,
+		Storage:     &logical.InmemStorage{},
 	}, nil
 }
 
@@ -55,10 +58,10 @@ func TestAcceptanceUserToken(t *testing.T) {
 
 	t.Run("add config", acceptanceTestEnv.AddConfig)
 	t.Run("add user token role", acceptanceTestEnv.AddRole)
-	t.Run("read user token cred", acceptanceTestEnv.ReadToken)
-	t.Run("read user token cred", acceptanceTestEnv.ReadToken)
-	//TODO this doesn't work right now
-	//t.Run("cleanup user tokens", acceptanceTestEnv.CleanupTokens)
+	t.Run("list user token role", acceptanceTestEnv.ListRole)
+	t.Run("read user token cred", acceptanceTestEnv.ReadRole)
+	//todo read secrets, path secret then call read and check we have api key and secret
+
 }
 
 // Unit Tests
