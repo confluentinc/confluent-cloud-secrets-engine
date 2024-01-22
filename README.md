@@ -196,5 +196,5 @@ Owner can be found in Accounts and Access then in the table it is the ID, resour
 
 In the environment field for the tests add:
 ```
-TEST_CCLOUD_ENV_ID=Environment_id;TEST_CCLOUD_RESOURCE_ID=resource_id;TEST_CCLOUD_KEY_ID=cloudKey;TEST_CCLOUD_OWNER=Environment_id;TEST_CCLOUD_SECRET=cloudSecret;TEST_CCLOUD_URL=https://api.confluent.cloud
+VAULT_ACC=1;TEST_CCLOUD_ENV_ID=Environment_id;TEST_CCLOUD_RESOURCE_ID=resource_id;TEST_CCLOUD_KEY_ID=cloudKey;TEST_CCLOUD_OWNER=Environment_id;TEST_CCLOUD_SECRET=cloudSecret;TEST_CCLOUD_URL=https://api.confluent.cloud
 ```
