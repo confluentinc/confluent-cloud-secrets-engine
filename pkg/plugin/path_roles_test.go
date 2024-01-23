@@ -208,6 +208,10 @@ func TestUserRole(testingT *testing.T) {
 				Type:        framework.TypeDurationSecond,
 				Description: "max_ttl in the test schema",
 			},
+			"multi_use_key": {
+				Type:        framework.TypeBool,
+				Description: "multi use key indicator, default is false",
+			},
 		}
 
 		_, pathError := b.pathRolesWrite(context.Background(), &logical.Request{
