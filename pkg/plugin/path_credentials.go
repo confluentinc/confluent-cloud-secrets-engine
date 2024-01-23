@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-
 	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/logical"
 )
@@ -46,7 +45,15 @@ func (b *ccloudBackend) pathCredentialsRead(ctx context.Context, req *logical.Re
 		return nil, errors.New("error retrieving role: role is nil")
 	}
 
-	return b.createCredential(ctx, req, roleName, roleEntry)
+	/**
+	What happens when a user creates a multi use role for the first time, should we also do the create then if the role exists then read.
+	if roleEntry is multi use we should read it.
+	*/
+	if roleEntry.MultiUseKey == false {
+		return b.createCredential(ctx, req, roleName, roleEntry)
+	} else {
+		return b.readCredential(ctx, req, roleName, roleEntry)
+	}
 }
 
 // createCredential creates a new Cluster API Key to store into the Vault
@@ -111,6 +118,47 @@ func (b *ccloudBackend) createClusterKey(ctx context.Context, req *logical.Reque
 	}
 
 	return apiKey, nil
+}
+
+/**
+read credential
+*/
+
+// createCredential creates a new Cluster API Key to store into the Vault
+// backend, generates a response with the secrets information, and checks the
+// TTL and MaxTTL attributes.
+func (b *ccloudBackend) readCredential(ctx context.Context, req *logical.Request, roleName string, role *apikeyRoleEntry) (*logical.Response, error) {
+	token, err := b.createClusterKey(ctx, req, role)
+
+	if err != nil {
+		return nil, err
+	}
+
+	// The response is divided into two objects (1) internal data and (2) data.
+	// If you want to reference any information in your code, you need to
+	// store it in internal data!
+	resp := b.Secret(ccloudClusterApiKeyType).Response(
+		// Data
+		map[string]interface{}{
+			"key_id": token.KeyId,
+			"secret": token.Secret,
+		},
+		// Internal
+		map[string]interface{}{
+			"key_id": token.KeyId,
+			"role":   roleName,
+		},
+	)
+
+	//if role.TTL > 0 {
+	//	resp.Secret.TTL = role.TTL
+	//}
+	//
+	//if role.MaxTTL > 0 {
+	//	resp.Secret.MaxTTL = role.MaxTTL
+	//}
+
+	return resp, nil
 }
 
 const pathCredentialsHelpSyn = `
