@@ -11,13 +11,14 @@ import (
 )
 
 const (
-	roleName     = "testccloud"
-	owner        = "roleOwner"
-	owner_env    = "roleOwnerEnv"
-	resource     = "testResource"
-	resource_env = "resource_envTest"
-	testTTL      = int64(120)
-	testMaxTTL   = int64(3600)
+	roleName      = "testccloud"
+	owner         = "roleOwner"
+	owner_env     = "roleOwnerEnv"
+	resource      = "testResource"
+	resource_env  = "resource_envTest"
+	testTTL       = int64(120)
+	testMaxTTL    = int64(3600)
+	multi_use_key = false
 )
 
 // TestUserRole uses a mock backend to check role create, read, update, and delete.
@@ -42,12 +43,13 @@ func TestUserRole(testingT *testing.T) {
 			_, err := testTokenRoleCreate(testingT, confluentCloudBackend, s,
 				roleName+strconv.Itoa(i),
 				map[string]interface{}{
-					"owner":        owner,
-					"owner_env":    owner_env,
-					"resource":     resource,
-					"resource_env": resource_env,
-					"ttl":          testTTL,
-					"max_ttl":      testMaxTTL,
+					"owner":         owner,
+					"owner_env":     owner_env,
+					"resource":      resource,
+					"resource_env":  resource_env,
+					"ttl":           testTTL,
+					"max_ttl":       testMaxTTL,
+					"multi_use_key": multi_use_key,
 				})
 			require.NoError(t, err)
 		}
@@ -59,12 +61,13 @@ func TestUserRole(testingT *testing.T) {
 
 	testingT.Run("Create User Role", func(testingT *testing.T) {
 		resp, err := testTokenRoleCreate(testingT, confluentCloudBackend, s, roleName, map[string]interface{}{
-			"owner":        owner,
-			"owner_env":    owner_env,
-			"resource":     resource,
-			"resource_env": resource_env,
-			"ttl":          testTTL,
-			"max_ttl":      testMaxTTL,
+			"owner":         owner,
+			"owner_env":     owner_env,
+			"resource":      resource,
+			"resource_env":  resource_env,
+			"ttl":           testTTL,
+			"max_ttl":       testMaxTTL,
+			"multi_use_key": multi_use_key,
 		})
 
 		require.Nil(testingT, err)
@@ -72,18 +75,56 @@ func TestUserRole(testingT *testing.T) {
 		require.Nil(testingT, resp)
 	})
 
-	testingT.Run("Read User Role", func(testingT *testing.T) {
+	testingT.Run("Read User Role Single Use", func(testingT *testing.T) {
 		_, _ = testTokenRoleCreate(testingT, confluentCloudBackend, s, roleName, map[string]interface{}{
-			"owner":        owner,
-			"owner_env":    owner_env,
-			"resource":     resource,
-			"resource_env": resource_env,
-			"ttl":          testTTL,
-			"max_ttl":      testMaxTTL,
+			"owner":         owner,
+			"owner_env":     owner_env,
+			"resource":      resource,
+			"resource_env":  resource_env,
+			"ttl":           testTTL,
+			"max_ttl":       testMaxTTL,
+			"multi_use_key": multi_use_key,
 		})
 
 		resp, err := testTokenRoleRead(testingT, confluentCloudBackend, s)
 
+		require.Nil(testingT, err)
+		require.Nil(testingT, resp.Error())
+		require.NotNil(testingT, resp)
+		require.Equal(testingT, resp.Data["owner"], owner)
+	})
+
+	testingT.Run("Create User Role Multi Use", func(testingT *testing.T) {
+		resp, err := testTokenRoleCreate(testingT, confluentCloudBackend, s, roleName, map[string]interface{}{
+			"owner":         owner,
+			"owner_env":     owner_env,
+			"resource":      resource,
+			"resource_env":  resource_env,
+			"ttl":           testTTL,
+			"max_ttl":       testMaxTTL,
+			"multi_use_key": true,
+		})
+
+		require.Nil(testingT, err)
+		require.Nil(testingT, resp.Error())
+		require.Nil(testingT, resp)
+	})
+
+	testingT.Run("Read User Role Multi Use", func(testingT *testing.T) {
+		_, _ = testTokenRoleCreate(testingT, confluentCloudBackend, s, roleName, map[string]interface{}{
+			"owner":         owner,
+			"owner_env":     owner_env,
+			"resource":      resource,
+			"resource_env":  resource_env,
+			"ttl":           testTTL,
+			"max_ttl":       testMaxTTL,
+			"multi_use_key": true,
+		})
+
+		resp, err := testTokenRoleRead(testingT, confluentCloudBackend, s)
+
+		require.NotEqual(testingT, multi_use_key, resp.Data["multi_use_key"])
+		require.Equal(testingT, true, resp.Data["multi_use_key"])
 		require.Nil(testingT, err)
 		require.Nil(testingT, resp.Error())
 		require.NotNil(testingT, resp)
@@ -122,15 +163,16 @@ func TestUserRole(testingT *testing.T) {
 		b := newBackend()
 
 		var expectedData = map[string]interface{}{
-			"name":         "nameTest",
-			"owner":        owner,
-			"owner_env":    owner_env,
-			"field":        "testField1",
-			"newTestField": "testField2",
-			"resource":     resource,
-			"resource_env": resource_env,
-			"max_ttl":      1,
-			"ttl":          2,
+			"name":          "nameTest",
+			"owner":         owner,
+			"owner_env":     owner_env,
+			"field":         "testField1",
+			"newTestField":  "testField2",
+			"resource":      resource,
+			"resource_env":  resource_env,
+			"max_ttl":       1,
+			"ttl":           2,
+			"multi_use_key": multi_use_key,
 		}
 
 		var schema = map[string]*framework.FieldSchema{
@@ -187,12 +229,13 @@ func TestUserRole(testingT *testing.T) {
 		b := newBackend()
 
 		var expectedData = map[string]interface{}{
-			"name":         "nameTest",
-			"owner":        owner,
-			"owner_env":    owner_env,
-			"field":        "testField1",
-			"newTestField": "testField2",
-			"resource":     nil,
+			"name":          "nameTest",
+			"owner":         owner,
+			"owner_env":     owner_env,
+			"field":         "testField1",
+			"newTestField":  "testField2",
+			"resource":      nil,
+			"multi_use_key": true,
 		}
 
 		var schema = map[string]*framework.FieldSchema{
@@ -216,6 +259,10 @@ func TestUserRole(testingT *testing.T) {
 				Type:        framework.TypeString,
 				Description: "resource of the test schema",
 			},
+			"multi_use_key": {
+				Type:        framework.TypeBool,
+				Description: "multi use key indicator, default is false",
+			},
 		}
 
 		_, pathError := b.pathRolesWrite(context.Background(), &logical.Request{
@@ -237,12 +284,13 @@ func TestUserRole(testingT *testing.T) {
 		b := newBackend()
 
 		var expectedData = map[string]interface{}{
-			"name":         "nameTest",
-			"owner":        owner,
-			"owner_env":    owner_env,
-			"field":        "testField1",
-			"newTestField": "testField2",
-			"resource":     nil,
+			"name":          "nameTest",
+			"owner":         owner,
+			"owner_env":     owner_env,
+			"field":         "testField1",
+			"newTestField":  "testField2",
+			"resource":      nil,
+			"multi_use_key": multi_use_key,
 		}
 
 		var schema = map[string]*framework.FieldSchema{
@@ -287,12 +335,13 @@ func TestUserRole(testingT *testing.T) {
 		b := newBackend()
 
 		var expectedData = map[string]interface{}{
-			"name":         "nameTest",
-			"owner":        nil,
-			"owner_env":    owner_env,
-			"field":        "testField1",
-			"newTestField": "testField2",
-			"resource":     resource,
+			"name":          "nameTest",
+			"owner":         nil,
+			"owner_env":     owner_env,
+			"field":         "testField1",
+			"newTestField":  "testField2",
+			"resource":      resource,
+			"multi_use_key": multi_use_key,
 		}
 
 		var schema = map[string]*framework.FieldSchema{
@@ -333,12 +382,13 @@ func TestUserRole(testingT *testing.T) {
 		b := newBackend()
 
 		var expectedData = map[string]interface{}{
-			"name":         "nameTest",
-			"owner":        nil,
-			"owner_env":    owner_env,
-			"field":        "testField1",
-			"newTestField": "testField2",
-			"resource":     resource,
+			"name":          "nameTest",
+			"owner":         nil,
+			"owner_env":     owner_env,
+			"field":         "testField1",
+			"newTestField":  "testField2",
+			"resource":      resource,
+			"multi_use_key": multi_use_key,
 		}
 
 		var schema = map[string]*framework.FieldSchema{
