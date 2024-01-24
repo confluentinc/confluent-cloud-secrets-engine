@@ -3,8 +3,9 @@
 1. Install Go https://go.dev/doc/install
 2. Install vault CLI https://developer.hashicorp.com/vault/tutorials/getting-started/getting-started-install
 3. Docker installed and running.
-4. Confluent Cloud Account
-5. Confluent Cloud API key - This can be created under Cloud Api keys which is found within the top right hamburger within Confluent Cloud. If you don't already have one associated with your account go ahead and create one.
+4. Ensure you have created a [Personal Access Token ](https://confluentinc.atlassian.net/wiki/spaces/Engineering/pages/1085800848/Setting+up+Accounts)in github. Please remember once the PAT is created to enable sso for confluent. 
+5. Confluent Cloud Account
+6. Confluent Cloud API key - This can be created under Cloud Api keys which is found within the top right hamburger within Confluent Cloud. If you don't already have one associated with your account go ahead and create one.
    After cloning this repo, to install all the necessary dependencies run
 
 # Quick Start
@@ -195,5 +196,6 @@ Owner can be found in Accounts and Access then in the table it is the ID, resour
 
 In the environment field for the tests add:
 ```
-CONFLUENT_ENVIRONMENT_ID=Environment_id;CONFLUENT_RESOURCE_ID=resource_id;TEST_CCLOUD_KEY_ID=cloudKey;TEST_CCLOUD_OWNER=Environment_id;TEST_CCLOUD_SECRET=cloudSecret;TEST_URL=https://api.confluent.cloud
+VAULT_ACC=1;TEST_CCLOUD_ENV_ID=Environment_id;TEST_CCLOUD_RESOURCE_ID=resource_id;TEST_CCLOUD_KEY_ID=cloudKey;TEST_CCLOUD_OWNER=Environment_id;TEST_CCLOUD_SECRET=cloudSecret;TEST_CCLOUD_URL=https://api.confluent.cloud
 ```
+The ```VAULT_ACC=1``` flag enables the integration tests. This flag is checked in ```path_credentials_test.go``` in ```if !runAcceptanceTests { t.SkipNow() }```. You can comment this line out if you dont want to set the flag in the environment variables.
