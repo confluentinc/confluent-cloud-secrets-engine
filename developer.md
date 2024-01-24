@@ -41,7 +41,7 @@ On success, you should see
 Export the necessary environment variables and run make setup to enable plugin and configure a test role in Vault:
 Log into confluent cloud to find these environment variables. 
 If you have an existing confluent cloud api key and secret you can use that. If not go to Cloud API Keys and create a new key.
-CONFLUENT_KEY (confluent cloud api key), CONFLUENT_SECRET (confluent cloud api key secret), CONFLUENT_ENVIRONMENT_ID (where cluster lives), CONFLUENT_OWNER_ID (create keys under this user/service acct), and CONFLUENT_RESOURCE_ID ( the kafka cluster to register keys with).
+CONFLUENT_KEY (Confluent Cloud API key), CONFLUENT_SECRET (the secret for the Confluent Cloud API key), CONFLUENT_ENVIRONMENT_ID (where the cluster lives), CONFLUENT_OWNER_ID (create keys under this user/service acct), and CONFLUENT_RESOURCE_ID (the Kafka cluster to register keys with).
 Owner can be found in Accounts and Access then in the table it is the ID, resource_env is the same as owner_env
 
 ```shell
@@ -158,7 +158,7 @@ You should be able to see your new api key inside the list of api keys for the c
 ```
 command not found: vault
 ```
-This error means that the hashicorp vault cli isn't installed on the local machine. Please read the Project Pre-Requisites for all necessary tools.
+This error means that the Hashicorp Vault CLI isn't installed on the local machine. Please read the Project Pre-Requisites for all necessary tools.
 
 ```
 error creating CCloud Cluster API token - Error reading ccloud/creds/test: Error making API request.
@@ -179,7 +179,7 @@ Code: 500. Errors:
 }
 ```
 
-Make sure the api token was created under Cloud Api keys found in the top right hamburger.
+Make sure the API token was created under Cloud Api keys found in the top right (hamburger) menu.
 
 # Tests
 To run the tests you have to be in pkg/plugin. Then run the command 
@@ -190,8 +190,8 @@ Go to ```TestAcceptanceUserToken``` in ```pie-cc-hashicorp-vault-plugin/pkg/plug
 
 In the run configurations you will need to set some environment config which can be found in confluent cloud. This is the same information needed in the quick start:
 
-If you have an existing confluent cloud api key and secret you can use that. If not go to Cloud API Keys and create a new key.
-CONFLUENT_KEY (confluent cloud api key), CONFLUENT_SECRET (confluent cloud api key secret), CONFLUENT_ENVIRONMENT_ID (where cluster lives), CONFLUENT_OWNER_ID (create keys under this user/service acct), and CONFLUENT_RESOURCE_ID ( the kafka cluster to register keys with).
+If you have an existing Confluent Cloud API key and secret you can use that. If not go to Cloud API Keys and create a new key.
+CONFLUENT_KEY (Confluent Cloud API key), CONFLUENT_SECRET (secret of the Confluent Cloud API key), CONFLUENT_ENVIRONMENT_ID (where cluster lives), CONFLUENT_OWNER_ID (create keys under this user/service acct), and CONFLUENT_RESOURCE_ID (the Kafka cluster to register keys with).
 Owner can be found in Accounts and Access then in the table it is the ID, resource_env is the same as owner_env
 
 In the environment field for the tests add:
