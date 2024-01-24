@@ -44,6 +44,7 @@ func TestConfigCreateReturnsNoErrors(t *testing.T) {
 		"ccloud_api_key_secret": apiKeySecret,
 		"url":                   url,
 	}
+
 	resp, err := logicalBackend.HandleRequest(context.Background(), &logical.Request{
 		Operation: logical.CreateOperation,
 		Path:      configStoragePath,

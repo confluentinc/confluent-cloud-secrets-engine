@@ -21,12 +21,9 @@ type apikeyRoleEntry struct {
 	TTL    time.Duration `json:"ttl,omitempty"`
 	MaxTTL time.Duration `json:"max_ttl,omitempty"`
 
-	MultiUseKey bool `json:"multi_use_key"`
-
-	Data struct {
-		KeyID  string `json:"key_id"`
-		Secret string `json:"secret"`
-	} `json:"data,omitempty"`
+	MultiUseKey bool   `json:"multi_use_key"`
+	UsageCount  int    `json:"usage_count"`
+	CCKeyId     string `json:"cc_key_id"`
 }
 
 // toResponseData returns response data for a role
@@ -39,7 +36,8 @@ func (r *apikeyRoleEntry) toResponseData() map[string]interface{} {
 		"ttl":           r.TTL.Seconds(),
 		"max_ttl":       r.MaxTTL.Seconds(),
 		"multi_use_key": r.MultiUseKey,
-		"data":          r.Data,
+		"usage_count":   r.UsageCount,
+		"cc_key_id":     r.CCKeyId,
 	}
 	return respData
 }
@@ -88,6 +86,15 @@ func pathRole(b *ccloudBackend) []*framework.Path {
 					Type:        framework.TypeBool,
 					Default:     false,
 					Description: "Boolean to indicate if a role is multi use or single use. If the role is not set then assume it is single usage.",
+				},
+				"usage_count": {
+					Type:        framework.TypeInt,
+					Default:     0,
+					Description: "Count to keep track of role usage",
+				},
+				"cc_key_id": {
+					Type:        framework.TypeString,
+					Description: "Key id for confluent cloud",
 				},
 			},
 			Operations: map[logical.Operation]framework.OperationHandler{

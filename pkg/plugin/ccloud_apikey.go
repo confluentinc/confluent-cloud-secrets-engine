@@ -14,8 +14,9 @@ const (
 
 // ccloudClusterApiKey defines a secret for the CCloud Cluster API Key
 type ccloudClusterApiKey struct {
-	KeyId  string `json:"key_id"`
-	Secret string `json:"secret"`
+	KeyId      string `json:"key_id"`
+	Secret     string `json:"secret"`
+	UsageCount int    `json:"usage_count"`
 }
 
 // ccloudClusterApiKey defines a secret to store for a given role

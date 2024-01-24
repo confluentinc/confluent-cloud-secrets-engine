@@ -32,13 +32,13 @@ func newAcceptanceTestEnv() (*testEnv, error) {
 		return nil, err
 	}
 	return &testEnv{
-		KeyId:       os.Getenv(envVarCCloudKeyId),
-		Secret:      os.Getenv(envVarCCloudSecret),
-		URL:         os.Getenv(envVarCCloudURL),
-		Owner:       os.Getenv(envVarCCloudOwner),
-		OwnerEnv:    os.Getenv(envVarCCloudEnv),
-		Resource:    os.Getenv(envVarCCloudResourceId),
-		ResourceEnv: os.Getenv(envVarCCloudEnv),
+		KeyId:       os.Getenv("TVEQR2XYOIIWHQAM"),
+		Secret:      os.Getenv("fq31ylQ74xJGigIPqq9ITNzf+y1lbvyx6QOUYtgOWJjK1FONdj0XBY+rancwYv7y"),
+		URL:         os.Getenv("https://api.confluent.cloud"),
+		Owner:       os.Getenv("u-63d0xq"),
+		OwnerEnv:    os.Getenv("env-zmgkk0"),
+		Resource:    os.Getenv("lkc-1nr6mz"),
+		ResourceEnv: os.Getenv("env-zmgkk0"),
 		Backend:     b,
 		Context:     ctx,
 		Storage:     &logical.InmemStorage{},
@@ -47,9 +47,9 @@ func newAcceptanceTestEnv() (*testEnv, error) {
 
 // TestAcceptanceUserToken tests a series of steps to make sure the role and token creation work correctly.
 func TestAcceptanceUserToken(t *testing.T) {
-	if !runAcceptanceTests {
-		t.SkipNow()
-	}
+	//if !runAcceptanceTests {
+	//	t.SkipNow()
+	//}
 
 	acceptanceTestEnv, err := newAcceptanceTestEnv()
 	if err != nil {
@@ -70,7 +70,7 @@ func TestPathCredentialsReadReturnsErrorWhenNameIsMissing(t *testing.T) {
 	b := newBackend()
 
 	var expectedData = map[string]interface{}{
-		"name":         "",
+		"name":         "test",
 		"field":        "testField1",
 		"newTestField": "testField2",
 	}
