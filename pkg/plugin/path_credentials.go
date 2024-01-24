@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/logical"
-	"log"
 )
 
 // pathCredentials extends the Vault API with a `/creds`
@@ -90,12 +89,15 @@ func (b *ccloudBackend) createCredential(ctx context.Context, req *logical.Reque
 	if role.MaxTTL > 0 {
 		resp.Secret.MaxTTL = role.MaxTTL
 	}
+	b.Logger().Info("this is on create")
+	b.Logger().Info("this is the role: %v", role)
 
 	role.CCKeyId = token.KeyId
 	role.UsageCount = 1
 
-	log.Println("this is on create")
-	log.Println(role)
+	setRole(ctx, req.Storage, roleName, role)
+
+	b.Logger().Info("this is updated the role: %v", role)
 
 	return resp, nil
 }
@@ -108,7 +110,7 @@ read credential
 // backend, generates a response with the secrets information, and checks the
 // TTL and MaxTTL attributes.
 func (b *ccloudBackend) readOrCreateCredential(ctx context.Context, req *logical.Request, roleName string, role *apikeyRoleEntry) (*logical.Response, error) {
-	log.Println("into multi")
+	b.Logger().Info("into multi")
 	// first use = usage count 0 means the key has not been created yet
 	if role.UsageCount == 0 {
 		return b.createCredential(ctx, req, roleName, role)
@@ -117,29 +119,31 @@ func (b *ccloudBackend) readOrCreateCredential(ctx context.Context, req *logical
 	// usage count > 0, we return the existing key
 	role.UsageCount++
 
-	log.Println(role)
-
 	var keyId = role.CCKeyId
 	var keySecret any
 
-	for i, k := range b.Secrets {
-		if _, ok := k.Fields["key_id"]; ok {
-			keySecret = k.Fields["secret"]
-			return b.Secret(ccloudClusterApiKeyType).Response(
-				// Data
-				map[string]interface{}{
-					"key_id": keyId,
-					"secret": keySecret,
-				},
-				// Internal
-				map[string]interface{}{
-					"key_id": keyId,
-					"role":   roleName,
-				},
-			), nil
-		}
-		log.Println(i, k)
+	b.Logger().Info("Searching for %v", keyId)
+
+	b.Logger().Info("Secret found for %v", b.Secret(ccloudClusterApiKeyType))
+
+	if keyIdRaw, ok := req.Secret.InternalData["key_id"]; ok {
+		b.Logger().Info("this is keyIdRaw:", keyIdRaw)
+
+		keySecret = keyIdRaw.(string)
+		return b.Secret(ccloudClusterApiKeyType).Response(
+			// Data
+			map[string]interface{}{
+				"key_id": keyId,
+				"secret": keySecret,
+			},
+			// Internal
+			map[string]interface{}{
+				"key_id": keyId,
+				"role":   roleName,
+			},
+		), nil
 	}
+
 	return nil, errors.New("Unable to find key and secret")
 }
 

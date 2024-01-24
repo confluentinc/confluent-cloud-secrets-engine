@@ -218,6 +218,12 @@ func (confluentCloudBackend *ccloudBackend) pathRolesWrite(ctx context.Context, 
 		roleEntry.MultiUseKey = false
 	}
 
+	if ccKeyId, ok := d.GetOk("cc_key_id"); ok {
+		roleEntry.CCKeyId = ccKeyId.(string)
+	}
+
+	confluentCloudBackend.Logger().Info("pathRolesWrite")
+
 	if err := setRole(ctx, req.Storage, name.(string), roleEntry); err != nil {
 		return nil, err
 	}
