@@ -21,21 +21,25 @@ type apikeyRoleEntry struct {
 	TTL    time.Duration `json:"ttl,omitempty"`
 	MaxTTL time.Duration `json:"max_ttl,omitempty"`
 
-	DisplayNameTmpl string `json:"display_name_template,omitempty"`
-	DescriptionTmpl string `json:"description_template,omitempty"`
+	MultiUseKey bool   `json:"multi_use_key"`
+	UsageCount  int    `json:"usage_count"`
+	CCKeyId     string `json:"cc_key_id"`
+	CCKeySecret string `json:"cc_key_secret"`
 }
 
 // toResponseData returns response data for a role
 func (r *apikeyRoleEntry) toResponseData() map[string]interface{} {
 	respData := map[string]interface{}{
-		"owner":                 r.Owner,
-		"owner_env":             r.OwnerEnv,
-		"resource":              r.Resource,
-		"resource_env":          r.ResourceEnv,
-		"ttl":                   r.TTL.Seconds(),
-		"max_ttl":               r.MaxTTL.Seconds(),
-		"display_name_template": r.DisplayNameTmpl,
-		"description_template":  r.DescriptionTmpl,
+		"owner":         r.Owner,
+		"owner_env":     r.OwnerEnv,
+		"resource":      r.Resource,
+		"resource_env":  r.ResourceEnv,
+		"ttl":           r.TTL.Seconds(),
+		"max_ttl":       r.MaxTTL.Seconds(),
+		"multi_use_key": r.MultiUseKey,
+		"usage_count":   r.UsageCount,
+		"cc_key_id":     r.CCKeyId,
+		"cc_key_secret": r.CCKeySecret,
 	}
 	return respData
 }
@@ -80,16 +84,24 @@ func pathRole(b *ccloudBackend) []*framework.Path {
 					Type:        framework.TypeDurationSecond,
 					Description: "Maximum lease time for generated credentials. If not set or set to 0, will use system default.",
 				},
-				//"display_name_template": {
-				//    Type:        framwork.TypeString,
-				//    Description: "Template describing how dynamic display names are generated.",
-				//    Default: // TODO
-				//},
-				//"description_template": {
-				//    Type:        framwork.TypeString,
-				//    Description: "Template describing how dynamic descriptions are generated.",
-				//    Default: // TODO
-				//},
+				"multi_use_key": {
+					Type:        framework.TypeBool,
+					Default:     false,
+					Description: "Boolean to indicate if a role is multi use or single use. If the role is not set then assume it is single usage.",
+				},
+				"usage_count": {
+					Type:        framework.TypeInt,
+					Default:     0,
+					Description: "Count to keep track of role usage",
+				},
+				"cc_key_id": {
+					Type:        framework.TypeString,
+					Description: "Key ID for confluent cloud",
+				},
+				"cc_key_secret": {
+					Type:        framework.TypeString,
+					Description: "Key secret for confluent cloud",
+				},
 			},
 			Operations: map[logical.Operation]framework.OperationHandler{
 				logical.ReadOperation: &framework.PathOperation{
@@ -206,17 +218,20 @@ func (confluentCloudBackend *ccloudBackend) pathRolesWrite(ctx context.Context, 
 		return nil, fmt.Errorf("ttl cannot be greater than max_ttl")
 	}
 
-	//if display_name_template, ok := d.GetOk("display_name_template"); ok {
-	//    roleEntry.DisplayNameTmpl = display_name_template.(string)
-	//} else if !ok && createOperation {
-	//    return nil, fmt.Errorf("missing display_name_template in role")
-	//}
-	//
-	//if description_template, ok := d.GetOk("description_template"); ok {
-	//    roleEntry.DescriptionTmpl = description_template.(string)
-	//} else if !ok && createOperation {
-	//    return nil, fmt.Errorf("missing description_template in role")
-	//}
+	if multiUseKey, ok := d.GetOk("multi_use_key"); ok {
+		roleEntry.MultiUseKey = multiUseKey.(bool)
+	} else if !ok && createOperation {
+		roleEntry.MultiUseKey = false
+	}
+
+	if ccKeyId, ok := d.GetOk("cc_key_id"); ok {
+		roleEntry.CCKeyId = ccKeyId.(string)
+	}
+	if ccKeySecret, ok := d.GetOk("cc_key_secret"); ok {
+		roleEntry.CCKeySecret = ccKeySecret.(string)
+	}
+
+	confluentCloudBackend.Logger().Info("pathRolesWrite")
 
 	if err := setRole(ctx, req.Storage, name.(string), roleEntry); err != nil {
 		return nil, err
