@@ -87,7 +87,7 @@ Along with the lease ID, a lease duration can be read. The lease duration is a T
 ```
 https://developer.hashicorp.com/vault/docs/concepts/lease
 
-If the lease is not renewed within its TTL, then the lease is revoked and the Confluent Could API key may be removed (for situations when it's removed or not, see Key Management Strategies below).
+If the lease is not renewed within its TTL, then the lease is revoked and the Confluent Cloud API key may be removed (for situations when it's removed or not, see Key Management Strategies below).
 
 **If the CC API key is removed then your application will not be able to interact with Confluent Cloud anymore.**
 
