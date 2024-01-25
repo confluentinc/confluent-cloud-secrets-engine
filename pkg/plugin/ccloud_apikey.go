@@ -14,8 +14,9 @@ const (
 
 // ccloudClusterApiKey defines a secret for the CCloud Cluster API Key
 type ccloudClusterApiKey struct {
-	KeyId  string `json:"key_id"`
-	Secret string `json:"secret"`
+	KeyId      string `json:"key_id"`
+	Secret     string `json:"secret"`
+	UsageCount int    `json:"usage_count"`
 }
 
 // ccloudClusterApiKey defines a secret to store for a given role
@@ -38,6 +39,11 @@ func (b *ccloudBackend) ccloudClusterApiKey() *framework.Secret {
 	}
 }
 
+func (b *ccloudBackend) decreaseCountAndDeleteKey(roleName string, role *apikeyRoleEntry, req *logical.Request) (*logical.Response, error) {
+
+	return nil, nil
+}
+
 // tokenRevoke removes the token from the Vault storage API and calls the client to revoke the token
 func (b *ccloudBackend) tokenRevoke(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
 	client, err := b.getClient(ctx, req.Storage)
@@ -53,10 +59,26 @@ func (b *ccloudBackend) tokenRevoke(ctx context.Context, req *logical.Request, d
 		}
 	}
 
-	//delete from cc
-	if err := client.DeleteApiKey(ctx, keyId); err != nil {
-		return nil, fmt.Errorf("error revoking user token: %w", err)
+	var roleName = req.Secret.InternalData["role"].(string)
+	var role, _ = b.getRole(ctx, req.Storage, roleName)
+
+	if role.MultiUseKey {
+		role.UsageCount--
+
+		if role.UsageCount == 0 {
+			role.CCKeyId = ""
+			role.CCKeySecret = ""
+		}
+		setRole(ctx, req.Storage, roleName, role)
 	}
+
+	if !role.MultiUseKey || role.UsageCount == 0 {
+		if err := client.DeleteApiKey(ctx, keyId); err != nil {
+			return nil, fmt.Errorf("error revoking user token: %w", err)
+		}
+		b.Logger().Info("Deleting CC API key: %v", keyId)
+	}
+
 	return nil, nil
 }
 
@@ -108,15 +130,4 @@ func createToken(
 		KeyId:  keyId,
 		Secret: secret,
 	}, nil
-}
-
-// deleteToken calls the CCloud API client to sign out and revoke the token
-func deleteToken(ctx context.Context, c *ccloudAPIKeyClient, keyId string) error {
-	err := c.DeleteApiKey(ctx, keyId)
-
-	if err != nil {
-		return fmt.Errorf("error deleting CCloud Cluster API Key: %w", err)
-	}
-
-	return nil
 }
