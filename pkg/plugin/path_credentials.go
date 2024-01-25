@@ -119,6 +119,7 @@ func (b *ccloudBackend) readOrCreateCredential(ctx context.Context, req *logical
 
 	// usage count > 0, we return the existing key
 	role.UsageCount++
+	setRole(ctx, req.Storage, roleName, role)
 
 	return b.Secret(ccloudClusterApiKeyType).Response(
 		// Data
