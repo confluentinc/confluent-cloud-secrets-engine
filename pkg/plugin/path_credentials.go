@@ -60,6 +60,7 @@ func (b *ccloudBackend) pathCredentialsRead(ctx context.Context, req *logical.Re
 // backend, generates a response with the secrets information, and checks the
 // TTL and MaxTTL attributes.
 func (b *ccloudBackend) createCredential(ctx context.Context, req *logical.Request, roleName string, role *apikeyRoleEntry) (*logical.Response, error) {
+	b.Logger().Info("createCredential()")
 	token, err := b.createClusterKey(ctx, req, role)
 
 	if err != nil {
@@ -89,10 +90,10 @@ func (b *ccloudBackend) createCredential(ctx context.Context, req *logical.Reque
 	if role.MaxTTL > 0 {
 		resp.Secret.MaxTTL = role.MaxTTL
 	}
-	b.Logger().Info("this is on create")
 	b.Logger().Info("this is the role: %v", role)
 
 	role.CCKeyId = token.KeyId
+	role.CCKeySecret = token.Secret
 	role.UsageCount = 1
 
 	setRole(ctx, req.Storage, roleName, role)
@@ -110,7 +111,7 @@ read credential
 // backend, generates a response with the secrets information, and checks the
 // TTL and MaxTTL attributes.
 func (b *ccloudBackend) readOrCreateCredential(ctx context.Context, req *logical.Request, roleName string, role *apikeyRoleEntry) (*logical.Response, error) {
-	b.Logger().Info("into multi")
+	b.Logger().Info("readOrCreateCredential()")
 	// first use = usage count 0 means the key has not been created yet
 	if role.UsageCount == 0 {
 		return b.createCredential(ctx, req, roleName, role)
@@ -119,32 +120,20 @@ func (b *ccloudBackend) readOrCreateCredential(ctx context.Context, req *logical
 	// usage count > 0, we return the existing key
 	role.UsageCount++
 
-	var keyId = role.CCKeyId
-	var keySecret any
+	return b.Secret(ccloudClusterApiKeyType).Response(
+		// Data
+		map[string]interface{}{
+			"key_id": role.CCKeyId,
+			"secret": role.CCKeySecret,
+		},
+		// Internal
+		map[string]interface{}{
+			"key_id": role.CCKeyId,
+			"role":   roleName,
+		},
+	), nil
 
-	b.Logger().Info("Searching for %v", keyId)
-
-	b.Logger().Info("Secret found for %v", b.Secret(ccloudClusterApiKeyType))
-
-	if keyIdRaw, ok := req.Secret.InternalData["key_id"]; ok {
-		b.Logger().Info("this is keyIdRaw:", keyIdRaw)
-
-		keySecret = keyIdRaw.(string)
-		return b.Secret(ccloudClusterApiKeyType).Response(
-			// Data
-			map[string]interface{}{
-				"key_id": keyId,
-				"secret": keySecret,
-			},
-			// Internal
-			map[string]interface{}{
-				"key_id": keyId,
-				"role":   roleName,
-			},
-		), nil
-	}
-
-	return nil, errors.New("Unable to find key and secret")
+	//	return nil, errors.New("Unable to find key and secret")
 }
 
 // createClusterKey uses the CCloud client to sign in and get a new token
