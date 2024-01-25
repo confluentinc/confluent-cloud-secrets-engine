@@ -50,10 +50,19 @@ export CONFLUENT_SECRET="xxx"
 export CONFLUENT_ENVIRONMENT_ID="xxx"
 export CONFLUENT_OWNER_ID="xxx"
 export CONFLUENT_RESOURCE_ID="xxx"
-make setup
 ```
 
-## 6. Finally, Request a New Dynamic API-Key
+## 6. Create Role
+Single Use Role
+```shell
+make setup
+```
+Multi Use Role  
+```shell
+make setupMulti
+```
+
+## 7. Finally, Request a New Dynamic API-Key
 ```shell
 vault read ccloud/creds/test
 ```

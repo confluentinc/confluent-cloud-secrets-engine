@@ -38,10 +38,12 @@ func (b *ccloudBackend) pathCredentialsRead(ctx context.Context, req *logical.Re
 
 	roleEntry, err := b.getRole(ctx, req.Storage, roleName)
 	if err != nil {
+		b.Logger().Error("Error retrieving role: %v", roleName)
 		return nil, fmt.Errorf("error retrieving role: %w", err)
 	}
 
 	if roleEntry == nil {
+		b.Logger().Error("Role is nil")
 		return nil, errors.New("error retrieving role: role is nil")
 	}
 
@@ -60,7 +62,6 @@ func (b *ccloudBackend) pathCredentialsRead(ctx context.Context, req *logical.Re
 // backend, generates a response with the secrets information, and checks the
 // TTL and MaxTTL attributes.
 func (b *ccloudBackend) createCredential(ctx context.Context, req *logical.Request, roleName string, role *apikeyRoleEntry) (*logical.Response, error) {
-	b.Logger().Info("createCredential()")
 	token, err := b.createClusterKey(ctx, req, role)
 
 	if err != nil {
@@ -90,14 +91,12 @@ func (b *ccloudBackend) createCredential(ctx context.Context, req *logical.Reque
 	if role.MaxTTL > 0 {
 		resp.Secret.MaxTTL = role.MaxTTL
 	}
-	b.Logger().Info("this is the role: %v", role)
 
 	if role.MultiUseKey == true {
 		role.CCKeyId = token.KeyId
 		role.CCKeySecret = token.Secret
 		role.UsageCount = 1
 		setRole(ctx, req.Storage, roleName, role)
-		b.Logger().Info("this is updated the role: %v", role)
 	}
 
 	return resp, nil
@@ -111,7 +110,6 @@ read credential
 // backend, generates a response with the secrets information, and checks the
 // TTL and MaxTTL attributes.
 func (b *ccloudBackend) readOrCreateCredential(ctx context.Context, req *logical.Request, roleName string, role *apikeyRoleEntry) (*logical.Response, error) {
-	b.Logger().Info("readOrCreateCredential()")
 	// first use = usage count 0 means the key has not been created yet
 	if role.UsageCount == 0 {
 		return b.createCredential(ctx, req, roleName, role)
@@ -151,12 +149,16 @@ func (b *ccloudBackend) createClusterKey(ctx context.Context, req *logical.Reque
 	description := fmt.Sprintf("Created by Vault: path=%s%s entity=%s)", req.MountPoint, req.Path, req.DisplayName)
 
 	apiKey, err = createToken(ctx, client, roleEntry.Owner, roleEntry.OwnerEnv, roleEntry.Resource, roleEntry.ResourceEnv, displayName, description)
+
 	if err != nil {
 		return nil, fmt.Errorf("error creating CCloud Cluster API token: %w", err)
 	}
 
 	if apiKey.KeyId == "" || apiKey.Secret == "" {
+		b.Logger().Error("Invalid CCloud API Token")
 		return nil, errors.New("received an invalid CCloud Cluster API token")
+	} else {
+		b.Logger().Info(`Created CC API key: %v`, apiKey.KeyId)
 	}
 
 	return apiKey, nil
