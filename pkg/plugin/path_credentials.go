@@ -47,10 +47,6 @@ func (b *ccloudBackend) pathCredentialsRead(ctx context.Context, req *logical.Re
 		return nil, errors.New("error retrieving role: role is nil")
 	}
 
-	/**
-	What happens when a user creates a multi use role for the first time, should we also do the create then if the role exists then read.
-	if roleEntry is multi use we should read it.
-	*/
 	if roleEntry.MultiUseKey == false {
 		return b.createCredential(ctx, req, roleName, roleEntry)
 	} else {
@@ -101,10 +97,6 @@ func (b *ccloudBackend) createCredential(ctx context.Context, req *logical.Reque
 
 	return resp, nil
 }
-
-/**
-read credential
-*/
 
 // readOrCreateCredential reads an existing Cluster API key or creates it if it doesn't exist
 // backend, generates a response with the secrets information, and checks the
