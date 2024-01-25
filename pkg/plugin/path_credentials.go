@@ -133,8 +133,6 @@ func (b *ccloudBackend) readOrCreateCredential(ctx context.Context, req *logical
 			"role":   roleName,
 		},
 	), nil
-
-	//	return nil, errors.New("Unable to find key and secret")
 }
 
 // createClusterKey uses the CCloud client to sign in and get a new token

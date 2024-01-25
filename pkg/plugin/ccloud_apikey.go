@@ -41,9 +41,6 @@ func (b *ccloudBackend) ccloudClusterApiKey() *framework.Secret {
 
 // tokenRevoke removes the token from the Vault storage API and calls the client to revoke the token
 func (b *ccloudBackend) tokenRevoke(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
-
-	// TODO decrease role usage count and delete if 0
-
 	client, err := b.getClient(ctx, req.Storage)
 	if err != nil {
 		return nil, fmt.Errorf("error getting client: %w", err)
@@ -57,9 +54,23 @@ func (b *ccloudBackend) tokenRevoke(ctx context.Context, req *logical.Request, d
 		}
 	}
 
-	//delete from cc
-	if err := client.DeleteApiKey(ctx, keyId); err != nil {
-		return nil, fmt.Errorf("error revoking user token: %w", err)
+	var roleName = req.Secret.InternalData["role"].(string)
+	var role, _ = b.getRole(ctx, req.Storage, roleName)
+	role.UsageCount--
+
+	setRole(ctx, req.Storage, roleName, role)
+
+	//delete from cc if usage count is 0
+	if role.UsageCount == 0 {
+		role.CCKeyId = ""
+		role.CCKeySecret = ""
+		setRole(ctx, req.Storage, roleName, role)
+
+		if err := client.DeleteApiKey(ctx, keyId); err != nil {
+			return nil, fmt.Errorf("error revoking user token: %w", err)
+		}
+		b.Logger().Info("Deleting CC API key: %v", keyId)
+
 	}
 	return nil, nil
 }
