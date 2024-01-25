@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-
 	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/logical"
 )
@@ -39,14 +38,20 @@ func (b *ccloudBackend) pathCredentialsRead(ctx context.Context, req *logical.Re
 
 	roleEntry, err := b.getRole(ctx, req.Storage, roleName)
 	if err != nil {
+		b.Logger().Error("Error retrieving role: %v", roleName)
 		return nil, fmt.Errorf("error retrieving role: %w", err)
 	}
 
 	if roleEntry == nil {
+		b.Logger().Error("Role is nil")
 		return nil, errors.New("error retrieving role: role is nil")
 	}
 
-	return b.createCredential(ctx, req, roleName, roleEntry)
+	if roleEntry.MultiUseKey == false {
+		return b.createCredential(ctx, req, roleName, roleEntry)
+	} else {
+		return b.readOrCreateCredential(ctx, req, roleName, roleEntry)
+	}
 }
 
 // createCredential creates a new Cluster API Key to store into the Vault
@@ -83,7 +88,41 @@ func (b *ccloudBackend) createCredential(ctx context.Context, req *logical.Reque
 		resp.Secret.MaxTTL = role.MaxTTL
 	}
 
+	if role.MultiUseKey == true {
+		role.CCKeyId = token.KeyId
+		role.CCKeySecret = token.Secret
+		role.UsageCount = 1
+		setRole(ctx, req.Storage, roleName, role)
+	}
+
 	return resp, nil
+}
+
+// readOrCreateCredential reads an existing Cluster API key or creates it if it doesn't exist
+// backend, generates a response with the secrets information, and checks the
+// TTL and MaxTTL attributes.
+func (b *ccloudBackend) readOrCreateCredential(ctx context.Context, req *logical.Request, roleName string, role *apikeyRoleEntry) (*logical.Response, error) {
+	// first use = usage count 0 means the key has not been created yet
+	if role.UsageCount == 0 {
+		return b.createCredential(ctx, req, roleName, role)
+	}
+
+	// usage count > 0, we return the existing key
+	role.UsageCount++
+	setRole(ctx, req.Storage, roleName, role)
+
+	return b.Secret(ccloudClusterApiKeyType).Response(
+		// Data
+		map[string]interface{}{
+			"key_id": role.CCKeyId,
+			"secret": role.CCKeySecret,
+		},
+		// Internal
+		map[string]interface{}{
+			"key_id": role.CCKeyId,
+			"role":   roleName,
+		},
+	), nil
 }
 
 // createClusterKey uses the CCloud client to sign in and get a new token
@@ -102,12 +141,16 @@ func (b *ccloudBackend) createClusterKey(ctx context.Context, req *logical.Reque
 	description := fmt.Sprintf("Created by Vault: path=%s%s entity=%s)", req.MountPoint, req.Path, req.DisplayName)
 
 	apiKey, err = createToken(ctx, client, roleEntry.Owner, roleEntry.OwnerEnv, roleEntry.Resource, roleEntry.ResourceEnv, displayName, description)
+
 	if err != nil {
 		return nil, fmt.Errorf("error creating CCloud Cluster API token: %w", err)
 	}
 
 	if apiKey.KeyId == "" || apiKey.Secret == "" {
+		b.Logger().Error("Invalid CCloud API Token")
 		return nil, errors.New("received an invalid CCloud Cluster API token")
+	} else {
+		b.Logger().Info(`Created CC API key: %v`, apiKey.KeyId)
 	}
 
 	return apiKey, nil
