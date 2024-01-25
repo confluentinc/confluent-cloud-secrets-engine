@@ -92,13 +92,13 @@ func (b *ccloudBackend) createCredential(ctx context.Context, req *logical.Reque
 	}
 	b.Logger().Info("this is the role: %v", role)
 
-	role.CCKeyId = token.KeyId
-	role.CCKeySecret = token.Secret
-	role.UsageCount = 1
-
-	setRole(ctx, req.Storage, roleName, role)
-
-	b.Logger().Info("this is updated the role: %v", role)
+	if role.MultiUseKey == true {
+		role.CCKeyId = token.KeyId
+		role.CCKeySecret = token.Secret
+		role.UsageCount = 1
+		setRole(ctx, req.Storage, roleName, role)
+		b.Logger().Info("this is updated the role: %v", role)
+	}
 
 	return resp, nil
 }
