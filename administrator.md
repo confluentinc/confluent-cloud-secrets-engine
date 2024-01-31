@@ -34,7 +34,7 @@ Please note: You can set a default and a maximum duration for leases in this com
 
 The plugin configuration consists simply in providing the CC Cloud API key details.
 
-Where to get the information you need:
+#### Where to get the information you need:
 
 **CC_CLOUD_API_KEY + CC_CLOUD_API_SECRET**
 
@@ -60,17 +60,31 @@ Select the desired cluster, then copy its ID from the center box.
 
 ![](./img/cluster-id.png)
 
+#### Plugin config and role
+
+Once you have gathered the various IDs needed, you're ready to configure the role. 
+
 1. Provide the CC Could API key to the plugin:
+
 ```shell
 vault write ccloud/config ccloud_api_key_id=<CC_CLOUD_API_KEY> ccloud_api_key_secret=<CC_CLOUD_API_SECRET> url="https://api.confluent.cloud"
 ```
 
 2. Configure the role/app
+
 Under the `role` path, you'll configure your applications' Confluent Cloud API keys. For each role/app, you'll need to provide the owner ID, the environment ID and the cluster ID.
 
 ```shell
 vault write ccloud/role/app1 name="app1" owner=<CC_OWNER_ID> owner_env=<CC_ENVIRONMENT_ID> resource=<CC_CLUSTER_ID> resource_env=<CC_ENVIRONMENT_ID>
 ```
+
+To create a role that provides multi-use keys, add the `multi_use_key` option:
+
+```shell
+vault write ccloud/role/app1 name="app1" owner=<CC_OWNER_ID> owner_env=<CC_ENVIRONMENT_ID> resource=<CC_CLUSTER_ID> resource_env=<CC_ENVIRONMENT_ID> multi_use_key="true"
+```
+
+3. Get a key from the plugin = read a Vault secret 
 
 The app will read the secret using the path defined above. Here is an example using the Vault CLI:
 
@@ -129,4 +143,4 @@ For more details about Confluent Cloud quotas, please read: https://docs.conflue
 
 If you have 1 application that you spawn over 5 instance, then each instance will receive its own API key, and you will stay under the 10-key limit. 
 
-However, if you want to use a single key over all the launched instances of an app, then you have to use the upcoming shared keys. This is an option that you can set when calling the `vault write ccloud/???` command above. 
+However, if you want to use a single key over all the launched instances of an app, then you have to use the multi-use keys. This is an option that you set once  when creating the role with the `vault write ccloud/role/???` command above. 
