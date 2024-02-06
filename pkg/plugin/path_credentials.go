@@ -138,7 +138,10 @@ func (b *ccloudBackend) createClusterKey(ctx context.Context, req *logical.Reque
 	displayName := "display_name"
 
 	// TODO Populate Description Template
-	description := fmt.Sprintf("Created by Vault: path=%s%s entity=%s)", req.MountPoint, req.Path, req.DisplayName)
+	description := fmt.Sprintf("Key for role: %s%s (entity=%s, source=Vault CC plugin)", req.MountPoint, req.Path, req.DisplayName)
+	if roleEntry.KeyDescription != "" {
+		description = roleEntry.KeyDescription
+	}
 
 	apiKey, err = createToken(ctx, client, roleEntry.Owner, roleEntry.OwnerEnv, roleEntry.Resource, roleEntry.ResourceEnv, displayName, description)
 

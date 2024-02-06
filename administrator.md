@@ -44,9 +44,18 @@ On the top right menu (aka hamburger menu), click `Cloud API keys`
 
 **CC_OWNER_ID**
 
+The keys created by the plugin are attached to a *user* or *service account* and will have their rights and access. 
+
+If you want to use your user account as the owner:
+
 On the top right menu (aka hamburger menu), click your name, the ID will be in the details in the center box.
 
 ![](./img/owner-id.png)
+
+
+if you want to use a service account as the owner:
+
+On the top right menu (aka hamburger menu), click **Accounts & access**, then in the **Accounts** tab, click **Service accounts**, the ID of the desired service account is shown on the 2nd column. Just copy it from there. It should start with `sa-`.
 
 **CC_ENVIRONMENT_ID**
 
@@ -72,7 +81,7 @@ vault write ccloud/config ccloud_api_key_id=<CC_CLOUD_API_KEY> ccloud_api_key_se
 
 2. Configure the role/app
 
-Under the `role` path, you'll configure your applications' Confluent Cloud API keys. For each role/app, you'll need to provide the owner ID, the environment ID and the cluster ID.
+Under the `role` path, you'll configure your applications' Confluent Cloud API keys. For each role/app, you'll need to provide the owner ID (user ID or service account ID), the environment ID and the cluster ID.
 
 ```shell
 vault write ccloud/role/app1 name="app1" owner=<CC_OWNER_ID> owner_env=<CC_ENVIRONMENT_ID> resource=<CC_CLUSTER_ID> resource_env=<CC_ENVIRONMENT_ID>
@@ -82,6 +91,12 @@ To create a role that provides multi-use keys, add the `multi_use_key` option:
 
 ```shell
 vault write ccloud/role/app1 name="app1" owner=<CC_OWNER_ID> owner_env=<CC_ENVIRONMENT_ID> resource=<CC_CLUSTER_ID> resource_env=<CC_ENVIRONMENT_ID> multi_use_key="true"
+```
+
+To provide a custom description for the keys created using the role, add the `key_description` option:
+
+```shell
+vault write ccloud/role/app1 name="app1" owner=<CC_OWNER_ID> owner_env=<CC_ENVIRONMENT_ID> resource=<CC_CLUSTER_ID> resource_env=<CC_ENVIRONMENT_ID> key_description="created by the Vault CC plugin for app1"
 ```
 
 3. Get a key from the plugin = read a Vault secret 

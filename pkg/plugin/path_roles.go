@@ -25,6 +25,8 @@ type apikeyRoleEntry struct {
 	UsageCount  int    `json:"usage_count"`
 	CCKeyId     string `json:"cc_key_id"`
 	CCKeySecret string `json:"cc_key_secret"`
+
+	KeyDescription string `json:"key_description"`
 }
 
 // toResponseData returns response data for a role
@@ -40,6 +42,7 @@ func (r *apikeyRoleEntry) toResponseData() map[string]interface{} {
 		"usage_count":   r.UsageCount,
 		"cc_key_id":     r.CCKeyId,
 		"cc_key_secret": r.CCKeySecret,
+		"description":   r.KeyDescription,
 	}
 	return respData
 }
@@ -83,6 +86,10 @@ func pathRole(b *ccloudBackend) []*framework.Path {
 				"max_ttl": {
 					Type:        framework.TypeDurationSecond,
 					Description: "Maximum lease time for generated credentials. If not set or set to 0, will use system default.",
+				},
+				"key_description": {
+					Type:        framework.TypeString,
+					Description: "Description of the key (will be visible in CC's UI",
 				},
 				"multi_use_key": {
 					Type:        framework.TypeBool,
@@ -229,6 +236,10 @@ func (confluentCloudBackend *ccloudBackend) pathRolesWrite(ctx context.Context, 
 	}
 	if ccKeySecret, ok := d.GetOk("cc_key_secret"); ok {
 		roleEntry.CCKeySecret = ccKeySecret.(string)
+	}
+
+	if ccKeyDescription, ok := d.GetOk("key_description"); ok {
+		roleEntry.KeyDescription = ccKeyDescription.(string)
 	}
 
 	confluentCloudBackend.Logger().Info("pathRolesWrite")
