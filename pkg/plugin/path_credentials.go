@@ -70,8 +70,9 @@ func (b *ccloudBackend) createCredential(ctx context.Context, req *logical.Reque
 	resp := b.Secret(ccloudClusterApiKeyType).Response(
 		// Data
 		map[string]interface{}{
-			"key_id": token.KeyId,
-			"secret": token.Secret,
+			"key_id":           token.KeyId,
+			"secret":           token.Secret,
+			"sasl.jaas.config": "org.apache.kafka.common.security.plain.PlainLoginModule required username='" + token.KeyId + "' password='" + token.Secret + "';",
 		},
 		// Internal
 		map[string]interface{}{
@@ -114,8 +115,9 @@ func (b *ccloudBackend) readOrCreateCredential(ctx context.Context, req *logical
 	return b.Secret(ccloudClusterApiKeyType).Response(
 		// Data
 		map[string]interface{}{
-			"key_id": role.CCKeyId,
-			"secret": role.CCKeySecret,
+			"key_id":           role.CCKeyId,
+			"secret":           role.CCKeySecret,
+			"sasl.jaas.config": "org.apache.kafka.common.security.plain.PlainLoginModule required username='" + role.CCKeyId + "' password='" + role.CCKeySecret + "';",
 		},
 		// Internal
 		map[string]interface{}{
