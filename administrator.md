@@ -40,6 +40,10 @@ The plugin configuration consists simply in providing the CC Cloud API key detai
 
 On the top right menu (aka hamburger menu), click `Cloud API keys`
 
+When creating a Cloud API key, you can select *Global access* or *Granular access*. We recommend using *Granular access*. When doing so, you can link the key an existing or a new service account and limit the scope of action to just managing API keys. To be able to create API keys, the service account must be given the *ResourceKeyAdmin* role at the Organization level. 
+
+Check https://docs.confluent.io/cloud/current/access-management/access-control/rbac/predefined-rbac-roles.html#resourcekeyadmin for more details.
+
 ![](./img/cloud-api-keys.png)
 
 **CC_OWNER_ID**
