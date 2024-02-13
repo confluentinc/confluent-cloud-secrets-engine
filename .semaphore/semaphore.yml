@@ -37,6 +37,7 @@ global_job_config:
     always:
       commands:
         - make epilogue-ci
+
 blocks:
   - name: Build
     dependencies: []
