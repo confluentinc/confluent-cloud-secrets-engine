@@ -115,6 +115,8 @@ func (testEnv *testEnv) AddSingleUseRole(testing *testing.T) {
 		"resource":              testEnv.Resource,
 		"resource_env":          testEnv.ResourceEnv,
 		"name":                  "singleUseRoleTest",
+		"ttl":                   "60",
+		"max-ttl":               "60",
 	}
 	var schema = map[string]*framework.FieldSchema{
 		"owner": {
@@ -166,6 +168,8 @@ func (testEnv *testEnv) AddMultiUseRole(testing *testing.T) {
 		"resource_env":          testEnv.ResourceEnv,
 		"name":                  "multiUseRoleTest",
 		"multi_use_key":         testEnv.MultiUseKey,
+		"default-lease-ttl":     "60",
+		"max-lease-ttl":         "60",
 	}
 	var schema = map[string]*framework.FieldSchema{
 		"owner": {
@@ -260,6 +264,8 @@ func (testEnv *testEnv) ReadSingleUseRole(testing *testing.T) {
 		"resource":     testEnv.Resource,
 		"resource_env": testEnv.ResourceEnv,
 		"name":         "singleUseRoleTest",
+		"ttl":          "60",
+		"max-ttl":      "60",
 	}
 	var schema = map[string]*framework.FieldSchema{
 		"owner": {
@@ -279,6 +285,14 @@ func (testEnv *testEnv) ReadSingleUseRole(testing *testing.T) {
 			Description: "resource_env",
 		},
 		"name": {
+			Type:        framework.TypeString,
+			Description: "name",
+		},
+		"ttl": {
+			Type:        framework.TypeString,
+			Description: "name",
+		},
+		"max-ttl": {
 			Type:        framework.TypeString,
 			Description: "name",
 		},
@@ -318,6 +332,8 @@ func (testEnv *testEnv) ReadMultiUseRole(testing *testing.T) {
 		"resource_env":          testEnv.ResourceEnv,
 		"name":                  "multiUseRoleTest",
 		"multi_use_key":         testEnv.MultiUseKey,
+		"default-lease-ttl":     "60",
+		"max-lease-ttl":         "60",
 	}
 	var schema = map[string]*framework.FieldSchema{
 		"owner": {
@@ -378,6 +394,8 @@ func (testEnv *testEnv) ReadCredentialsSingleUsage(testing *testing.T) {
 		"resource":              testEnv.Resource,
 		"resource_env":          testEnv.ResourceEnv,
 		"name":                  "singleUseRoleTest",
+		"ttl":                   "60",
+		"max-ttl":               "60",
 	}
 	var schema = map[string]*framework.FieldSchema{
 		"owner": {
@@ -400,6 +418,14 @@ func (testEnv *testEnv) ReadCredentialsSingleUsage(testing *testing.T) {
 			Type:        framework.TypeString,
 			Description: "name",
 		},
+		"ttl": {
+			Type:        framework.TypeString,
+			Description: "name",
+		},
+		"max-ttl": {
+			Type:        framework.TypeString,
+			Description: "name",
+		},
 	}
 	response, err := logicalBackend.pathCredentialsRead(context.Background(), &logical.Request{
 		Operation: logical.ReadOperation,
@@ -410,10 +436,11 @@ func (testEnv *testEnv) ReadCredentialsSingleUsage(testing *testing.T) {
 		Schema: schema,
 	})
 
+	keyId := response.Data["key_id"]
 	require.NotNil(testing, response)
 	require.Nil(testing, err)
 
-	require.NotNil(testing, response.Data["key_id"])
+	require.NotNil(testing, keyId)
 	require.NotNil(testing, response.Data["secret"])
 	require.NotNil(testing, response.Data["sasl.jaas.config"])
 
@@ -428,15 +455,11 @@ func (testEnv *testEnv) ReadCredentialsSingleUsage(testing *testing.T) {
 	})
 	require.Equal(testing, 0, readRole.Data["usage_count"].(int), "equals")
 
-	//logicalBackend.tokenRevoke(context.Background(), &logical.Request{
-	//	Operation: logical.RevokeOperation,
-	//	Path:      "creds/singleUseRoleTest",
-	//	Storage:   testEnv.Storage,
-	//}, &framework.FieldData{
-	//	Raw:    expectedData,
-	//	Schema: schema,
-	//})
-
+	logicalBackend.removeCredential(context.Background(), &logical.Request{
+		Operation: logical.ReadOperation,
+		Path:      "creds/singleUseRoleTest",
+		Storage:   testEnv.Storage,
+	}, keyId.(string))
 }
 
 // ReadRole retrieves the Cluster API key based on a Vault role.
@@ -454,6 +477,8 @@ func (testEnv *testEnv) ReadMultiUseKey(testing *testing.T) {
 		"resource_env":          testEnv.ResourceEnv,
 		"name":                  "multiUseRoleTest",
 		"multi_use_key":         testEnv.MultiUseKey,
+		"default-lease-ttl":     "1m",
+		"max-lease-ttl":         "1m",
 	}
 	var schema = map[string]*framework.FieldSchema{
 		"owner": {
@@ -534,4 +559,9 @@ func (testEnv *testEnv) ReadMultiUseKey(testing *testing.T) {
 	})
 	require.Equal(testing, 2, readRoleSecondTime.Data["usage_count"].(int), "equals")
 
+	logicalBackend.removeCredential(context.Background(), &logical.Request{
+		Operation: logical.ReadOperation,
+		Path:      "creds/multiUseRoleTest",
+		Storage:   testEnv.Storage,
+	}, keyId.(string))
 }
