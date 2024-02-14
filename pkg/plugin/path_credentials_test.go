@@ -5,6 +5,7 @@ import (
 	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/stretchr/testify/assert"
 	"os"
+	"strconv"
 	"testing"
 	"time"
 
@@ -20,6 +21,7 @@ func newAcceptanceTestEnv() (*testEnv, error) {
 
 	maxLease, _ := time.ParseDuration("60s")
 	defaultLease, _ := time.ParseDuration("30s")
+	isMultiUse, _ := strconv.ParseBool(os.Getenv("TEST_MULTI_USE_KEY"))
 	conf := &logical.BackendConfig{
 		System: &logical.StaticSystemView{
 			DefaultLeaseTTLVal: defaultLease,
@@ -39,6 +41,7 @@ func newAcceptanceTestEnv() (*testEnv, error) {
 		OwnerEnv:    os.Getenv(envVarCCloudEnv),
 		Resource:    os.Getenv(envVarCCloudResourceId),
 		ResourceEnv: os.Getenv(envVarCCloudEnv),
+		MultiUseKey: isMultiUse,
 		Backend:     b,
 		Context:     ctx,
 		Storage:     &logical.InmemStorage{},
@@ -57,11 +60,13 @@ func TestAcceptanceUserToken(t *testing.T) {
 	}
 
 	t.Run("add config", acceptanceTestEnv.AddConfig)
-	t.Run("add user token role", acceptanceTestEnv.AddRole)
-	t.Run("list user token role", acceptanceTestEnv.ListRole)
-	t.Run("read user token cred", acceptanceTestEnv.ReadRole)
-	//todo read secrets, path secret then call read and check we have api key and secret
-
+	t.Run("add single use user token role", acceptanceTestEnv.AddSingleUseRole)
+	t.Run("add multi use user token role", acceptanceTestEnv.AddMultiUseRole)
+	t.Run("list user token roles", acceptanceTestEnv.ListRole)
+	t.Run("read single use user token role", acceptanceTestEnv.ReadSingleUseRole)
+	t.Run("read multi use user token role", acceptanceTestEnv.ReadMultiUseRole)
+	t.Run("create and delete single use confluent cloud api key and secret", acceptanceTestEnv.ReadCredentialsSingleUsage)
+	t.Run("create and delete multi use confluent cloud api key and secret", acceptanceTestEnv.ReadMultiUseKey)
 }
 
 // Unit Tests
