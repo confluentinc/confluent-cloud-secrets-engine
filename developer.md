@@ -205,6 +205,7 @@ Owner can be found in Accounts and Access then in the table it is the ID, resour
 
 In the environment field for the tests add:
 ```
-VAULT_ACC=1;TEST_CCLOUD_ENV_ID=Environment_id;TEST_CCLOUD_RESOURCE_ID=resource_id;TEST_CCLOUD_KEY_ID=cloudKey;TEST_CCLOUD_OWNER=Environment_id;TEST_CCLOUD_SECRET=cloudSecret;TEST_CCLOUD_URL=https://api.confluent.cloud
+VAULT_ACC=1;TEST_CCLOUD_ENV_ID=Environment_id;TEST_CCLOUD_RESOURCE_ID=resource_id;TEST_CCLOUD_KEY_ID=cloudKey;TEST_CCLOUD_OWNER=Environment_id;TEST_CCLOUD_SECRET=cloudSecret;TEST_CCLOUD_URL=https://api.confluent.cloud;TEST_MULTI_USE_KEY=true;
 ```
-The ```VAULT_ACC=1``` flag enables the integration tests. This flag is checked in ```path_credentials_test.go``` in ```if !runAcceptanceTests { t.SkipNow() }```. You can comment this line out if you dont want to set the flag in the environment variables.
+The ```VAULT_ACC=1``` flag enables the integration tests. This flag is checked in ```path_credentials_test.go``` in ```if !runAcceptanceTests { t.SkipNow() }```. You can comment this line out if you don't want to set the flag in the environment variables.
+The ```TEST_MULTI_USE_KEY=true;``` flag enables the creation of a multi use api key and secret in confluent cloud. 
