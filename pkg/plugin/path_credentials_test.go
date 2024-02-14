@@ -65,11 +65,8 @@ func TestAcceptanceUserToken(t *testing.T) {
 	t.Run("list user token role", acceptanceTestEnv.ListRole)
 	t.Run("read single use user token role", acceptanceTestEnv.ReadSingleUseRole)
 	t.Run("read multi use user token role", acceptanceTestEnv.ReadMultiUseRole)
-	t.Run("TODO", acceptanceTestEnv.ReadCredentialsSingleUsage)
-	t.Run("TODO", acceptanceTestEnv.ReadMultiUseKey)
-
-	//todo read secrets, path secret then call read and check we have api key and secret
-
+	t.Run("create and delete single use confluent cloud api key and secret", acceptanceTestEnv.ReadCredentialsSingleUsage)
+	t.Run("create and delete multi use confluent cloud api key and secret", acceptanceTestEnv.ReadMultiUseKey)
 }
 
 // Unit Tests

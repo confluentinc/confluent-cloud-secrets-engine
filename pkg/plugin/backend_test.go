@@ -17,10 +17,7 @@ const (
 	envVarCCloudOwner      = "TEST_CCLOUD_OWNER"
 	envVarCCloudEnv        = "TEST_CCLOUD_ENV_ID"
 	envVarCCloudResourceId = "TEST_CCLOUD_RESOURCE_ID"
-	envVarMultiUseKey      = "TEST_MULTI_USE_KEY"
 )
-
-//todo rename the role "testing"
 
 // getTestBackend will help you construct a test backend object. Update this function with your target backend.
 func getTestBackend(testingBackground testing.TB) (*ccloudBackend, logical.Storage) {
@@ -107,16 +104,13 @@ func (testEnv *testEnv) AddSingleUseRole(testing *testing.T) {
 	logicalBackend, _ := getTestBackend(testing)
 
 	var expectedData = map[string]interface{}{
-		"ccloud_api_key_id":     testEnv.KeyId,
-		"ccloud_api_key_secret": testEnv.Secret,
-		"url":                   testEnv.URL,
-		"owner":                 testEnv.Owner,
-		"owner_env":             testEnv.OwnerEnv,
-		"resource":              testEnv.Resource,
-		"resource_env":          testEnv.ResourceEnv,
-		"name":                  "singleUseRoleTest",
-		"ttl":                   "60",
-		"max-ttl":               "60",
+		"owner":        testEnv.Owner,
+		"owner_env":    testEnv.OwnerEnv,
+		"resource":     testEnv.Resource,
+		"resource_env": testEnv.ResourceEnv,
+		"name":         "singleUseRoleTest",
+		"ttl":          "60",
+		"max-ttl":      "60",
 	}
 	var schema = map[string]*framework.FieldSchema{
 		"owner": {
@@ -159,17 +153,12 @@ func (testEnv *testEnv) AddMultiUseRole(testing *testing.T) {
 	logicalBackend, _ := getTestBackend(testing)
 
 	var expectedData = map[string]interface{}{
-		"ccloud_api_key_id":     testEnv.KeyId,
-		"ccloud_api_key_secret": testEnv.Secret,
-		"url":                   testEnv.URL,
-		"owner":                 testEnv.Owner,
-		"owner_env":             testEnv.OwnerEnv,
-		"resource":              testEnv.Resource,
-		"resource_env":          testEnv.ResourceEnv,
-		"name":                  "multiUseRoleTest",
-		"multi_use_key":         testEnv.MultiUseKey,
-		"default-lease-ttl":     "60",
-		"max-lease-ttl":         "60",
+		"owner":         testEnv.Owner,
+		"owner_env":     testEnv.OwnerEnv,
+		"resource":      testEnv.Resource,
+		"resource_env":  testEnv.ResourceEnv,
+		"name":          "multiUseRoleTest",
+		"multi_use_key": testEnv.MultiUseKey,
 	}
 	var schema = map[string]*framework.FieldSchema{
 		"owner": {
@@ -264,8 +253,6 @@ func (testEnv *testEnv) ReadSingleUseRole(testing *testing.T) {
 		"resource":     testEnv.Resource,
 		"resource_env": testEnv.ResourceEnv,
 		"name":         "singleUseRoleTest",
-		"ttl":          "60",
-		"max-ttl":      "60",
 	}
 	var schema = map[string]*framework.FieldSchema{
 		"owner": {
@@ -285,14 +272,6 @@ func (testEnv *testEnv) ReadSingleUseRole(testing *testing.T) {
 			Description: "resource_env",
 		},
 		"name": {
-			Type:        framework.TypeString,
-			Description: "name",
-		},
-		"ttl": {
-			Type:        framework.TypeString,
-			Description: "name",
-		},
-		"max-ttl": {
 			Type:        framework.TypeString,
 			Description: "name",
 		},
@@ -323,17 +302,12 @@ func (testEnv *testEnv) ReadMultiUseRole(testing *testing.T) {
 	logicalBackend, _ := getTestBackend(testing)
 
 	var expectedData = map[string]interface{}{
-		"ccloud_api_key_id":     testEnv.KeyId,
-		"ccloud_api_key_secret": testEnv.Secret,
-		"url":                   testEnv.URL,
-		"owner":                 testEnv.Owner,
-		"owner_env":             testEnv.OwnerEnv,
-		"resource":              testEnv.Resource,
-		"resource_env":          testEnv.ResourceEnv,
-		"name":                  "multiUseRoleTest",
-		"multi_use_key":         testEnv.MultiUseKey,
-		"default-lease-ttl":     "60",
-		"max-lease-ttl":         "60",
+		"owner":         testEnv.Owner,
+		"owner_env":     testEnv.OwnerEnv,
+		"resource":      testEnv.Resource,
+		"resource_env":  testEnv.ResourceEnv,
+		"name":          "multiUseRoleTest",
+		"multi_use_key": testEnv.MultiUseKey,
 	}
 	var schema = map[string]*framework.FieldSchema{
 		"owner": {
@@ -386,16 +360,11 @@ func (testEnv *testEnv) ReadCredentialsSingleUsage(testing *testing.T) {
 	logicalBackend, _ := getTestBackend(testing)
 
 	var expectedData = map[string]interface{}{
-		"ccloud_api_key_id":     testEnv.KeyId,
-		"ccloud_api_key_secret": testEnv.Secret,
-		"url":                   testEnv.URL,
-		"owner":                 testEnv.Owner,
-		"owner_env":             testEnv.OwnerEnv,
-		"resource":              testEnv.Resource,
-		"resource_env":          testEnv.ResourceEnv,
-		"name":                  "singleUseRoleTest",
-		"ttl":                   "60",
-		"max-ttl":               "60",
+		"owner":        testEnv.Owner,
+		"owner_env":    testEnv.OwnerEnv,
+		"resource":     testEnv.Resource,
+		"resource_env": testEnv.ResourceEnv,
+		"name":         "singleUseRoleTest",
 	}
 	var schema = map[string]*framework.FieldSchema{
 		"owner": {
@@ -415,14 +384,6 @@ func (testEnv *testEnv) ReadCredentialsSingleUsage(testing *testing.T) {
 			Description: "resource_env",
 		},
 		"name": {
-			Type:        framework.TypeString,
-			Description: "name",
-		},
-		"ttl": {
-			Type:        framework.TypeString,
-			Description: "name",
-		},
-		"max-ttl": {
 			Type:        framework.TypeString,
 			Description: "name",
 		},
@@ -468,17 +429,12 @@ func (testEnv *testEnv) ReadMultiUseKey(testing *testing.T) {
 	logicalBackend, _ := getTestBackend(testing)
 
 	var expectedData = map[string]interface{}{
-		"ccloud_api_key_id":     testEnv.KeyId,
-		"ccloud_api_key_secret": testEnv.Secret,
-		"url":                   testEnv.URL,
-		"owner":                 testEnv.Owner,
-		"owner_env":             testEnv.OwnerEnv,
-		"resource":              testEnv.Resource,
-		"resource_env":          testEnv.ResourceEnv,
-		"name":                  "multiUseRoleTest",
-		"multi_use_key":         testEnv.MultiUseKey,
-		"default-lease-ttl":     "1m",
-		"max-lease-ttl":         "1m",
+		"owner":         testEnv.Owner,
+		"owner_env":     testEnv.OwnerEnv,
+		"resource":      testEnv.Resource,
+		"resource_env":  testEnv.ResourceEnv,
+		"name":          "multiUseRoleTest",
+		"multi_use_key": testEnv.MultiUseKey,
 	}
 	var schema = map[string]*framework.FieldSchema{
 		"owner": {
