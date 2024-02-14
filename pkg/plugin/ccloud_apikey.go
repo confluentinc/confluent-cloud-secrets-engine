@@ -131,3 +131,14 @@ func createToken(
 		Secret: secret,
 	}, nil
 }
+
+// deleteToken calls the CCloud API client to sign out and revoke the token
+func deleteToken(ctx context.Context, c *ccloudAPIKeyClient, keyId string) error {
+	err := c.DeleteApiKey(ctx, keyId)
+
+	if err != nil {
+		return fmt.Errorf("error deleting CCloud Cluster API Key: %w", err)
+	}
+
+	return nil
+}

@@ -99,6 +99,17 @@ func (b *ccloudBackend) createCredential(ctx context.Context, req *logical.Reque
 	return resp, nil
 }
 
+// createCredential creates a new Cluster API Key to store into the Vault
+// backend, generates a response with the secrets information, and checks the
+// TTL and MaxTTL attributes.
+func (b *ccloudBackend) removeCredential(ctx context.Context, req *logical.Request, keyId string) (*logical.Response, error) {
+	client, err := b.getClient(ctx, req.Storage)
+
+	deleteToken(ctx, client, keyId)
+
+	return nil, err
+}
+
 // readOrCreateCredential reads an existing Cluster API key or creates it if it doesn't exist
 // backend, generates a response with the secrets information, and checks the
 // TTL and MaxTTL attributes.
