@@ -60,9 +60,9 @@ func TestAcceptanceUserToken(t *testing.T) {
 	}
 
 	t.Run("add config", acceptanceTestEnv.AddConfig)
-	t.Run("add user token role", acceptanceTestEnv.AddSingleUseRole)
-	t.Run("add user token role", acceptanceTestEnv.AddMultiUseRole)
-	t.Run("list user token role", acceptanceTestEnv.ListRole)
+	t.Run("add single use user token role", acceptanceTestEnv.AddSingleUseRole)
+	t.Run("add multi use user token role", acceptanceTestEnv.AddMultiUseRole)
+	t.Run("list user token roles", acceptanceTestEnv.ListRole)
 	t.Run("read single use user token role", acceptanceTestEnv.ReadSingleUseRole)
 	t.Run("read multi use user token role", acceptanceTestEnv.ReadMultiUseRole)
 	t.Run("create and delete single use confluent cloud api key and secret", acceptanceTestEnv.ReadCredentialsSingleUsage)
