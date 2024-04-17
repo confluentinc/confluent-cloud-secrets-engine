@@ -1,4 +1,4 @@
-module github.com/confluentinc/pie-cc-hashicorp-vault-plugin
+module github.com/confluentinc/confluent-cloud-secrets-engine
 
 go 1.19
 

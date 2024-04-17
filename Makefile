@@ -3,11 +3,11 @@ MASTER_BRANCH ?= main
 
 UPDATE_MK_INCLUDE := true
 UPDATE_MK_INCLUDE_AUTO_MERGE := true
-SERVICE_NAME := pie-cc-hashicorp-vault-plugin
+SERVICE_NAME := confluent-cloud-secrets-engine
 IMAGE_NAME := $(SERVICE_NAME)
 BASE_IMAGE := golang
 
-GO_BINS = github.com/confluentinc/pie-cc-hashicorp-vault-plugin/cmd/plugin=vault-ccloud-secrets-engine
+GO_BINS = github.com/confluentinc/confluent-cloud-secrets-engine/cmd/plugin=vault-ccloud-secrets-engine
 
 ### BEGIN MK-INCLUDE UPDATE ###
 CURL ?= curl

@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	ccloud "github.com/confluentinc/pie-cc-hashicorp-vault-plugin/pkg/plugin"
+	ccloud "github.com/confluentinc/confluent-cloud-secrets-engine/pkg/plugin"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/vault/api"
 	"github.com/hashicorp/vault/sdk/plugin"

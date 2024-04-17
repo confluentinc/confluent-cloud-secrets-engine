@@ -1,4 +1,4 @@
-name: pie-cc-hashicorp-vault-plugin
+name: confluent-cloud-secrets-engine
 lang: go
 lang_version: 1.19.0
 git:
