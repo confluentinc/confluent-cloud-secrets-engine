@@ -195,7 +195,7 @@ To run the tests you have to be in pkg/plugin. Then run the command
 ```go test```
 
 # Integration Testing
-Go to ```TestAcceptanceUserToken``` in ```pie-cc-hashicorp-vault-plugin/pkg/plugin```.
+Go to ```TestAcceptanceUserToken``` in ```confluent-cloud-secrets-engine/pkg/plugin```.
 
 In the run configurations you will need to set some environment config which can be found in confluent cloud. This is the same information needed in the quick start:
 
