@@ -10,7 +10,7 @@ export default defineConfig({
 	},
 	integrations: [starlight({
 		lastUpdated: true,
-		title: 'Confluent Cloud Secrets Engine Docs',
+		title: 'Confluent Cloud Secrets Engine',
 		editLink: {
 			baseUrl: 'https://github.com/confluentinc/confluent-cloud-secrets-engine/edit/main/astrodocs/'
 		},

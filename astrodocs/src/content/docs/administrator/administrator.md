@@ -1,4 +1,8 @@
-# Hashicorp Vault Confluent Cloud Plugin - Administrator Guide
+---
+title: Confluent Cloud Secrets Engine - Administrator Guide
+tableOfContents:
+  maxHeadingLevel: 4
+---
 
 This document assumes that you have a Vault server up and running. You'll also need a working Confluent Cloud account and cluster.
 

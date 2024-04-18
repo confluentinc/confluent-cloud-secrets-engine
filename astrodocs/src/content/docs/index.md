@@ -4,8 +4,6 @@ description: Confluent Cloud Secrets Engine
 template: doc
 ---
 
-# Documentation How-To
-
 ## Publishing new documentation
 
 To publish new documentation, first ensure the latest version of the `Confluent Kafka framework` repo is present.

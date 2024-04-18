@@ -1,3 +1,9 @@
+---
+title: Confluent Cloud Secrets Engine - Developer Guide
+tableOfContents:
+  maxHeadingLevel: 4
+---
+
 # Project Pre-Requisites
 
 1. Install Go https://go.dev/doc/install

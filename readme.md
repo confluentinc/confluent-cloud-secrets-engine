@@ -1,4 +1,4 @@
-# Hashicorp Vault Confluent Cloud Plugin
+# Confluent Cloud Secrets Engine
 
 The Confluent Cloud plugin for Hashicorp Vault allows applications to automatically generate and store Confluent Cloud keys and secrets as secrets inside Vault.
 

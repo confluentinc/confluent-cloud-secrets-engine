@@ -1,0 +1,3 @@
+User-agent: *
+Disallow: /
+Sitemap: https://confluentinc.github.io/confluent-cloud-secrets-engine/sitemap-index.xml
