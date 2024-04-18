@@ -1,4 +1,8 @@
-# Hashicorp Vault Confluent Cloud Plugin - Administrator Guide
+---
+title: Confluent Cloud Secrets Engine - Administrator Guide
+tableOfContents:
+  maxHeadingLevel: 4
+---
 
 This document assumes that you have a Vault server up and running. You'll also need a working Confluent Cloud account and cluster.
 
@@ -44,7 +48,7 @@ When creating a Cloud API key, you can select *Global access* or *Granular acces
 
 Check https://docs.confluent.io/cloud/current/access-management/access-control/rbac/predefined-rbac-roles.html#resourcekeyadmin for more details.
 
-![](./img/cloud-api-keys.png)
+![](../../../../../img/cloud-api-keys.png)
 
 **CC_OWNER_ID**
 
@@ -54,7 +58,7 @@ If you want to use your user account as the owner:
 
 On the top right menu (aka hamburger menu), click your name, the ID will be in the details in the center box.
 
-![](./img/owner-id.png)
+![](../../../../../img/owner-id.png)
 
 
 if you want to use a service account as the owner:
@@ -65,13 +69,13 @@ On the top right menu (aka hamburger menu), click **Accounts & access**, then in
 
 Select the desired environment, then copy its ID from the URL.
 
-![](./img/env-id.png)
+![](../../../../../img/env-id.png)
 
 **CC_CLUSTER_ID**
 
 Select the desired cluster, then copy its ID from the center box.
 
-![](./img/cluster-id.png)
+![](../../../../../img/cluster-id.png)
 
 #### Plugin config and role
 
