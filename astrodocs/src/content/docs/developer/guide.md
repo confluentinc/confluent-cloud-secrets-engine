@@ -144,10 +144,12 @@ On success you should see ```Success! Data written to: ccloud/config```
 The following steps setup a new role.
 
 Set up a role and pass in a name, environment_id (where cluster lives), owner_id (create keys under this user/service acct), and resource_id ( the kafka cluster to register keys with).
-owner can be found in Accounts and Access then in the table it is the ID, resource_env is the same as owner_env
+owner can be found in Accounts and Access then in the table it is the ID, resource_env is the same as owner_env. The key description should be set by the developer as this is the description 
+visible in confluent cloud for the corresponding confluent cloud api key
 
 ```shell
-vault write ccloud/role/test name="test" owner="xxxx" owner_env="env-xxx" resource="lkc-xxx" resource_env="env-xxx"
+vault write ccloud/role/test name="test" owner="xxxx" owner_env="env-xxx" resource="lkc-xxx" resource_env="env-xxx" key_description="personal description for confluent cloud api key identification"
+
 ```
 
 On success, you should see '''Success! Data written to: ccloud/role/test'''
