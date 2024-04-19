@@ -12,7 +12,7 @@ export default defineConfig({
 		lastUpdated: true,
 		title: 'Confluent Cloud Secrets Engine',
 		editLink: {
-			baseUrl: 'https://github.com/confluentinc/confluent-cloud-secrets-engine/edit/main/astrodocs/'
+			baseUrl: 'https://github.com/confluentinc/confluent-cloud-secrets-engine/edit/main/astrodocs'
 		},
 		logo: {
 			light: '/src/assets/confluent.svg',
