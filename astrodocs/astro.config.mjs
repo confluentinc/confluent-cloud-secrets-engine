@@ -44,5 +44,4 @@ export default defineConfig({
         		})
         	],
         	site: 'https://confluentinc.github.io/confluent-cloud-secrets-engine/',
-        	base: '/confluent-cloud-secrets-engine'
         })
