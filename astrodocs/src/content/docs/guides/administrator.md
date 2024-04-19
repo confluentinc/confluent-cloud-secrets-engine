@@ -1,5 +1,5 @@
 ---
-title: Confluent Cloud Secrets Engine - Administrator Guide
+title: Administrator Guide
 tableOfContents:
   maxHeadingLevel: 4
 ---

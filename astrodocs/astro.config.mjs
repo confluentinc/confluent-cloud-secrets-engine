@@ -25,14 +25,9 @@ export default defineConfig({
 				link: '/'
 			}]
 		}, {
-			label: 'Administrator',
+			label: 'Guides',
 			autogenerate: {
-				directory: 'administrator'
-			}
-		}, {
-			label: 'Developer',
-			autogenerate: {
-				directory: 'developer'
+				directory: 'guides'
 			}
 		}]
 	}),
@@ -44,4 +39,5 @@ export default defineConfig({
         		})
         	],
         	site: 'https://confluentinc.github.io/confluent-cloud-secrets-engine/',
+        	base: '/confluent-cloud-secrets-engine'
         })

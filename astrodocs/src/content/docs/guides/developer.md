@@ -1,5 +1,5 @@
 ---
-title: Confluent Cloud Secrets Engine - Developer Guide
+title: Developer Guide
 tableOfContents:
   maxHeadingLevel: 4
 ---
