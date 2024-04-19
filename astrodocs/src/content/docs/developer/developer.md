@@ -49,6 +49,7 @@ Log into confluent cloud to find these environment variables.
 If you have an existing confluent cloud api key and secret you can use that. If not go to Cloud API Keys and create a new key.
 CONFLUENT_KEY (Confluent Cloud API key), CONFLUENT_SECRET (the secret for the Confluent Cloud API key), CONFLUENT_ENVIRONMENT_ID (where the cluster lives), CONFLUENT_OWNER_ID (create keys under this user/service acct), and CONFLUENT_RESOURCE_ID (the Kafka cluster to register keys with).
 Owner can be found in Accounts and Access then in the table it is the ID, resource_env is the same as owner_env
+CONFLUENT_KEY_DESCRIPTION is a description you enter for your key. This is for you to easily identify the key in the future. 
 
 ```shell
 export CONFLUENT_KEY="xxx"
@@ -56,6 +57,7 @@ export CONFLUENT_SECRET="xxx"
 export CONFLUENT_ENVIRONMENT_ID="xxx"
 export CONFLUENT_OWNER_ID="xxx"
 export CONFLUENT_RESOURCE_ID="xxx"
+export CONFLUENT_KEY_DESCRIPTION="xxx"
 ```
 
 ## 6. Create Role

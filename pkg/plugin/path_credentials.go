@@ -150,7 +150,6 @@ func (b *ccloudBackend) createClusterKey(ctx context.Context, req *logical.Reque
 	// TODO Populate Display Name Template
 	displayName := "display_name"
 
-	// TODO Populate Description Template
 	description := fmt.Sprintf("Key for role: %s%s (entity=%s, source=Vault CC plugin)", req.MountPoint, req.Path, req.DisplayName)
 	if roleEntry.KeyDescription != "" {
 		description = roleEntry.KeyDescription
