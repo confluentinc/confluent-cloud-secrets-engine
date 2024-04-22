@@ -1,0 +1,32 @@
+project_name: confluent-cloud-secrets-engine
+builds:
+  - env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    goarm:
+      - 6
+archives:
+  - format: tar.gz
+    name_template: >-
+      {{ .Binary }}_ {{- title .Os | tolower }}_ {{- if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }} {{- if .Arm }}v{{ .Arm }}{{ end }}
+    wrap_in_directory: '{{ .ProjectName }}'
+snapshot:
+  name_template: '{{ .Env.RELEASE_VERSION }}-next'
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+
+#blobs:
+#  - provider: s3
+#    region: us-east-1
+#    bucket: csid
+#    folder: '{{ .ProjectName }}/releases/{{ .Env.RELEASE_VERSION }}'
