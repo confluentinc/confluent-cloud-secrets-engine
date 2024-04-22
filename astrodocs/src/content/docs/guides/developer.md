@@ -1,5 +1,5 @@
 ---
-title: Confluent Cloud Secrets Engine - Developer Guide
+title: Developer Guide
 tableOfContents:
   maxHeadingLevel: 4
 ---
@@ -49,6 +49,7 @@ Log into confluent cloud to find these environment variables.
 If you have an existing confluent cloud api key and secret you can use that. If not go to Cloud API Keys and create a new key.
 CONFLUENT_KEY (Confluent Cloud API key), CONFLUENT_SECRET (the secret for the Confluent Cloud API key), CONFLUENT_ENVIRONMENT_ID (where the cluster lives), CONFLUENT_OWNER_ID (create keys under this user/service acct), and CONFLUENT_RESOURCE_ID (the Kafka cluster to register keys with).
 Owner can be found in Accounts and Access then in the table it is the ID, resource_env is the same as owner_env
+CONFLUENT_KEY_DESCRIPTION is a description you enter for your key. This is for you to easily identify the key in the future. 
 
 ```shell
 export CONFLUENT_KEY="xxx"
@@ -56,6 +57,7 @@ export CONFLUENT_SECRET="xxx"
 export CONFLUENT_ENVIRONMENT_ID="xxx"
 export CONFLUENT_OWNER_ID="xxx"
 export CONFLUENT_RESOURCE_ID="xxx"
+export CONFLUENT_KEY_DESCRIPTION="xxx"
 ```
 
 ## 6. Create Role
@@ -142,10 +144,12 @@ On success you should see ```Success! Data written to: ccloud/config```
 The following steps setup a new role.
 
 Set up a role and pass in a name, environment_id (where cluster lives), owner_id (create keys under this user/service acct), and resource_id ( the kafka cluster to register keys with).
-owner can be found in Accounts and Access then in the table it is the ID, resource_env is the same as owner_env
+owner can be found in Accounts and Access then in the table it is the ID, resource_env is the same as owner_env. The key description should be set by the developer as this is the description 
+visible in confluent cloud for the corresponding confluent cloud api key
 
 ```shell
-vault write ccloud/role/test name="test" owner="xxxx" owner_env="env-xxx" resource="lkc-xxx" resource_env="env-xxx"
+vault write ccloud/role/test name="test" owner="xxxx" owner_env="env-xxx" resource="lkc-xxx" resource_env="env-xxx" key_description="personal description for confluent cloud api key identification"
+
 ```
 
 On success, you should see '''Success! Data written to: ccloud/role/test'''

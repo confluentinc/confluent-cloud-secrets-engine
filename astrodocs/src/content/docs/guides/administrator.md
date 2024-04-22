@@ -1,5 +1,5 @@
 ---
-title: Confluent Cloud Secrets Engine - Administrator Guide
+title: Administrator Guide
 tableOfContents:
   maxHeadingLevel: 4
 ---
@@ -48,7 +48,7 @@ When creating a Cloud API key, you can select *Global access* or *Granular acces
 
 Check https://docs.confluent.io/cloud/current/access-management/access-control/rbac/predefined-rbac-roles.html#resourcekeyadmin for more details.
 
-![](../../../../../img/cloud-api-keys.png)
+![](../../../assets/cloud-api-keys.png)
 
 **CC_OWNER_ID**
 
@@ -58,7 +58,7 @@ If you want to use your user account as the owner:
 
 On the top right menu (aka hamburger menu), click your name, the ID will be in the details in the center box.
 
-![](../../../../../img/owner-id.png)
+![](../../../assets/owner-id.png)
 
 
 if you want to use a service account as the owner:
@@ -69,13 +69,13 @@ On the top right menu (aka hamburger menu), click **Accounts & access**, then in
 
 Select the desired environment, then copy its ID from the URL.
 
-![](../../../../../img/env-id.png)
+![](../../../assets/env-id.png)
 
 **CC_CLUSTER_ID**
 
 Select the desired cluster, then copy its ID from the center box.
 
-![](../../../../../img/cluster-id.png)
+![](../../../assets/cluster-id.png)
 
 #### Plugin config and role
 
