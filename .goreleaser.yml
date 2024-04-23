@@ -2,7 +2,7 @@ project_name: confluent-cloud-secrets-engine
 
 release:
   prerelease: auto
-  name_template: "CIRE-Traffic CLI v{{.Version}}"
+  name_template: "confluent-cloud-secrets-engine v{{.Version}}"
 
 builds:
   - id: macos
