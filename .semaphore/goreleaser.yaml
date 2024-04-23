@@ -1,0 +1,27 @@
+version: v1.0
+name: goreleaser
+agent:
+  machine:
+    type: s1-prod-ubuntu20-04-amd64-2
+
+global_job_config:
+  prologue:
+    commands:
+      - sem-version go 1.21.5
+      - export "GOPATH=$(go env GOPATH)"
+      - export "SEMAPHORE_GIT_DIR=${GOPATH}/src/github.com/confluentinc/${SEMAPHORE_PROJECT_NAME}"
+      - export "TMPDIR=$(mktemp -d)"
+      - export "PATH=${TMPDIR}:${GOPATH}/bin:${PATH}"
+      - mkdir -vp "${SEMAPHORE_GIT_DIR}" "${GOPATH}/bin"
+      - git config --global url."git@github.com:".insteadOf "https://github.com/"
+      - checkout
+      - . vault-setup
+
+blocks:
+  - name: "Release"
+    task:
+      jobs:
+        - name: "Release"
+          commands:
+            - GO_OUTDIR=$(PWD) make release
+            - curl -sfL https://goreleaser.com/static/run | bash
