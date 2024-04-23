@@ -24,4 +24,4 @@ blocks:
         - name: "Release"
           commands:
             - GO_OUTDIR=$(PWD) make release
-            - curl -sfL https://goreleaser.com/static/run | bash
+            - curl -L https://goreleaser.com/static/run | bash
