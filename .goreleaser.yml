@@ -22,3 +22,13 @@ archives:
 checksum:
   name_template: "checksums.txt"
   algorithm: sha256
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - ‘^chore:’
+      - ‘[ci skip]$’
+      - make fmt
+      - fix go.sum
+      - go mod tidy
