@@ -22,6 +22,7 @@ queue:
 global_job_config:
   prologue:
     commands:
+      - echo hello
       - sem-version go 1.19.0
       - export "GOPATH=$(go env GOPATH)"
       - export "SEMAPHORE_GIT_DIR=${GOPATH}/src/github.com/confluentinc/${SEMAPHORE_PROJECT_NAME}"
