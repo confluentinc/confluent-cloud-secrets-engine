@@ -74,5 +74,5 @@ promotions:
   - name: Release
     pipeline_file: goreleaser.yaml
     auto_promote:
-      when: "branch = 'main' and result = 'passed' and change_in(['/Makefile', '/go.mod', '/cmd/', '/internal/', '/pkg/'])"
+      when: "default_branch = 'main' and result = 'passed' and change_in(['/Makefile', '/go.mod', '/cmd/', '/internal/', '/pkg/'])"
 
