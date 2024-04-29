@@ -73,5 +73,3 @@ after_pipeline:
 promotions:
   - name: Release
     pipeline_file: goreleaser.yaml
-    auto_promote:
-      when: change_in(['/Makefile', '/go.mod', '/cmd/', '/internal/', '/pkg/'], {default_branch: 'main'})
