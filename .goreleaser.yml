@@ -6,6 +6,7 @@ release:
 
 builds:
   - id: macos
+    main: ./cmd/plugin/main.go
     binary: confluent-cloud-secrets-engine
     ldflags:
       - -s -w -X github.com/confluentinc/confluent-cloud-secrets-engine/internal/build.Version={{.Version}} -X github.com/confluentinc/confluent-cloud-secrets-engine/internal/build.Date={{time "2006-01-02"}}
