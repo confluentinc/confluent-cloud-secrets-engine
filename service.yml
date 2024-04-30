@@ -1,6 +1,6 @@
 name: confluent-cloud-secrets-engine
 lang: go
-lang_version: 1.19.0
+lang_version: 1.20.7
 git:
   enable: true
 github:
