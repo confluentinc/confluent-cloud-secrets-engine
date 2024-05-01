@@ -16,6 +16,8 @@ global_job_config:
       - git config --global url."git@github.com:".insteadOf "https://github.com/"
       - checkout
       - . vault-setup
+      - . vault-sem-get-secret ci-reporting
+      - . vault-sem-get-secret v1/ci/kv/service-foundations/cc-mk-include
 
 blocks:
   - name: "Release"
