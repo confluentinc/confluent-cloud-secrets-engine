@@ -29,6 +29,12 @@ export default defineConfig({
 			autogenerate: {
 				directory: 'guides'
 			}
+		},
+		{
+			label: 'Documentation Updates',
+			autogenerate: {
+				directory: 'documentation_updates'
+			}
 		}]
 	}),
 		robotsTxt({
