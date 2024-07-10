@@ -6,7 +6,7 @@ tableOfContents:
 
 ## Publishing new documentation
 
-To publish new documentation, first ensure the latest version of the `Confluent Kafka framework` repo is present.
+To publish new documentation, first ensure the latest version of the `Confluent Cloud Secrets Engine` repo is present.
 
 Then run the following command:
 
