@@ -1,6 +1,6 @@
 module github.com/confluentinc/confluent-cloud-secrets-engine
 
-go 1.22.12
+go 1.23.6
 
 require (
 	github.com/confluentinc/ccloud-sdk-go-v2/apikeys v0.4.0
