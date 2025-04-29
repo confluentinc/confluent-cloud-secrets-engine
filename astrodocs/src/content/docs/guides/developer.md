@@ -71,8 +71,13 @@ make setupMulti
 ```
 
 ## 7. Finally, Request a New Dynamic API-Key
+Single Use Role
 ```shell
-vault read ccloud/creds/test
+vault read ccloud/creds/singleUse
+```
+Multi Use Role
+```shell
+vault read ccloud/creds/multiUse
 ```
 On success should return
 ```

@@ -75,7 +75,10 @@ CONFLUENT_KEY_DESCRIPTION is a description you enter for your key. This is for y
 <p>Multi Use Role</p>
 <pre class="astro-code css-variables" style="background-color:var(--astro-code-color-background);color:var(--astro-code-color-text); overflow-x: auto;" tabindex="0"><code><span class="line"><span style="color:var(--astro-code-token-function)">make</span><span style="color:var(--astro-code-token-string)"> setupMulti</span></span></code></pre>
 <h2 id="7-finally-request-a-new-dynamic-api-key">7. Finally, Request a New Dynamic API-Key</h2>
-<pre class="astro-code css-variables" style="background-color:var(--astro-code-color-background);color:var(--astro-code-color-text); overflow-x: auto;" tabindex="0"><code><span class="line"><span style="color:var(--astro-code-token-function)">vault</span><span style="color:var(--astro-code-token-string)"> read</span><span style="color:var(--astro-code-token-string)"> ccloud/creds/test</span></span></code></pre>
+<p>Single Use Role</p>
+<pre class="astro-code css-variables" style="background-color:var(--astro-code-color-background);color:var(--astro-code-color-text); overflow-x: auto;" tabindex="0"><code><span class="line"><span style="color:var(--astro-code-token-function)">vault</span><span style="color:var(--astro-code-token-string)"> read</span><span style="color:var(--astro-code-token-string)"> ccloud/creds/singleUse</span></span></code></pre>
+<p>Multi Use Role</p>
+<pre class="astro-code css-variables" style="background-color:var(--astro-code-color-background);color:var(--astro-code-color-text); overflow-x: auto;" tabindex="0"><code><span class="line"><span style="color:var(--astro-code-token-function)">vault</span><span style="color:var(--astro-code-token-string)"> read</span><span style="color:var(--astro-code-token-string)"> ccloud/creds/multiUse</span></span></code></pre>
 <p>On success should return</p>
 <pre class="astro-code css-variables" style="background-color:var(--astro-code-color-background);color:var(--astro-code-color-text); overflow-x: auto;" tabindex="0"><code><span class="line"><span>Key                Value</span></span>
 <span class="line"><span>---                -----</span></span>

@@ -31,12 +31,6 @@ global_job_config:
       - make show-args
       - . vault-setup
       - . vault-sem-get-secret ci-reporting
-      - . vault-sem-get-secret v1/ci/kv/service-foundations/cc-mk-include
-      - make init-ci
-  epilogue:
-    always:
-      commands:
-        - make epilogue-ci
 
 blocks:
   - name: Build
@@ -55,7 +49,6 @@ blocks:
       prologue:
         commands:
           - make docker-login-ci
-          - sem-version java 8
       jobs:
         - name: Unit Tests
           commands:
