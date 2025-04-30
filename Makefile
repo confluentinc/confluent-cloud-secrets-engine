@@ -96,10 +96,6 @@ BASE_IMAGE := golang
 
 GO_BINS = github.com/confluentinc/confluent-cloud-secrets-engine/cmd/plugin=vault-ccloud-secrets-engine
 
-WORKSPACE := $(shell pwd)
-BIN_DIR := $(WORKSPACE)/bin
-SRC := $(WORKSPACE)/cmd/plugin/main.go
-APP_NAME := vault-ccloud-secrets-engine
 
 include ./mk-include/cc-begin.mk
 include ./mk-include/cc-vault.mk
