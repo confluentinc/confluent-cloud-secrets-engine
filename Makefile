@@ -98,8 +98,10 @@ include ./mk-include/cc-vault.mk
 include ./mk-include/cc-semaphore.mk
 include ./mk-include/cc-semver.mk
 include ./mk-include/cc-go.mk
+include ./mk-include/halyard.mk
 include ./mk-include/cc-api.mk
 include ./mk-include/cc-ci-metrics.mk
+include ./mk-include/cc-end.mk
 
 # Disable CGO by default, to allow static binaries
 export CGO_ENABLED := 0
