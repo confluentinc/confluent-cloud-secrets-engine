@@ -88,14 +88,10 @@ endif
 GOARCH = amd64
 MASTER_BRANCH ?= main
 
-UPDATE_MK_INCLUDE := true
-UPDATE_MK_INCLUDE_AUTO_MERGE := true
-SERVICE_NAME := confluent-cloud-secrets-engine
-IMAGE_NAME := $(SERVICE_NAME)
-BASE_IMAGE := golang
-
-GO_BINS = github.com/confluentinc/confluent-cloud-secrets-engine/cmd/plugin=vault-ccloud-secrets-engine
-
+WORKSPACE := $(shell pwd)
+BIN_DIR := $(WORKSPACE)/bin
+SRC := $(WORKSPACE)/cmd/plugin/main.go
+APP_NAME := vault-ccloud-secrets-engine
 
 include ./mk-include/cc-begin.mk
 include ./mk-include/cc-vault.mk
@@ -130,8 +126,7 @@ endif
 all: fmt build test start
 
 create:
-	GOOS=linux GOARCH=amd64  make build
-
+	GOOS=linux GOARCH=amd64 go build -o $(BIN_DIR)/$(APP_NAME) $(SRC)
 test:
 	go test -v ./pkg/plugin
 
@@ -145,8 +140,9 @@ enable:
 
 setup:
 	vault write ccloud/config ccloud_api_key_id=${CONFLUENT_KEY} ccloud_api_key_secret=${CONFLUENT_SECRET} url="https://api.confluent.cloud"
-	vault write ccloud/role/test1 name="test1" owner=${CONFLUENT_OWNER_ID} owner_env=${CONFLUENT_ENVIRONMENT_ID} resource=${CONFLUENT_RESOURCE_ID} resource_env=${CONFLUENT_ENVIRONMENT_ID} key_description=${CONFLUENT_KEY_DESCRIPTION}
+	vault write ccloud/role/singleUse name="singleUse" owner=${CONFLUENT_OWNER_ID} owner_env=${CONFLUENT_ENVIRONMENT_ID} resource=${CONFLUENT_RESOURCE_ID} resource_env=${CONFLUENT_ENVIRONMENT_ID} key_description=${CONFLUENT_KEY_DESCRIPTION}
 
 setupMulti:
 	vault write ccloud/config ccloud_api_key_id=${CONFLUENT_KEY} ccloud_api_key_secret=${CONFLUENT_SECRET} url="https://api.confluent.cloud"
-	vault write ccloud/role/test name="test" owner=${CONFLUENT_OWNER_ID} owner_env=${CONFLUENT_ENVIRONMENT_ID} resource=${CONFLUENT_RESOURCE_ID} resource_env=${CONFLUENT_ENVIRONMENT_ID} multi_use_key="true" key_description=${CONFLUENT_KEY_DESCRIPTION}
+	vault write ccloud/role/multiUse name="multiUse" owner=${CONFLUENT_OWNER_ID} owner_env=${CONFLUENT_ENVIRONMENT_ID} resource=${CONFLUENT_RESOURCE_ID} resource_env=${CONFLUENT_ENVIRONMENT_ID} multi_use_key="true" key_description=${CONFLUENT_KEY_DESCRIPTION}
+
