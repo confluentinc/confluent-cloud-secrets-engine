@@ -88,6 +88,14 @@ endif
 GOARCH = amd64
 MASTER_BRANCH ?= main
 
+UPDATE_MK_INCLUDE := true
+UPDATE_MK_INCLUDE_AUTO_MERGE := true
+SERVICE_NAME := confluent-cloud-secrets-engine
+IMAGE_NAME := $(SERVICE_NAME)
+BASE_IMAGE := golang
+
+GO_BINS = github.com/confluentinc/confluent-cloud-secrets-engine/cmd/plugin=vault-ccloud-secrets-engine
+
 WORKSPACE := $(shell pwd)
 BIN_DIR := $(WORKSPACE)/bin
 SRC := $(WORKSPACE)/cmd/plugin/main.go
@@ -126,7 +134,8 @@ endif
 all: fmt build test start
 
 create:
-	GOOS=linux GOARCH=amd64 go build -o $(BIN_DIR)/$(APP_NAME) $(SRC)
+	GOOS=linux GOARCH=amd64  make build
+
 test:
 	go test -v ./pkg/plugin
 
