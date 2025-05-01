@@ -26,7 +26,7 @@ go build
 ## 2. Build
 Run this command in the top level of the project. If you have just downloaded the project dependencies please cd into the top level. 
  ```shell
- make create
+ GOOS=linux GOARCH=amd64 go build -o "$(pwd)/bin/vault-ccloud-secrets-engine" "$(pwd)/cmd/plugin/main.go"
  ```
 ## 3. Start Docker Container
 ```shell
@@ -63,16 +63,24 @@ export CONFLUENT_KEY_DESCRIPTION="xxx"
 ## 6. Create Role
 Single Use Role
 ```shell
-make setup
+ vault write ccloud/config ccloud_api_key_id=${CONFLUENT_KEY} ccloud_api_key_secret=${CONFLUENT_SECRET} url="https://api.confluent.cloud"
+ vault write ccloud/role/singleUse name="singleUse" owner=${CONFLUENT_OWNER_ID} owner_env=${CONFLUENT_ENVIRONMENT_ID} resource=${CONFLUENT_RESOURCE_ID} resource_env=${CONFLUENT_ENVIRONMENT_ID} key_description=${CONFLUENT_KEY_DESCRIPTION}
+	
 ```
 Multi Use Role  
 ```shell
-make setupMulti
+ vault write ccloud/config ccloud_api_key_id=${CONFLUENT_KEY} ccloud_api_key_secret=${CONFLUENT_SECRET} url="https://api.confluent.cloud"
+ vault write ccloud/role/multiUse name="multiUse" owner=${CONFLUENT_OWNER_ID} owner_env=${CONFLUENT_ENVIRONMENT_ID} resource=${CONFLUENT_RESOURCE_ID} resource_env=${CONFLUENT_ENVIRONMENT_ID} multi_use_key="true" key_description=${CONFLUENT_KEY_DESCRIPTION}
 ```
 
 ## 7. Finally, Request a New Dynamic API-Key
+Single Use Role
 ```shell
-vault read ccloud/creds/test
+vault read ccloud/creds/singleUse
+```
+Multi Use Role
+```shell
+vault read ccloud/creds/multiUse
 ```
 On success should return
 ```
