@@ -25,7 +25,7 @@ MK_INCLUDE_TIMEOUT_MINS ?= 240
 # If this latest validated release is breaking you, please file a ticket with DevProd describing the issue, and
 # if necessary you can temporarily override MK_INCLUDE_VERSION above the managed section headers until the bad
 # release is yanked.
-MK_INCLUDE_VERSION ?= v0.1356.0
+MK_INCLUDE_VERSION ?= v0.1360.0
 
 # Make sure we always have a copy of the latest cc-mk-include release less than $(MK_INCLUDE_TIMEOUT_MINS) old:
 # Note: The simply-expanded make variable makes sure this is run once per make invocation.
@@ -150,4 +150,3 @@ setup:
 setupMulti:
 	vault write ccloud/config ccloud_api_key_id=${CONFLUENT_KEY} ccloud_api_key_secret=${CONFLUENT_SECRET} url="https://api.confluent.cloud"
 	vault write ccloud/role/multiUse name="multiUse" owner=${CONFLUENT_OWNER_ID} owner_env=${CONFLUENT_ENVIRONMENT_ID} resource=${CONFLUENT_RESOURCE_ID} resource_env=${CONFLUENT_ENVIRONMENT_ID} multi_use_key="true" key_description=${CONFLUENT_KEY_DESCRIPTION}
-
