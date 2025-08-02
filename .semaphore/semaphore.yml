@@ -22,15 +22,10 @@ queue:
 global_job_config:
   prologue:
     commands:
-      - sem-version go 1.23.10
-      - export "GOPATH=$(go env GOPATH)"
-      - export "SEMAPHORE_GIT_DIR=${GOPATH}/src/github.com/confluentinc/${SEMAPHORE_PROJECT_NAME}"
-      - export "PATH=${GOPATH}/bin:${PATH}"
-      - mkdir -vp "${SEMAPHORE_GIT_DIR}" "${GOPATH}/bin"
+      - sem-version go 1.23.11
       - checkout
       - make show-args
       - . vault-setup
-      - . vault-sem-get-secret v1/ci/kv/service-foundations/cc-mk-include
       - make init-ci
   epilogue:
     always:
