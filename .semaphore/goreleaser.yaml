@@ -7,7 +7,7 @@ agent:
 global_job_config:
   prologue:
     commands:
-      - sem-version go 1.23.10
+      - sem-version go 1.23.11
       - export "GOPATH=$(go env GOPATH)"
       - export "SEMAPHORE_GIT_DIR=${GOPATH}/src/github.com/confluentinc/${SEMAPHORE_PROJECT_NAME}"
       - export "TMPDIR=$(mktemp -d)"
@@ -15,7 +15,6 @@ global_job_config:
       - mkdir -vp "${SEMAPHORE_GIT_DIR}" "${GOPATH}/bin"
       - checkout
       - . vault-setup
-      - . vault-sem-get-secret v1/ci/kv/service-foundations/cc-mk-include
 
 blocks:
   - name: "Release"
