@@ -15,7 +15,6 @@ global_job_config:
       - mkdir -vp "${SEMAPHORE_GIT_DIR}" "${GOPATH}/bin"
       - checkout
       - . vault-setup
-      - . vault-sem-get-secret v1/ci/kv/service-foundations/cc-mk-include
 
 blocks:
   - name: "Release"
