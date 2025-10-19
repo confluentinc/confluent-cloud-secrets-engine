@@ -22,7 +22,7 @@ queue:
 global_job_config:
   prologue:
     commands:
-      - sem-version go 1.24.7
+      - sem-version go 1.24.8
       - checkout
       - make show-args
       - . vault-setup
