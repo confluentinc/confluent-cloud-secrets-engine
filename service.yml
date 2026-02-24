@@ -8,6 +8,11 @@ github:
   enable: true
 semaphore:
   enable: true
+  managed_sections:
+    - version
+    - name
+    - agent
+    - global_job_config
 make:
   enable: true
   update_makefile: false
