@@ -25,7 +25,6 @@ global_job_config:
       - sem-version go 1.24.12
       - checkout
       - make show-args
-      - . vault-setup
       - make init-ci
   epilogue:
     always:
