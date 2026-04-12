@@ -24,7 +24,7 @@ queue:
 global_job_config:
   prologue:
     commands:
-      - sem-version go 1.25.8
+      - sem-version go 1.25.9
       - checkout
       - make show-args
       - make init-ci
