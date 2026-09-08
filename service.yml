@@ -14,6 +14,6 @@ semaphore:
     - agent
     - global_job_config
 make:
-  enable: true
+  enable: false
   update_makefile: false
   enable_updates: true
