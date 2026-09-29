@@ -3,9 +3,6 @@ lang: go
 lang_version: "1.26.8"
 git:
   enable: true
-github:
-  repo_name: confluentinc/confluent-cloud-secrets-engine
-  enable: true
 semaphore:
   enable: true
   managed_sections:
