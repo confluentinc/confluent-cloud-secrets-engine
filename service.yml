@@ -1,10 +1,7 @@
 name: confluent-cloud-secrets-engine
 lang: go
-lang_version: "1.26.8"
+lang_version: 1.26.8
 git:
-  enable: true
-github:
-  repo_name: confluentinc/confluent-cloud-secrets-engine
   enable: true
 semaphore:
   enable: true
